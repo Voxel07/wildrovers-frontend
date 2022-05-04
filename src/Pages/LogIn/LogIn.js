@@ -28,10 +28,10 @@ export function SignIn(props) {
     return (
         <div>
             <div>
-                <TextField id="outlined-basic" label="Username or Email" variant="outlined" id="margin-normal" margin="normal" />
+                <TextField id="outlined-basic" label="Username or Email" variant="outlined" margin="normal" />
             </div>
             <div>
-                <TextField id="outlined-basic" label="Passwort" variant="outlined" type="password" id="margin-normal" margin="normal" />
+                <TextField id="outlined-basic" label="Passwort" variant="outlined" type="password" margin="normal" />
             </div>
             <div>
                 <Button varian="contained" onClick={() => handleSubmit()}>LogIn</Button>
