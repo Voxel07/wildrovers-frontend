@@ -4,6 +4,9 @@
 
 import React, { Component } from 'react'
 import Categories from './Forum-Categories'
+import Topics from './Forum-Topic'
+import Box from '@mui/material/Box';
+import Posts from '../../components/Forum/Posts'
 
 
 export default class Forum extends Component {
@@ -15,11 +18,13 @@ export default class Forum extends Component {
 
     }
 
-
-
   render() {
     return (
-      <Categories/>
+        <Box>
+            {/* <Categories/> */}
+            <Topics/>
+
+        </Box>
     )
   }
 }

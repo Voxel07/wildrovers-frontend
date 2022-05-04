@@ -5,7 +5,7 @@ import SideBar from './Pages/SideBar/SideBar'
 function App() {
   return (
     <div>
-      <SideBar/>
+      {/* <SideBar/> */}
       <Forum />
 
     </div>
