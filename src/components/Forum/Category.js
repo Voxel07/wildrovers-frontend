@@ -51,7 +51,7 @@ export default function Category(props) {
           <Typography variant="h5" component="h2">{props.categoryNames.name}</Typography>
         </Grid>
         <Grid item xs={10}> {/*Stats*/}
-            <Grid container direction="row" justifyContent="flex-start"  alignItems="center" colomnSpacing={1}>
+            <Grid container direction="row" justifyContent="flex-start"  alignItems="center" colomnspacing={1}>
             <Stack direction="row" spacing={1}>
               <Tooltip title="Ersteller" placement="top-end">
                   <Chip icon={<PersonOutlineIcon/>} label={"Ersteller"} variant="outlined" />
