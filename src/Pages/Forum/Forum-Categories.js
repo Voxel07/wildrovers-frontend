@@ -7,6 +7,8 @@ import Typography from '@mui/material/Typography';
 import axios from 'axios'
 import { red } from '@material-ui/core/colors';
 
+import AddCategory from '../../components/Forum/AddCategory';
+
 
 function getCategories(){
     // axios.get("http://localhost:8080/company", { params: { ctrId: this.state.id } })
@@ -29,24 +31,25 @@ function getCategories(){
             id: "3"
         }
     ]
- }
+}
 
 export default function Forum_Categories(){
     let categories= getCategories();
     return (
-        <Container className='categories-container' maxWidth="xl"
-        sx={{
-            backgroundColor : "black",
-            padding: 0
-        }}>
+        <AddCategory test={categories}></AddCategory>
+        // <Container className='categories-container' maxWidth="xl"
+        // sx={{
+        //     backgroundColor : "black",
+        //     padding: 0
+        // }}>
 
-        {
-            categories.length ? categories.map(category => <Category categoryNames={category}/>)
-            : <Typography sx={{ color:red[500] }}>Keine Daten erhalten</Typography>
-        }
+        // {
+        //     categories.length ? categories.map(category => <Category categoryNames={category}/>)
+        //     : <Typography sx={{ color:red[500] }}>Keine Daten erhalten</Typography>
+        // }
 
-        <Button variant="outlined" size="medium" startIcon={<AddCircleOutlineOutlinedIcon />} sx={{marginTop: 2}}>Kategorie erstellen</Button>
+        // <Button variant="outlined" size="medium" startIcon={<AddCircleOutlineOutlinedIcon />} sx={{marginTop: 2}}>Kategorie erstellen</Button>
 
-        </Container>
+        // </Container>
     )
 }
