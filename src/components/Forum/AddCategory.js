@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Formik, Field, Form } from 'formik';
 import * as yup from 'yup';
-
+// import * as React from 'react';
 //Feedback
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
@@ -21,17 +21,29 @@ import FormControl, { useFormControl } from '@mui/material/FormControl';
 
 //Button
 import Button from '@mui/material/Button';
-import { Container } from '@mui/material';
+import { Container, Typography } from '@mui/material';
 
 import { Autocomplete } from 'formik-mui'; //https://stackworx.github.io/formik-mui/
 import { red } from '@mui/material/colors';
-
+import Modal from '@mui/material/Modal';
+import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
+// import { connect } from "react-redux";
 export default function AddCategory(props) {
 
-    const [possibleCategories, setPossibleCategories] = useState({ hits: [] });
-    const [filteredCategories, setFilteredCategories] = useState({ hits: [] });
     const [requestResponseText, setRequestResponseText] = useState();
     const [requestResponseCode, setRequestResponseCode] = useState();
+
+//------------Modal-------------------------------------
+
+    const [open, setOpen] = React.useState(false);
+    const handleOpen = () => {
+      setOpen(true);
+    };
+    const handleClose = () => {
+      setOpen(false);
+    };
+
+//------------Modal Ende-----Yump-----------------------
 
     const validationSchema = yup.object({
         Name: yup
@@ -43,22 +55,9 @@ export default function AddCategory(props) {
         Visibility: yup.mixed().required()
     })
 
-    function test(data){
-        console.log("filtering data: ");
-        let filtered;
-        let i = 0;
-        for (const element of data) {
-            // filtered.push(element.category);
-             console.log(element.category);
-            console.log(i);
-            i++;
+//----Functions-------------------------
 
-        }
-        // console.log("awdawdw");
-        console.log(filtered);
-        setFilteredCategories(filtered);
-    }
-    function addCategory(vals){
+    function saveCategoryToDB(vals){
         const result = axios.create({
             validateStatus: (status) => {
                 return status >= 100 && status < 600
@@ -81,104 +80,111 @@ export default function AddCategory(props) {
         console.log(result);
     }
 
-    useEffect(() => {
-    const fetchCategories = async () => {
-        const result = await axios.get(
-        'http://localhost:8080/forum/category',
-        );
-        setPossibleCategories(result.data);
-        test(result.data);
-
-    };
-
-
-    fetchCategories();
-    }, []);
-
+    const style = {
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: 400,
+        bgcolor: 'background.paper',
+        border: '2px solid #000',
+        boxShadow: 24,
+        p: 4,
+      };
 
   return (
-
-   <Formik
-    validateOnChange={true}
-    initialValues={{
-        Name: '',
-        Position: '',
-        Visibility: ''
-    }}
-    validationSchema={validationSchema}
-    onSubmit={
-        (data, { setSubmitting, resetForm }) => {
-            setSubmitting(true);
-            //Post From
-            console.log(data);
-            setSubmitting(false);
-            addCategory(data);
-            // resetForm(true);
-
-        }
-    }
-   >
-    {
-         ({ values, errors, isSubmitting , touched}) => (
-            <div>
-             <Container className="Form-Container" sx={{width:0.25, marginTop:5}} >
-                <Form className="Form">
-                <Field variant="outlined" label="Name der Kategorie" name="Name" type="input" error={!!errors.Name} helperText={errors.Name} as={TextField} />
-                <Field name="Position" component={Autocomplete} options={possibleCategorys} getOptionLabel={possibleCategorys.lable}renderInput={(params) => (
-                    <TextField
-                    {...params}
-                    // We have to manually set the corresponding fields on the input component
-                    name="Position"
-                    error={touched['Position'] && !!errors['Position']}
-                    helperText={errors['Position']}
-                    sx={{
-                        color:red,
-                        marginTop: 3
-                    }}
-                    label="Reihenfolge"
-                    variant="outlined"
-                    />
-                )}
-                />
-                <Field name="Visibility" component={Autocomplete} options={possibleCategorys} getOptionLabel={possibleCategorys.lable}renderInput={(params) => (
-                    <TextField
-                    {...params}
-                    // We have to manually set the corresponding fields on the input component
-                    name="Visibility"
-                    error={touched['Visibility'] && !!errors['Visibility']}
-                    helperText={errors['Visibility']}
-                    sx={{
-                        color:red,
-                        marginTop: 3
-                    }}
-                    label="Sichtbarkeit"
-                    variant="outlined"
-                    />
-                )}
-                />
-                 <Button disabled={isSubmitting || !errors} type='submit'> submit </Button>
-                    <pre> {JSON.stringify(values, null, 2)} </pre>
-                 </Form>
-
-             </Container>
-             <Grid container alignItems="center" justifyContent="center">
-                <Stack sx={{ width: '33%' }} spacing={2}>
-
-                {
-                    requestResponseCode > 200 ?
-                    <Alert severity="error">{requestResponseText}</Alert>
-                    :
-                    <Alert severity="success">{requestResponseText}</Alert>
+    <React.Fragment>
+        <Button onClick={handleOpen} variant="outlined" size="medium" startIcon={<AddCircleOutlineOutlinedIcon />} sx={{marginTop: 2}}>Kategorie erstellen</Button>
+        <Modal
+            disableScrollLock
+            // hideBackdrop
+            open={open}
+            onClose = {(_, reason) => {
+                if (reason !== "backdropClick") {
+                handleClose();
                 }
+            }}
+        >
+        <Formik
+            validateOnChange={true}
+            initialValues={{
+                Name: '',
+                Position: '',
+                Visibility: ''
+            }}
+            validationSchema={validationSchema}
+            onSubmit={
+                (data, { setSubmitting, resetForm }) => {
+                    setSubmitting(true);
+                    //Post From
+                    setSubmitting(false);
+                    saveCategoryToDB(data);
+                    resetForm(true);
 
-                </Stack>
-            </Grid >
-             </div>
-         )
-
-    }
-
-   </Formik>
+                }
+            }
+        >
+            {
+            ({ values, errors, isSubmitting , touched}) => (
+            <div>
+                <Container className="Form-Container" sx={{...style, width:0.33}} >
+                    <Typography sx={{marginBottom:5}}>Neue Kategorie hinzufügen</Typography>
+                    <Form className="Form">
+                    <Field variant="outlined" label="Name der Kategorie" name="Name" type="input" error={!!errors.Name} helperText={errors.Name} as={TextField} />
+                    <Field name="Position" component={Autocomplete} options={possibleCategorys} getOptionLabel={possibleCategorys.lable}renderInput={(params) => (
+                        <TextField
+                        {...params}
+                        // We have to manually set the corresponding fields on the input component
+                        name="Position"
+                        error={touched['Position'] && !!errors['Position']}
+                        helperText={errors['Position']}
+                        sx={{
+                            color:red,
+                            marginTop: 3
+                        }}
+                        label="Reihenfolge"
+                        variant="outlined"
+                        />
+                    )}
+                    />
+                    <Field name="Visibility" component={Autocomplete} options={possibleCategorys} getOptionLabel={possibleCategorys.lable}renderInput={(params) => (
+                        <TextField
+                        {...params}
+                        // We have to manually set the corresponding fields on the input component
+                        name="Visibility"
+                        error={touched['Visibility'] && !!errors['Visibility']}
+                        helperText={errors['Visibility']}
+                        sx={{
+                            color:red,
+                            marginTop: 3
+                        }}
+                        label="Sichtbarkeit"
+                        variant="outlined"
+                        />
+                    )}
+                    />
+                    <Grid container direction="row" justifyContent="space-between">
+                    <Button disabled={isSubmitting || !errors} type='submit'> Hinzufügen </Button>
+                    <Button onClick={handleClose} color="error"> Abbrechen </Button>
+                    </Grid>
+                        {/* <pre> {JSON.stringify(values, null, 2)} </pre> */}
+                    </Form>
+                </Container>
+                <Grid container alignItems="center" justifyContent="center">
+                    <Stack sx={{ width: '33%' }} spacing={2}>
+                    {
+                        requestResponseText ?
+                        requestResponseCode > 200 ? <Alert severity="error">{requestResponseText}</Alert>:<Alert severity="success">{requestResponseText}</Alert>
+                        : null
+                    }
+                    </Stack>
+                </Grid >
+            </div>
+            )
+            }
+        </Formik>
+        </Modal>
+    </React.Fragment>
   );
 }
 const possibleCategorys = [
@@ -194,3 +200,4 @@ const posibleRanks = [
     { label: 'Vorstand', id: 4 }
 ];
 
+// export default connect(null, null, null, {forwardRef: true})(AddCategory);

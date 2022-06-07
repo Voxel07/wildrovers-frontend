@@ -1,3 +1,4 @@
+import * as React from 'react';
 import Container from '@mui/material/Container';
 import Button from '@mui/material/Button';
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
@@ -8,6 +9,22 @@ import axios from 'axios'
 import { red } from '@material-ui/core/colors';
 
 import AddCategory from '../../components/Forum/AddCategory';
+import Box from '@mui/material/Box';
+import Modal from '@mui/material/Modal';
+
+
+const style = {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: 400,
+    bgcolor: 'background.paper',
+    border: '2px solid #000',
+    boxShadow: 24,
+    p: 4,
+  };
+
 
 
 function getCategories(){
@@ -36,20 +53,23 @@ function getCategories(){
 export default function Forum_Categories(){
     let categories= getCategories();
     return (
-        <AddCategory test={categories}></AddCategory>
-        // <Container className='categories-container' maxWidth="xl"
-        // sx={{
-        //     backgroundColor : "black",
-        //     padding: 0
-        // }}>
 
-        // {
-        //     categories.length ? categories.map(category => <Category categoryNames={category}/>)
-        //     : <Typography sx={{ color:red[500] }}>Keine Daten erhalten</Typography>
-        // }
 
-        // <Button variant="outlined" size="medium" startIcon={<AddCircleOutlineOutlinedIcon />} sx={{marginTop: 2}}>Kategorie erstellen</Button>
+        <Container className='categories-container' maxWidth="xl"
+        sx={{
+            backgroundColor : "black",
+            padding: 0
+        }}>
+        <AddCategory></AddCategory>
+        {
+            categories.length ? categories.map(category => <Category categoryNames={category}/>)
+            : <Typography sx={{ color:red[500] }}>Keine Daten erhalten</Typography>
+        }
+        <div>
 
-        // </Container>
+        <AddCategory></AddCategory>
+
+        </div>
+        </Container>
     )
 }
