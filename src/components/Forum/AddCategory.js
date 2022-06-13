@@ -42,6 +42,18 @@ export default function AddCategory(props) {
     const handleClose = () => {
       setOpen(false);
     };
+    //--------Modal-Style-------------------------------
+    const style = {
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: 400,
+        bgcolor: 'background.paper',
+        border: '2px solid #000',
+        boxShadow: 24,
+        p: 4,
+      };
 
 //------------Modal Ende-----Yump-----------------------
 
@@ -79,18 +91,6 @@ export default function AddCategory(props) {
         console.log("result: ");
         console.log(result);
     }
-
-    const style = {
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: 400,
-        bgcolor: 'background.paper',
-        border: '2px solid #000',
-        boxShadow: 24,
-        p: 4,
-      };
 
   return (
     <React.Fragment>
