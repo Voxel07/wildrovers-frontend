@@ -38,6 +38,7 @@ function fetchTopics(){
 }
 
 export default function Category(props) {
+  console.log(props.categoryNames);
   const {category,userName, creationDate,topicCount,id} = props.categoryNames;
   const topics = fetchTopics();
   return (

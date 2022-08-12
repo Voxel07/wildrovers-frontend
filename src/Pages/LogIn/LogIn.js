@@ -8,6 +8,7 @@ export function SignIn(props) {
 
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [isLogedIn, setIsLogedIn] = useState('');
 
     function handleSubmit(e) {
         e.preventDefault()

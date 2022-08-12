@@ -10,14 +10,9 @@ import * as yup from 'yup';
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Grid from '@mui/material/Grid';
-// Category name
-import Box from '@mui/material/Box';
-import TextField from '@mui/material/TextField';
 
-//Select Boxes
-// import Autocomplete from '@mui/material/Autocomplete';
-import FormHelperText from '@mui/material/FormHelperText';
-import FormControl, { useFormControl } from '@mui/material/FormControl';
+// Category name
+import TextField from '@mui/material/TextField';
 
 //Button
 import Button from '@mui/material/Button';
@@ -27,7 +22,7 @@ import { Autocomplete } from 'formik-mui'; //https://stackworx.github.io/formik-
 import { red } from '@mui/material/colors';
 import Modal from '@mui/material/Modal';
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
-// import { connect } from "react-redux";
+
 export default function AddCategory(props) {
 
     const [requestResponseText, setRequestResponseText] = useState();
@@ -169,7 +164,6 @@ export default function AddCategory(props) {
                     </Grid>
                         {/* <pre> {JSON.stringify(values, null, 2)} </pre> */}
                     </Form>
-                </Container>
                 <Grid container alignItems="center" justifyContent="center">
                     <Stack sx={{ width: '33%' }} spacing={2}>
                     {
@@ -179,6 +173,8 @@ export default function AddCategory(props) {
                     }
                     </Stack>
                 </Grid >
+                </Container>
+
             </div>
             )
             }

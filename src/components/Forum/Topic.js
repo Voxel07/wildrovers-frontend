@@ -27,8 +27,8 @@ const Item = styled(Paper)(({ theme }) => ({
   export default function Topic (props) {
     const topic = props.topic;
     return (
-      <Box  sx={{ flexGrow: 1 }}>
-    <Grid key={topic.id} container spacing={{xs:0, md:1}} direction="row" justifyContent="flex-start"
+      <Box key={topic.id} sx={{ flexGrow: 1 }}>
+    <Grid container spacing={{xs:0, md:1}} direction="row" justifyContent="flex-start"
     alignItems="center"  columns={{sx:8, md:8, lg:12}}
     >
       <Grid item xs={4} md={4} lg={8}> {/*Name*/}

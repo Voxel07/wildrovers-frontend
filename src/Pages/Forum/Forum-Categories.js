@@ -38,7 +38,7 @@ export default function Forum_Categories()
             backgroundColor : "black",
             padding: 0
         }}>
-        <AddCategory possibleCategorys={categories.category}></AddCategory>
+        <AddCategory possibleCategorys={categories}></AddCategory>
 
         {loading ?
             categories.length ? categories.map(category => <Category categoryNames={category}/>)
