@@ -1,4 +1,6 @@
-import * as React from 'react';
+import React,{ useContext } from 'react';
+
+//Material UI
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
@@ -12,15 +14,21 @@ import AdbIcon from '@mui/icons-material/Adb';
 import { grey } from '@material-ui/core/colors';
 import { Link } from "react-router-dom";
 import MenuItem from '@mui/material/MenuItem';
+
 // Eigene Imports
 import NavbarLogo from './Navbar-Logo';
 import NavbarLogin from './Navbar-LoginPromt';
 
+//Context
+import { UserContext } from '../User/UserContext';
 
-const pages = ['Forum', 'Regeln', 'Mitglieder'];
 
-const ResponsiveAppBar = () => {
+const pages = [{key: 1, name:"Form"},{key: 2, name:"Forum"},{key: 3, name:"Regeln"}];
+
+const ResponsiveAppBar = props => {
+
   const [anchorElNav, setAnchorElNav] = React.useState(null);
+  const {user} = useContext(UserContext);
 
   const handleOpenNavMenu = (event) => {
     setAnchorElNav(event.currentTarget);
@@ -31,9 +39,17 @@ const ResponsiveAppBar = () => {
     setAnchorElNav(null);
   };
 
+  const validateLogin = () =>{
+    return !!localStorage.getItem("jwt");
+  };
+
+  const test = validateLogin();
+
+
 
   //Replace with check if the user is loged in
-  const test = false;
+  // <switchNavbar.Provider value={test/}>
+  // const test = useContext(LoginState);
 
   return (
 
@@ -90,8 +106,8 @@ const ResponsiveAppBar = () => {
               }}
             >
               {pages.map((page) => (
-                <Link to={"Forum"}><MenuItem key={page} onClick={handleCloseNavMenu}>
-                  <Typography textAlign="center">{page}</Typography>
+                <Link to={"Forum"}key={page.key}><MenuItem onClick={handleCloseNavMenu}>
+                  <Typography textAlign="center">{page.name}</Typography>
                 </MenuItem></Link>
               ))}
             </Menu>
@@ -121,19 +137,18 @@ const ResponsiveAppBar = () => {
           {/* Big menue items */}
           <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
             {pages.map((page) => (
-              <Link to={page}><Button
-                key={page}
+              <Link to={page} key={page.key}><Button
                 onClick={handleCloseNavMenu}
                 sx={{ my: 2, color: 'white', display: 'block' }}
               >
-                {page}
+                {page.name}
               </Button></Link>
             ))}
           </Box>
 
           {/* Avatar Item */}
           {
-            test ? <NavbarLogo/> : <NavbarLogin/>
+            user.valid ? <NavbarLogo/> : <NavbarLogin/>
           }
 
 

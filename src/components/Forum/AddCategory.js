@@ -162,7 +162,7 @@ export default function AddCategory(props) {
                     <Button disabled={isSubmitting || !errors} type='submit'> Hinzufügen </Button>
                     <Button onClick={handleClose} color="error"> Abbrechen </Button>
                     </Grid>
-                        {/* <pre> {JSON.stringify(values, null, 2)} </pre> */}
+                        <pre> {JSON.stringify(values, null, 2)} </pre>
                     </Form>
                 <Grid container alignItems="center" justifyContent="center">
                     <Stack sx={{ width: '33%' }} spacing={2}>

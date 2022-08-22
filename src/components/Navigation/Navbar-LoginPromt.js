@@ -13,12 +13,13 @@
  import Alert from '@mui/material/Alert';
  import Stack from '@mui/material/Stack';
 
-
  //Button
  import Button from '@mui/material/Button';
  import { Container, Typography } from '@mui/material';
  import * as yup from 'yup';
 
+ //Cookie
+ import Cookies from 'universal-cookie';
 
  import Modal from '@mui/material/Modal';
  import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
@@ -52,44 +53,48 @@ export default function Navbar_LoginPromt() {
 
 //------------Modal Ende----------------------------
 
-function setToken(token){
-    localStorage.setItem("JWT_TOKEN",token);
-    setAuthToken(token);
+function saveJwtToken(token){
+    // const cookies = new Cookies();
+    localStorage.setItem("jwt",token);
+
+    // cookies.set('rüdiger', token, { path: '/' });
+    // console.log(cookies.get('jwt')); // Pacman
 }
 
-const setAuthToken = token => {
-    if (token) {
-        axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-        console.log(axios.defaults.headers.common["Authorization"] );
-    }
-    else
-        delete axios.defaults.headers.common["Authorization"];
- }
+ //Warum wird das ausgeführt
+ useEffect(() => {
+    if (requestResponseCode == 200)
+    {
+        console.log("Mach zu das Ding");
+        saveJwtToken(requestResponseText);
+        handleClose();
+    }});
+
 
 function LogIn(vals){
     axios.create({
-        validateStatus: (status) => {
+        validateStatus: (status) => { //this changes shit
             return status >= 100 && status < 600
           },
-    }).post(
-    'http://localhost:8080/user/login',
+    }).post('http://localhost:8080/user/login',
     {
         userName: vals.userName,
         password: vals.password,
 
     }
     ).then(
-        response =>{
+        response =>
+        {
             setRequestResponseCode(response.status)
             setRequestResponseText(response.data)
 
-            if (requestResponseCode < 400) {
-                console.log(requestResponseCode);
-                console.log(requestResponseText);
-                setToken(requestResponseText);
-                handleClose();
+            // console.log("data:",response.data);
+            // console.log("statusText:",response.statusText);
+            // console.log("Code:",response.status);
+            // console.log("headers:",response.headers);
+            // console.log("config:",response.config);
 
-            }
+
         }
     )
 }
@@ -162,9 +167,8 @@ function LogIn(vals){
                     <Grid container alignItems="center" justifyContent="center">
                     <Stack  spacing={2}>
                     {
-                        requestResponseText ?
-                        requestResponseCode > 200 ? <Alert severity="error">{requestResponseText}</Alert>:null
-                        : null
+                        requestResponseText && requestResponseCode > 200 ? <Alert severity="error">{requestResponseText}</Alert>:null
+
                     }
                     </Stack>
                 </Grid >
