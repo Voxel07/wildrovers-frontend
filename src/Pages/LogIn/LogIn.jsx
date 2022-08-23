@@ -16,7 +16,6 @@ import Stack from '@mui/material/Stack';
 
 //Eigene
 
-import { saveJWT } from '../../components/utils/saveJWT';
 import { UserContext } from '../../components/User/UserContext';
 // import  LogIn  from '../../components/utils/util_LogIn';
 //Cookie
@@ -29,7 +28,7 @@ export function SignIn() {
 
 function testLogin(){
     console.log("jwt:" + localStorage.getItem("jwt"));
-    axios.get('http://localhost:8080/secured/permit-all', {headers: { Authorization: `Bearer ${localStorage.getItem("jwt")}` }})
+    axios.get('http://localhost:8080/secured/permit-all', {headers: { Authorization: `Bearer ${user.jwt}` }})
     .then(response => {
         console.log(response.data)
     })
@@ -52,7 +51,7 @@ const handleSubmit = async(formData) =>{
        password: formData.password,
     })
     .then(response => {//handels only status code 200-300?
-        saveJWT(response.data);
+        console.log(JSON.stringify(response.data))
         setUser({valid:true, jwt:response.data});
         setState({resCode:response.status, resData:response.data})
     })
@@ -81,7 +80,7 @@ const validationSchema = yup.object({
                 await handleSubmit(data); //async call
                 resetForm({values:{
                     username:data.username,
-                    password:"123"
+                    password:""
                 }});
                 console.log("false")
              }}
