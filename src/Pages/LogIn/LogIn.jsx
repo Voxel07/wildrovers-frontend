@@ -16,7 +16,7 @@ import Stack from '@mui/material/Stack';
 
 //Eigene
 
-import { UserContext } from '../../components/User/UserContext';
+import { UserContext } from '../../context/UserContext';
 // import  LogIn  from '../../components/utils/util_LogIn';
 //Cookie
 
@@ -58,7 +58,6 @@ const handleSubmit = async(formData) =>{
     .catch(error => {//handle response codes over 400 here
         setState({resCode:error.response.status, resData:error.response.data})
     });
-//     console.log("done")
 
 }
 const validationSchema = yup.object({
@@ -68,21 +67,19 @@ const validationSchema = yup.object({
 
 
 
-    const {resCode, resData} = state
+    const {resCode, resData} = state;
     return (
         <div>
         <Formik
         initialValues={{ username: "", password: "" }}
         onSubmit={async(data, { setSubmitting , resetForm, }) => {
-                console.log("true")
-                //Post From
                 setSubmitting(true);
+                //Post From
                 await handleSubmit(data); //async call
                 resetForm({values:{
                     username:data.username,
                     password:""
                 }});
-                console.log("false")
              }}
             validationSchema={validationSchema}
         >
@@ -107,7 +104,6 @@ const validationSchema = yup.object({
                             !!resData && resCode > 200 ? <Alert severity="error">{resData}</Alert>:null
                         }
                         </Stack>
-                        {/* <div>Hallo+ {responseText}</div> */}
                     </Grid>
                 </Grid>
             </Form>

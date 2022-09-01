@@ -20,7 +20,7 @@ import NavbarLogo from './Navbar-Logo';
 import NavbarLogin from './Navbar-LoginPromt';
 
 //Context
-import { UserContext } from '../User/UserContext';
+import { UserContext } from '../../context/UserContext';
 
 
 const pages = [{key: 1, name:"Form"},{key: 2, name:"Forum"},{key: 3, name:"Regeln"}];

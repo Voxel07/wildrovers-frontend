@@ -14,7 +14,7 @@ import SignUp from './Pages/SignUp/SignUp';
 
 //context
 import { useMemo, useState } from "react";
-import { UserContext } from './components/User/UserContext';
+import { UserContext } from './context/UserContext';
 
 function App() {
   const [user, setUser] = useState({valid:false,name:"",role:"",jwt:""});
