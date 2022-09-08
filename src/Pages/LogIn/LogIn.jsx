@@ -1,6 +1,7 @@
 //React
 import React, { useContext, useState } from 'react'
 import axios from 'axios'
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 //Mui
 import Button from '@material-ui/core/Button'
@@ -14,7 +15,8 @@ import * as yup from 'yup';
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 
-//Eigene
+//Auth
+import useAuth from '../../context/useAuth';
 
 import { UserContext } from '../../context/UserContext';
 // import  LogIn  from '../../components/utils/util_LogIn';
@@ -23,6 +25,7 @@ import { UserContext } from '../../context/UserContext';
 
 export function SignIn() {
 
+    const { setAuth } = useAuth();
     const {user, setUser} = useContext(UserContext);
     const [state, setState] = useState({ resCode: null, resData: null });
 
@@ -43,7 +46,7 @@ const LogOut = () =>{
 
 }
 
-const handleSubmit = async(formData) =>{
+const submitForms = async(formData) =>{
 
     await axios.post('http://localhost:8080/user/login',
     {
@@ -51,11 +54,17 @@ const handleSubmit = async(formData) =>{
        password: formData.password,
     })
     .then(response => {//handels only status code 200-300?
-        console.log(JSON.stringify(response.data))
-        setUser({valid:true, jwt:response.data});
-        setState({resCode:response.status, resData:response.data})
+        console.log("ja");
+        console.log(response.data);
+        console.log(response.status);
+        setState({resCode: response.status, resData: response.data})
+        // setAuth({JWT: response.data.JWT, Role: response.data.USER.Role});
+        setUser({valid: true, name: response.data.USER.Name});
     })
     .catch(error => {//handle response codes over 400 here
+        console.log("why")
+        console.log(error.response.data);
+        console.log(error.response.status);
         setState({resCode:error.response.status, resData:error.response.data})
     });
 
@@ -75,7 +84,7 @@ const validationSchema = yup.object({
         onSubmit={async(data, { setSubmitting , resetForm, }) => {
                 setSubmitting(true);
                 //Post From
-                await handleSubmit(data); //async call
+                await submitForms(data); //async call
                 resetForm({values:{
                     username:data.username,
                     password:""
@@ -93,7 +102,7 @@ const validationSchema = yup.object({
                         <Field variant="outlined"  label="Nickname" name="username" type="input" error={!!errors.username && !!touched.username} helperText={!!touched.username && !!errors.username && String(errors.username)} as={TextField} />
                     </Grid>
                     <Grid item>
-                        <Field variant="outlined" label="Passwort" name="password" type="input" error={!!errors.password && !!touched.password} helperText={!!touched.password &&  !!errors.password && String(errors.password)} as={TextField} />
+                        <Field variant="outlined" label="Passwort" name="password" type="password" error={!!errors.password && !!touched.password} helperText={!!touched.password &&  !!errors.password && String(errors.password)} as={TextField} />
                     </Grid>
                     <Grid item>
                         <Button  variant="outlined" disabled={isSubmitting || !errors} type='submit'> LogIn </Button>

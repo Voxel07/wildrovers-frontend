@@ -23,7 +23,7 @@ import NavbarLogin from './Navbar-LoginPromt';
 import { UserContext } from '../../context/UserContext';
 
 
-const pages = [{key: 1, name:"Form"},{key: 2, name:"Forum"},{key: 3, name:"Regeln"}];
+const pages = [{key: 1, name:"Forum"},{key: 2, name:"Forum"},{key: 3, name:"Regeln"}];
 
 const ResponsiveAppBar = props => {
 
@@ -34,18 +34,9 @@ const ResponsiveAppBar = props => {
     setAnchorElNav(event.currentTarget);
   };
 
-
   const handleCloseNavMenu = () => {
     setAnchorElNav(null);
   };
-
-  const validateLogin = () =>{
-    return !!localStorage.getItem("jwt");
-  };
-
-  const test = validateLogin();
-
-
 
   //Replace with check if the user is loged in
   // <switchNavbar.Provider value={test/}>
@@ -137,7 +128,7 @@ const ResponsiveAppBar = props => {
           {/* Big menue items */}
           <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
             {pages.map((page) => (
-              <Link to={page} key={page.key}><Button
+              <Link to={page.name} key={page.key}><Button
                 onClick={handleCloseNavMenu}
                 sx={{ my: 2, color: 'white', display: 'block' }}
               >
@@ -148,7 +139,7 @@ const ResponsiveAppBar = props => {
 
           {/* Avatar Item */}
           {
-            user.valid ? <NavbarLogo/> : <NavbarLogin/>
+            user.valid ? <NavbarLogo userName={user.name} /> : <NavbarLogin/>
           }
 
 

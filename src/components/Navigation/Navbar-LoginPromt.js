@@ -36,6 +36,8 @@ export default function Navbar_LoginPromt() {
   };
   const handleClose = () => {
     setOpen(false);
+    setRequestResponseCode("")
+
   };
 
   //--------Modal-Style-------------------------------

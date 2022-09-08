@@ -7,11 +7,11 @@ import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import Menu from '@mui/material/Menu';
-
+import { deepOrange } from '@mui/material/colors';
 
 const settings = ['Profile', 'Account', 'Dashboard', 'Logout'];
 
-export default function NavbarLogo() {
+const NavbarLogo = props => {
   const [anchorElUser, setAnchorElUser] = React.useState(null);
 
     const handleOpenUserMenu = (event) => {
@@ -20,11 +20,13 @@ export default function NavbarLogo() {
       const handleCloseUserMenu = () => {
         setAnchorElUser(null);
       };
+      console.log(props);
+
   return (
     <Box sx={{ flexGrow: 0 }}>
         <Tooltip title="Open settings">
             <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-            <Avatar alt="Remy Sharp" src="/static/images/avatar/2.jpg" />
+            <Avatar alt={props.userName[0].toUpperCase()} src="..\..\..\images\Default_Profile_Background.png" />
             </IconButton>
         </Tooltip>
         <Menu
@@ -51,6 +53,8 @@ export default function NavbarLogo() {
         </Menu>
     </Box>
   )
-}
+};
+
+export default NavbarLogo;
 
 

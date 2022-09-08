@@ -16,6 +16,16 @@ import SignUp from './Pages/SignUp/SignUp';
 import { useMemo, useState } from "react";
 import { UserContext } from './context/UserContext';
 
+//Protected routes
+import RequireAuth from './components/Router/RequireAuth';
+import Rules from './Pages/Rules/Rules';
+
+const ROLES = {
+  'User': 2001,
+  'Editor': 1984,
+  'Admin': 5150
+}
+
 function App() {
   const [user, setUser] = useState({valid:false,name:"",role:"",jwt:""});
   const stateValue = useMemo(() => ({ user, setUser }), [user, setUser]);
@@ -24,15 +34,22 @@ function App() {
       <UserContext.Provider value={stateValue}>
         <Navbar/>
       <Routes history={history}>
+        {/*Public Routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="Login" element={<LogIn />} />
         <Route path="SignUp" element={<SignUp />} />
-        <Route path="Forum" element={<Forum />} />
-        <Route path="Forum/Topic" element={<Topics />} />
-        <Route
-        path="*"
-        element={<Navigate to="/" replace />}
-    />
+        <Route path="*" element={<Navigate to="/" replace />} /> {/*Redirect any invalide url to home */}
+
+        {/*Member Routes */}
+        <Route element={<RequireAuth allowedRoles={[ROLES.User]} />}>
+          <Route path="Forum" element={<Forum />} />
+          <Route path="Forum/Topic" element={<Topics />} />
+        </Route>
+
+        {/*Admin Routes */}
+        <Route element={<RequireAuth allowedRoles={[ROLES.Admin]} />}>
+          <Route path='Regeln' element={<Rules />} />
+        </Route>
       </Routes>
       </UserContext.Provider>
 

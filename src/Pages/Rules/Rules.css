@@ -1,0 +1,31 @@
+
+/*Style Regelwerk*/
+.regelwerk ul li {
+    list-style: decimal;
+    position: relative;
+    left: 15px;
+}
+
+.regelwerk h3{
+    /* font-size: 25px; */
+    font-family: roboto_B;
+    color:orange;
+    padding: 10px 0;
+
+}
+
+.regelwerk ul li{
+    font-family: roboto_L;
+    color:yellowgreen;
+    position: relative;
+    z-index: -1;
+
+}
+
+.regelwerk .unterm {
+    position: relative;
+    list-style: lower-latin;
+    left: 15px;
+    color :red;
+
+}
