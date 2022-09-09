@@ -25,7 +25,7 @@ import { UserContext } from '../../context/UserContext';
 
 const pages = [{key: 1, name:"Forum"},{key: 2, name:"Forum"},{key: 3, name:"Regeln"}];
 
-const ResponsiveAppBar = props => {
+const ResponsiveAppBar = () => {
 
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const {user} = useContext(UserContext);

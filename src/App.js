@@ -11,6 +11,9 @@ import Navbar from './components/Navigation/Navbar';
 import LandingPage from './Pages/LandingPage/LandingPage';
 import LogIn from './Pages/LogIn/LogIn';
 import SignUp from './Pages/SignUp/SignUp';
+import Unauthorized from './Pages/Sonstige/Unauthorized';
+import PageNotFound from './Pages/PageNotFound/PageNotFound';
+
 
 //context
 import { useMemo, useState } from "react";
@@ -30,7 +33,6 @@ function App() {
   const [user, setUser] = useState({valid:false,name:"",role:"",jwt:""});
   const stateValue = useMemo(() => ({ user, setUser }), [user, setUser]);
   return (
-    <Router>
       <UserContext.Provider value={stateValue}>
         <Navbar/>
       <Routes history={history}>
@@ -38,7 +40,10 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="Login" element={<LogIn />} />
         <Route path="SignUp" element={<SignUp />} />
-        <Route path="*" element={<Navigate to="/" replace />} /> {/*Redirect any invalide url to home */}
+        <Route path="unauthorized" element={<Unauthorized />} />
+        <Route path="404" element={<PageNotFound />} />
+
+        <Route path="*" element={<Navigate to="/404" replace />} /> {/*Redirect any invalide url to home */}
 
         {/*Member Routes */}
         <Route element={<RequireAuth allowedRoles={[ROLES.User]} />}>
@@ -52,8 +57,6 @@ function App() {
         </Route>
       </Routes>
       </UserContext.Provider>
-
-    </Router>
   );
 }
 

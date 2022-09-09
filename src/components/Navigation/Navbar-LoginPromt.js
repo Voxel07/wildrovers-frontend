@@ -1,7 +1,7 @@
 /**
  * This is the Modal to Login
  */
- import React, { useState, useEffect } from 'react';
+ import React, { useState, useEffect, useContext } from 'react';
  import axios from 'axios';
  import { Formik, Field, Form } from 'formik';
 
@@ -23,11 +23,16 @@
 
  import Modal from '@mui/material/Modal';
  import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
- // import { connect } from "react-redux";
-export default function Navbar_LoginPromt() {
 
-    const [requestResponseText, setRequestResponseText] = useState();
-    const [requestResponseCode, setRequestResponseCode] = useState();
+ //Context
+import { UserContext } from '../../context/UserContext';
+
+import SignIn from '../../Pages/LogIn/LogIn';
+
+const Navbar_LoginPromt = React.forwardRef((props, ref) => {
+    const [state, setState] = useState({ resCode: null, resData: null });
+    const { setUser } = useContext(UserContext);
+
   //------------Modal-------------------------------------
 
   const [open, setOpen] = React.useState(false);
@@ -36,7 +41,6 @@ export default function Navbar_LoginPromt() {
   };
   const handleClose = () => {
     setOpen(false);
-    setRequestResponseCode("")
 
   };
 
@@ -55,20 +59,11 @@ export default function Navbar_LoginPromt() {
 
 //------------Modal Ende----------------------------
 
-function saveJwtToken(token){
-    // const cookies = new Cookies();
-    localStorage.setItem("jwt",token);
-
-    // cookies.set('rüdiger', token, { path: '/' });
-    // console.log(cookies.get('jwt')); // Pacman
-}
-
  //Warum wird das ausgeführt
  useEffect(() => {
-    if (requestResponseCode == 200)
+    if (resCode == 200)
     {
         console.log("Mach zu das Ding");
-        saveJwtToken(requestResponseText);
         handleClose();
     }});
 
@@ -87,22 +82,22 @@ function LogIn(vals){
     ).then(
         response =>
         {
-            setRequestResponseCode(response.status)
-            setRequestResponseText(response.data)
+        setState({resCode: response.status, resData: ""})
 
-            // console.log("data:",response.data);
-            // console.log("statusText:",response.statusText);
-            // console.log("Code:",response.status);
-            // console.log("headers:",response.headers);
-            // console.log("config:",response.config);
-
+            setUser({valid: true, name: response.data.USER.Name});
 
         }
     )
+    .catch(error => {//handle response codes over 400 here
+        console.log("why")
+        console.log("status:", error.response.status);
+        console.log("data:", error.response.data);
+        setState({resCode:error.response.status, resData:error.response.data})
+    });
 }
 
-
-  return (
+    const {resCode, resData} = state;
+    return (
     <React.Fragment>
         <Button onClick={handleOpen} variant="outlined" size="medium" startIcon={<AddCircleOutlineOutlinedIcon />} sx={{marginTop: 2}}>LogIn</Button>
         <Modal
@@ -117,6 +112,8 @@ function LogIn(vals){
             //     }
             // }}
         >
+            <SignIn popUp={true}/>
+        {/* <div {...props} ref={ref}>
         <Formik
             initialValues={
                 {
@@ -169,8 +166,7 @@ function LogIn(vals){
                     <Grid container alignItems="center" justifyContent="center">
                     <Stack  spacing={2}>
                     {
-                        requestResponseText && requestResponseCode > 200 ? <Alert severity="error">{requestResponseText}</Alert>:null
-
+                        !!resData && resCode > 200 ? <Alert severity="error">{resData}</Alert>:null
                     }
                     </Stack>
                 </Grid >
@@ -180,7 +176,11 @@ function LogIn(vals){
                 )
             }
         </Formik>
+        </div> */}
         </Modal>
     </React.Fragment>
   )
 }
+)
+
+export default Navbar_LoginPromt;

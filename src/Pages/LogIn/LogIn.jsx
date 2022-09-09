@@ -23,9 +23,13 @@ import { UserContext } from '../../context/UserContext';
 //Cookie
 
 
-export function SignIn() {
+export function SignIn(props) {
 
     const { setAuth } = useAuth();
+    const navigate = useNavigate();
+    const location = useLocation();
+    const from = location.state?.from?.pathname || "/";
+
     const {user, setUser} = useContext(UserContext);
     const [state, setState] = useState({ resCode: null, resData: null });
 
@@ -41,9 +45,7 @@ function testLogin(){
 }
 
 const LogOut = () =>{
-    localStorage.removeItem("jwt");
     setUser({valid:false, jwt:null});
-
 }
 
 const submitForms = async(formData) =>{
@@ -54,17 +56,22 @@ const submitForms = async(formData) =>{
        password: formData.password,
     })
     .then(response => {//handels only status code 200-300?
-        console.log("ja");
         console.log(response.data);
         console.log(response.status);
-        setState({resCode: response.status, resData: response.data})
-        // setAuth({JWT: response.data.JWT, Role: response.data.USER.Role});
+        setState({resCode: response.status, resData: ""})
         setUser({valid: true, name: response.data.USER.Name});
+        setAuth({JWT: response.data.JWT, roles: response.data.USER.Role, user: user});
+        console.log(props);
+        {
+            if(!props.popUp)
+            {
+                navigate(from, {replace: true});
+            }
+        }
     })
     .catch(error => {//handle response codes over 400 here
-        console.log("why")
-        console.log(error.response.data);
         console.log(error.response.status);
+        console.log(error.response.data);
         setState({resCode:error.response.status, resData:error.response.data})
     });
 
