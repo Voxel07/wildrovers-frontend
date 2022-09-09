@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useContext, useState } from 'react'
 
 import Tooltip from '@mui/material/Tooltip';
 import Avatar from '@mui/material/Avatar';
@@ -8,10 +8,43 @@ import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import Menu from '@mui/material/Menu';
 import { deepOrange } from '@mui/material/colors';
+import Paper from '@mui/material/Paper';
+import Divider from '@mui/material/Divider';
+import MenuList from '@mui/material/MenuList';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import { UserContext } from '../../context/UserContext';
+import { Link } from "react-router-dom";
 
 const settings = ['Profile', 'Account', 'Dashboard', 'Logout'];
 
+
+const NavBarLogoMenue = props =>{
+  const {setUser} = useContext(UserContext);
+  const [anchorElNav, setAnchorElNav] = React.useState(null);
+
+  const handleCloseNavMenu = () => {
+    setAnchorElNav(null);
+  };
+
+  const LogOut = () =>{
+    setUser({valid:false, jwt:null});
+  }
+
+  return(
+    <Paper  sx={{ width: 120, magin:0, padding:0  }}>
+      <Link to={"Profil"}key={"Profil"}><MenuItem onClick={handleCloseNavMenu}>
+                  <Typography textAlign="center">{"Profil"}</Typography>
+                </MenuItem></Link>
+        <MenuItem>
+          <ListItemText onClick={LogOut}>LogOut</ListItemText >
+        </MenuItem>
+    </Paper>
+  )
+}
+
 const NavbarLogo = props => {
+
   const [anchorElUser, setAnchorElUser] = React.useState(null);
 
     const handleOpenUserMenu = (event) => {
@@ -22,15 +55,16 @@ const NavbarLogo = props => {
       };
       console.log(props);
 
+
   return (
-    <Box sx={{ flexGrow: 0 }}>
+    <Box sx={{ flexGrow: 0}}>
         <Tooltip title="Open settings">
             <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
             <Avatar alt={props.userName[0].toUpperCase()} src="..\..\..\images\Default_Profile_Background.png" />
             </IconButton>
         </Tooltip>
         <Menu
-            sx={{ mt: '45px' }}
+            sx={{ mt: '45px', magin:0, padding:0  }}
             id="menu-appbar"
             anchorEl={anchorElUser}
             anchorOrigin={{
@@ -45,11 +79,7 @@ const NavbarLogo = props => {
             open={Boolean(anchorElUser)}
             onClose={handleCloseUserMenu}
         >
-            {settings.map((setting) => (
-            <MenuItem key={setting} onClick={handleCloseUserMenu}>
-                <Typography textAlign="center">{setting}</Typography>
-            </MenuItem>
-            ))}
+            <NavBarLogoMenue />
         </Menu>
     </Box>
   )
