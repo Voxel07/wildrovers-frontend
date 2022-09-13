@@ -1,4 +1,6 @@
 import React, { useContext, useState } from 'react'
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios'
 
 import Tooltip from '@mui/material/Tooltip';
 import Avatar from '@mui/material/Avatar';
@@ -15,21 +17,42 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import { UserContext } from '../../context/UserContext';
 import { Link } from "react-router-dom";
-
+import useAuth from '../../context/useAuth';
 const settings = ['Profile', 'Account', 'Dashboard', 'Logout'];
 
 
-const NavBarLogoMenue = props =>{
-  const {setUser} = useContext(UserContext);
-  const [anchorElNav, setAnchorElNav] = React.useState(null);
+const NavbarLogo = props => {
+
+  const [anchorElUser, setAnchorElUser] = React.useState(null);
+  const { setAuth } = useAuth();
+  const navigate = useNavigate();
+  const { setUser} = useContext(UserContext);
+
+  const handleOpenUserMenu = (event) => {
+      setAnchorElUser(event.currentTarget);
+    };
+  const handleCloseUserMenu = () => {
+    setAnchorElUser(null);
+  };
+
+  async function LogOut (){
+    axios.post('https://localhost/user/logout')
+    .then(response=>{
+        setUser({valid:false, jwt:null});
+        setAuth({JWT: null, user: null, roles: null});
+        navigate("/", {replace:true});
+    })
+    .catch(error =>{
+      console.log(error);
+    })
+}
+
+const NavBarLogoMenue = () =>{
+  const [ setAnchorElNav] = React.useState(null);
 
   const handleCloseNavMenu = () => {
     setAnchorElNav(null);
   };
-
-  const LogOut = () =>{
-    setUser({valid:false, jwt:null});
-  }
 
   return(
     <Paper  sx={{ width: 120, magin:0, padding:0  }}>
@@ -42,19 +65,6 @@ const NavBarLogoMenue = props =>{
     </Paper>
   )
 }
-
-const NavbarLogo = props => {
-
-  const [anchorElUser, setAnchorElUser] = React.useState(null);
-
-    const handleOpenUserMenu = (event) => {
-        setAnchorElUser(event.currentTarget);
-      };
-      const handleCloseUserMenu = () => {
-        setAnchorElUser(null);
-      };
-      console.log(props);
-
 
   return (
     <Box sx={{ flexGrow: 0}}>

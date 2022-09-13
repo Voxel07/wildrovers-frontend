@@ -39,17 +39,17 @@ function App() {
         {/*Public Routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="Login" element={<LogIn />} />
-        <Route path="SignUp" element={<SignUp />} />
+        <Route path="Regestrieren" element={<SignUp />} />
         <Route path="unauthorized" element={<Unauthorized />} />
         <Route path="404" element={<PageNotFound />} />
 
         <Route path="*" element={<Navigate to="/404" replace />} /> {/*Redirect any invalide url to home */}
 
         {/*Member Routes */}
-        <Route element={<RequireAuth allowedRoles={[ROLES.User]} />}>
+        {/* <Route element={<RequireAuth allowedRoles={[ROLES.Admin, ROLES.User]} />}> */}
           <Route path="Forum" element={<Forum />} />
           <Route path="Forum/Topic" element={<Topics />} />
-        </Route>
+        {/* </Route> */}
 
         {/*Admin Routes */}
         <Route element={<RequireAuth allowedRoles={[ROLES.Admin]} />}>

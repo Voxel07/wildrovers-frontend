@@ -30,7 +30,7 @@ function SignUpForm() {
 
     const handleSubmit = async(formData) =>{
 
-        await axios.put('http://localhost:8080/user',
+        await axios.put('https://localhost/user',
         {
             firstName: formData.firstName,
             lastName: formData.lastName,
@@ -40,8 +40,8 @@ function SignUpForm() {
         })
         .then(response => {//handels only status code 200-300?
             console.log(JSON.stringify(response.data))
-            setUser({valid:true, jwt:response.data});
-            setState({resCode:response.status, resData:response.data})
+            // setUser({valid:true, jwt:response.data});
+            // setState({resCode:response.status, resData:response.data})
         })
         .catch(error => {//handle response codes over 400 here
             console.log("fuck")

@@ -8,7 +8,9 @@ import Button from '@material-ui/core/Button'
 import TextField from '@material-ui/core/TextField';
 import Grid from '@material-ui/core/Grid';
 import Typography from '@mui/material/Typography';
-
+import Container from '@mui/material/Container';
+import CloseIcon from '@mui/icons-material/Close';
+import IconButton from '@mui/material/IconButton';
 //Form
 import { Formik, Field, Form } from 'formik';
 import * as yup from 'yup';
@@ -19,11 +21,8 @@ import Stack from '@mui/material/Stack';
 import useAuth from '../../context/useAuth';
 
 import { UserContext } from '../../context/UserContext';
-// import  LogIn  from '../../components/utils/util_LogIn';
-//Cookie
 
-
-export function SignIn(props) {
+const SignIn = React.forwardRef((props, ref) => {
 
     const { setAuth } = useAuth();
     const navigate = useNavigate();
@@ -33,24 +32,35 @@ export function SignIn(props) {
     const {user, setUser} = useContext(UserContext);
     const [state, setState] = useState({ resCode: null, resData: null });
 
-function testLogin(){
-    console.log("jwt:" + localStorage.getItem("jwt"));
-    axios.get('http://localhost:8080/secured/permit-all', {headers: { Authorization: `Bearer ${user.jwt}` }})
-    .then(response => {
-        console.log(response.data)
-    })
-    .catch(error => {
-        console.log(error)
-    })
-}
+    const style = {
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: 400,
+        bgcolor: 'background.paper',
+        border: '2px solid #000',
+        boxShadow: 24,
+        p: 4,
+      };
 
-const LogOut = () =>{
-    setUser({valid:false, jwt:null});
+
+function myCloseButton (){
+  return(
+    <IconButton color="error" onClick={props.callback} aria-label="Schliesen" sx={{
+        position:"absolute",
+        right:"0",
+        top:"0"
+
+    }}>
+        <CloseIcon />
+    </IconButton>
+  )
 }
 
 const submitForms = async(formData) =>{
 
-    await axios.post('http://localhost:8080/user/login',
+    await axios.post('https://localhost/user/login',
     {
        userName: formData.username,
        password: formData.password,
@@ -59,11 +69,11 @@ const submitForms = async(formData) =>{
         console.log(response.data);
         console.log(response.status);
         setState({resCode: response.status, resData: ""})
-        setUser({valid: true, name: response.data.USER.Name});
-        setAuth({JWT: response.data.JWT, roles: response.data.USER.Role, user: user});
+        setUser({valid: true, name: response.data.USER.Name, roles: response.data.USER.Role});
+        setAuth({JWT: response.data.JWT, user: true, roles: response.data.USER.Role});
         console.log(props);
         {
-            if(!props.popUp)
+            if(!!!props.modal)
             {
                 navigate(from, {replace: true});
             }
@@ -80,12 +90,9 @@ const validationSchema = yup.object({
     username: yup.string().min(3, "Mindestens 3 Zeichen").max(7,"Max 8 Zeichen").required("Pflichtfeld"),
     password: yup.string().required("Pflichtfeld"),
 })
-
-
-
     const {resCode, resData} = state;
     return (
-        <div>
+        <div {...props} ref={ref}>
         <Formik
         initialValues={{ username: "", password: "" }}
         onSubmit={async(data, { setSubmitting , resetForm, }) => {
@@ -101,9 +108,12 @@ const validationSchema = yup.object({
         >
         {({values, errors, isSubmitting, touched }) => (
             <Form>
-                <Grid container direction="column" alignItems="center" spacing={2}>
-                    <Grid item>
-                        <Typography sx={{marginBottom:5}}>Melde dich an</Typography>
+                <Container sx={{...style}}>
+                {!!props.modal ? myCloseButton():null}
+
+                <Grid container direction="column" alignItems="center" spacing={2} >
+                    <Grid item >
+                        <Typography>Melde dich an</Typography>
                     </Grid>
                     <Grid item>
                         <Field variant="outlined"  label="Nickname" name="username" type="input" error={!!errors.username && !!touched.username} helperText={!!touched.username && !!errors.username && String(errors.username)} as={TextField} />
@@ -122,21 +132,12 @@ const validationSchema = yup.object({
                         </Stack>
                     </Grid>
                 </Grid>
+                </Container>
             </Form>
         )}
         </Formik>
-
-        <Grid container direction="column" alignItems="center" spacing={2}>
-            <Grid item>
-                <Button onClick={testLogin} variant="outlined">TestLogin</Button>
-            </Grid>
-            <Grid item>
-                <Button onClick={LogOut} variant="outlined">LogOut</Button>
-            </Grid>
-        </Grid>
-
         </div>
     )
 }
-
+)
 export default SignIn
