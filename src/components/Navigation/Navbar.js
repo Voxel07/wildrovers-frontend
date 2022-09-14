@@ -20,7 +20,7 @@ import NavbarLogo from './Navbar-Logo';
 import NavbarLogin from './Navbar-LoginPromt';
 
 //Context
-import { UserContext } from '../../context/UserContext';
+import useAuth from '../../context/useAuth';
 
 
 const pages = [{key: 1, name:"Forum"},{key: 2, name:"Forum"},{key: 3, name:"Regeln"}];
@@ -28,7 +28,7 @@ const pages = [{key: 1, name:"Forum"},{key: 2, name:"Forum"},{key: 3, name:"Rege
 const ResponsiveAppBar = () => {
 
   const [anchorElNav, setAnchorElNav] = React.useState(null);
-  const {user} = useContext(UserContext);
+  const {auth} = useAuth();
 
   const handleOpenNavMenu = (event) => {
     setAnchorElNav(event.currentTarget);
@@ -139,7 +139,7 @@ const ResponsiveAppBar = () => {
 
           {/* Avatar Item */}
           {
-            user.valid ? <NavbarLogo userName={user.name} /> : <NavbarLogin/>
+            auth.user ? <NavbarLogo userName={auth.user} /> : <NavbarLogin/>
           }
 
 

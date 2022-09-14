@@ -13,6 +13,7 @@ import LogIn from './Pages/LogIn/LogIn';
 import SignUp from './Pages/SignUp/SignUp';
 import Unauthorized from './Pages/Sonstige/Unauthorized';
 import PageNotFound from './Pages/PageNotFound/PageNotFound';
+import VerificationPrompt from './Pages/Sonstige/RegestrationSucessfull';
 
 
 //context
@@ -40,6 +41,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="Login" element={<LogIn />} />
         <Route path="Regestrieren" element={<SignUp />} />
+        <Route path="Regestrieren/Erfolgreich" element={<VerificationPrompt />} />
         <Route path="unauthorized" element={<Unauthorized />} />
         <Route path="404" element={<PageNotFound />} />
 

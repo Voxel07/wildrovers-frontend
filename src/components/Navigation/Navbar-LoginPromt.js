@@ -29,8 +29,7 @@ const Navbar_LoginPromt = () => {
             open={open}
             onClose={handleClose}
         >
-        <SignIn modal="true" callback={handleClose} />
-
+          <SignIn modal="true" callback={handleClose} />
         </Modal>
     </React.Fragment>
   )

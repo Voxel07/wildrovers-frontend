@@ -69,8 +69,8 @@ const submitForms = async(formData) =>{
         console.log(response.data);
         console.log(response.status);
         setState({resCode: response.status, resData: ""})
-        setUser({valid: true, name: response.data.USER.Name, roles: response.data.USER.Role});
-        setAuth({JWT: response.data.JWT, user: true, roles: response.data.USER.Role});
+        setUser({name: response.data.USER.Name, roles: response.data.USER.Role});
+        setAuth({JWT: response.data.JWT, user: response.data.USER.Name, roles: response.data.USER.Role});
         console.log(props);
         {
             if(!!!props.modal)

@@ -1,5 +1,6 @@
 import React, { useContext, useState } from 'react'
 // import './SignUp.csks';
+import { useNavigate } from 'react-router-dom';
 
 //Form
 import { Formik, Field, Form } from 'formik';
@@ -25,8 +26,8 @@ import differenceInYears from "date-fns/differenceInYears";
 
 function SignUpForm() {
 
-    const {user, setUser} = useContext(UserContext);
     const [state, setState] = useState({ resCode: null, resData: null });
+    const navigate = useNavigate();
 
     const handleSubmit = async(formData) =>{
 
@@ -40,8 +41,10 @@ function SignUpForm() {
         })
         .then(response => {//handels only status code 200-300?
             console.log(JSON.stringify(response.data))
-            // setUser({valid:true, jwt:response.data});
-            // setState({resCode:response.status, resData:response.data})
+            setState({resCode:response.status, resData:response.data})
+            navigate("/Regestrieren/Erfolgreich", {replace: true});
+
+
         })
         .catch(error => {//handle response codes over 400 here
             console.log("fuck")
