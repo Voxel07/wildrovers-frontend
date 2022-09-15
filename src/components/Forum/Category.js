@@ -1,4 +1,5 @@
-import React from 'react'
+import React,{ useState, useEffect } from 'react'
+import axios from 'axios';
 
 import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
@@ -16,33 +17,35 @@ import Stack from '@mui/material/Stack';
 import Topic from "./Topic"
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import EventNoteIcon from '@mui/icons-material/EventNote';
-
-
-function fetchTopics(){
-  return[
-      {
-          name: "Vorstellung Team",
-          desc:"hier steht um was es geht",
-          views: "250K",
-          themen: "50",
-          id: Math.random()
-      },
-      {
-        name: "Vorstellung Einzelperson",
-        desc:"hier steht um was es geht",
-        views: "250K",
-        themen: "50",
-        id: Math.random()
-    }
-  ];
-}
+import GroupIcon from '@mui/icons-material/Group';
 
 export default function Category(props) {
-  console.log(props.categoryNames);
-  const {category,userName, creationDate,topicCount,id} = props.categoryNames;
-  const topics = fetchTopics();
+
+
+  const [topics, setTopics] = useState([]);
+
+  //get all topics in this category
+  useEffect(() => {
+    console.log("Category mounted, fetching "+props.vals.id);
+    axios.get("https://localhost/forum/topic",{params:{category:props.vals.id}})
+    .then(response => {
+      console.log("cat:"+response);
+      setTopics(response.data);
+    })
+    .catch(error=>{
+      console.log(error)
+    })
+
+    return () => {
+      console.log("Category unmounted");
+    }
+  }, [])
+
+
+
+  const {category,userName, creationDate,topicCount,id,visibility} = props.vals;
   return (
-  <Accordion defaultExpanded={true} key={id}>
+  <Accordion key={id} defaultExpanded={true} >
     <AccordionSummary
       expandIcon={<ExpandMoreIcon />}
       aria-controls="panel1a-content"
@@ -64,6 +67,9 @@ export default function Category(props) {
               <Tooltip title="Themen" placement="top-end">
                   <Chip icon={<TopicIcon/>} label={topicCount} variant="outlined" />
               </Tooltip>
+              <Tooltip title="Wer darf das sehen" placement="top-end">
+                  <Chip icon={<GroupIcon/>} label={visibility} variant="outlined" />
+              </Tooltip>
               </Stack>
             </Grid>
         </Grid>
@@ -73,7 +79,8 @@ export default function Category(props) {
     <Divider  />
     <AccordionDetails>
       {
-        topics.length ? topics.map(topic => <Topic topic={topic}/>) : null
+        topics.length ? topics.map(topic => <Topic topic={topic}/>)
+        : <div>In dieser Kategorie gibt es noch keine Themen</div>
       }
     </AccordionDetails>
     <Button variant="outlined" size="small" startIcon={<AddCircleOutlineOutlinedIcon />} sx={{margin: 1}}>Thema hinzufügen</Button>

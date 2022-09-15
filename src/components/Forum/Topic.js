@@ -1,5 +1,8 @@
-import Grid from '@material-ui/core/Grid';
+import React, {useEffect, useState} from "react"
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
+import Grid from '@material-ui/core/Grid';
 import Box from '@mui/material/Box';
 import { styled } from '@mui/material/styles';
 import Paper from '@mui/material/Paper';
@@ -15,19 +18,48 @@ import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
+import { Typography } from "@mui/material";
 
-const Item = styled(Paper)(({ theme }) => ({
-    backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#fff',
-    ...theme.typography.body2,
-    padding: theme.spacing(1),
-    textAlign: 'left',
-    color: theme.palette.text.secondary
-  }));
+const lastEntry = post =>{
+  // TODO: Get the Username
+  return(
+    <Grid container direction="column">
+        <Typography>{post.title}</Typography>
+        <Typography>Von Fix that</Typography>
+        <Typography>{post.creationDate.substring(0,10)}</Typography>
+    </Grid>
+  )
+}
 
   export default function Topic (props) {
-    const topic = props.topic;
+    const navigate = useNavigate();
+
+       const goToPost = thatOne => {
+        navigate("/Forum/Topic"+{thatOne},{replace:true});
+      }
+
+
+    const [post, setPost] = useState([]);
+
+    useEffect(() => {
+      console.log("Topic mounted, fetching "+props.topic.id);
+      axios.get("https://localhost/forum/post/latest",{params:{topic:props.topic.id}})
+      .then(response =>{
+        console.log(response);
+        setPost(response.data);
+      })
+      .catch(error=>{
+        console.log(error)
+      })
+
+      return () => {
+        console.log("Topic unmounted")
+      }
+    }, [])
+
+    const {topic, id, postCount, views, creationDate} = props.topic;
     return (
-      <Box key={topic.id} sx={{ flexGrow: 1 }}>
+    <Box key={id} sx={{ flexGrow: 1 }}>
     <Grid container spacing={{xs:0, md:1}} direction="row" justifyContent="flex-start"
     alignItems="center"  columns={{sx:8, md:8, lg:12}}
     >
@@ -36,26 +68,28 @@ const Item = styled(Paper)(({ theme }) => ({
           sx={{
           maxHeight: '50px',
         }}>
-          <ListItem>
+          <ListItem onClick={goToPost}>
             <ListItemIcon>
                 <LibraryBooksIcon sx={{ color:orange[500] }} fontSize="large" />
             </ListItemIcon>
-            <ListItemText primary={topic.name} secondary={topic.id} />
+            <ListItemText primary={topic} secondary={creationDate} />
           </ListItem>
         </List>
       </Grid>
       <Grid item xs={2} md={2} lg={2} > {/*Stats*/}
         <Stack direction="row" spacing={1}>
           <Tooltip title="Themen" placement="top-end">
-              <Chip icon={<TopicIcon/>} label={topic.themen} variant="outlined" />
+              <Chip icon={<TopicIcon/>} label={postCount} variant="outlined" />
           </Tooltip>
           <Tooltip title="Aufrufe" placement="top-end">
-          <Chip icon={<VisibilityIcon/>} label={topic.views} variant="outlined" />
+          <Chip icon={<VisibilityIcon/>} label={views} variant="outlined" />
           </Tooltip>
         </Stack>
       </Grid>
       <Grid item xs={1} md={2} lg={2} alignItems="center" sx={{textAlign: "center"}}>
-      asdasdasd      asdasdasd      asdasdasd      asdasdasd
+      {
+        !!post.title ? lastEntry(post) :<div>Noch keine Posts enthalten</div>
+      }
       </Grid>
     </Grid>
       <Divider variant="inset" />
