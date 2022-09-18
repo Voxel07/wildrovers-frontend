@@ -18,11 +18,17 @@ import Topic from "./Topic"
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import GroupIcon from '@mui/icons-material/Group';
+import Modal from '@mui/material/Modal';
+
+import AddTopic from './AddTopic';
 
 export default function Category(props) {
-
-
+  const [open, setOpen] = React.useState(false);
   const [topics, setTopics] = useState([]);
+
+  const handleOpen = () => { setOpen(true); };
+  const handleClose = () => { setOpen(false); };
+
 
   //get all topics in this category
   useEffect(() => {
@@ -83,7 +89,14 @@ export default function Category(props) {
         : <div>In dieser Kategorie gibt es noch keine Themen</div>
       }
     </AccordionDetails>
-    <Button variant="outlined" size="small" startIcon={<AddCircleOutlineOutlinedIcon />} sx={{margin: 1}}>Thema hinzufügen</Button>
+    <Button variant="outlined" size="small" startIcon={<AddCircleOutlineOutlinedIcon />} sx={{margin: 1}} onClick={handleOpen}>Thema hinzufügen</Button>
+    <Modal
+            disableScrollLock
+            open={open}
+            onClose={handleClose}
+        >
+          <AddTopic callback={handleClose} topics={topics} />
+        </Modal>
   </Accordion>
   )
 }

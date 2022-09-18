@@ -29,7 +29,7 @@ const AddCategory = React.forwardRef((props, ref) => {
     const{ auth } = useAuth();
     const [state, setState] = useState({ resCode: null, resData: null });
 
-    const possibleCategories = [];
+    const possibleCategories = [ ];
 
 //------------Modal-------------------------------------
 

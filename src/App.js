@@ -14,7 +14,7 @@ import SignUp from './Pages/SignUp/SignUp';
 import Unauthorized from './Pages/Sonstige/Unauthorized';
 import PageNotFound from './Pages/PageNotFound/PageNotFound';
 import VerificationPrompt from './Pages/Sonstige/RegestrationSucessfull';
-
+import UserManagement from './Pages/Admin/UserManagement';
 
 //context
 import { useMemo, useState } from "react";
@@ -54,9 +54,11 @@ function App() {
         {/* </Route> */}
 
         {/*Admin Routes */}
-        <Route element={<RequireAuth allowedRoles={[ROLES.Admin]} />}>
-          <Route path='Regeln' element={<Rules />} />
-        </Route>
+        {/* <Route element={<RequireAuth allowedRoles={[ROLES.Admin]} />}> */}
+        <Route path='Regeln' element={<Rules />} />
+        <Route path='/Admin/UserManagement' element={<UserManagement />} />
+
+        {/* </Route> */}
       </Routes>
       </UserContext.Provider>
   );

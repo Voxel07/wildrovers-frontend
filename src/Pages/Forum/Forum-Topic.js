@@ -20,6 +20,7 @@ import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { Alert } from '@material-ui/core';
 function getPosts(){
     // axios.get("http://localhost:8080/company", { params: { ctrId: this.state.id } })
     // .then(response => {
@@ -58,31 +59,37 @@ export default function Forum_Topic(){
       aria-controls="panel1a-content"
       id="panel1a-header"
       >
-      <Grid container direction="row" alignItems="center">
+      <Grid container direction="row" alignItems="center" justifyContent="space-between">
         <Grid item xs={2}>
-          <Typography variant="h5" component="h2">tmp</Typography>
+          <Typography variant="h5" component="h2">Allgemein</Typography>
         </Grid>
-        <Grid item xs={10}> {/*Stats*/}
+        <Grid item xs={7}>{/*Stats */}
             <Grid container direction="row" justifyContent="flex-start"  alignItems="center">
-            <Stack direction="row" spacing={1}>
-              <Tooltip title="Ersteller" placement="top-end">
-                  <Chip icon={<PersonOutlineIcon/>} label={"Ersteller"} variant="outlined" />
-              </Tooltip>
-              <Tooltip title="Erstellungsdatum" placement="top-end">
-              <Chip icon={<EventNoteIcon/>} label={"01.01.1990"} variant="outlined" />
-              </Tooltip>
-              <Tooltip title="Posts" placement="top-end">
-                  <Chip icon={<ForumIcon/>} label={"150"} variant="outlined" />
-              </Tooltip>
-              </Stack>
+              <Stack direction="row" spacing={1}>
+                <Tooltip title="Ersteller" placement="top-end">
+                    <Chip icon={<PersonOutlineIcon/>} label={"Ersteller"} variant="outlined" />
+                </Tooltip>
+                <Tooltip title="Erstellungsdatum" placement="top-end">
+                <Chip icon={<EventNoteIcon/>} label={"01.01.1990"} variant="outlined" />
+                </Tooltip>
+                <Tooltip title="Posts" placement="top-end">
+                    <Chip icon={<ForumIcon/>} label={"150"} variant="outlined" />
+                </Tooltip>
+                </Stack>
             </Grid>
         </Grid>
+        <Grid item xs={3}> {/*Feedback*/}
+          <Stack alignItems='right'>
+            <Alert severity='success'>Post erfolgreich hinzugefügt</Alert>
+          </Stack>
+        </Grid>
+
       </Grid>
 
     </AccordionSummary>
     <Divider  />
     <AccordionDetails>
-    <Posts></Posts>
+    <Posts />
     </AccordionDetails>
 
   </Accordion>
