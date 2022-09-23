@@ -15,7 +15,7 @@ import Unauthorized from './Pages/Sonstige/Unauthorized';
 import PageNotFound from './Pages/PageNotFound/PageNotFound';
 import VerificationPrompt from './Pages/Sonstige/RegestrationSucessfull';
 import UserManagement from './Pages/Admin/UserManagement';
-
+import TextEditor from './Pages/Texteditor/Texteditor';
 //context
 import { useMemo, useState } from "react";
 import { UserContext } from './context/UserContext';
@@ -51,6 +51,7 @@ function App() {
         {/* <Route element={<RequireAuth allowedRoles={[ROLES.Admin, ROLES.User]} />}> */}
           <Route path="Forum" element={<Forum />} />
           <Route path="Forum/Topic" element={<Topics />} />
+          <Route path="Forum/Texteditor" element={<TextEditor />} />
         {/* </Route> */}
 
         {/*Admin Routes */}

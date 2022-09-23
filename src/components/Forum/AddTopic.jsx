@@ -25,10 +25,10 @@
 
  const AddTopic = React.forwardRef((props, ref) => {
 
-     const{ auth } = useAuth();
-     const [state, setState] = useState({ resCode: null, resData: null });
-
-     const possibleTopics = [];
+    const{ auth } = useAuth();
+    const [state, setState] = useState({ resCode: null, resData: null });
+    const [topics, setTopics] = useState([]);
+    const possibleTopics = [];
 
  //------------Modal-------------------------------------
 
@@ -47,118 +47,111 @@
  //------------Modal Ende-----Yump-----------------------
 
      const validationSchema = yup.object({
-         Name: yup
-             .string()
-             .required()
-             .min(3, "Name muss min. 3 Zeichen haben")
-             .max(20,"Name darf max. 20 Zeichen haben"),
+        Topic: yup.string().required().min(3, "Name muss min. 3 Zeichen haben").max(20,"Name darf max. 20 Zeichen haben"),
      })
 
  //----Functions-------------------------
 
-     useEffect(() => {
-          props.topics.forEach(element =>
-             {
-                possibleTopics.push({lable:element.category, id:element.position})
-             })
+    useEffect(() => {
+        // setTopics(props.topics)
+        props.topics.forEach(element =>
+            {
+            possibleTopics.push({lable:element.category, id:element.position})
+            })
 
-       return () => {
-         console.log("AddTopic unmout")
-       }
-     }, [])
+    return () => {
+        console.log("AddTopic unmout")
+    }
+    }, [])
 
 
-     async function saveCategoryToDB(vals){
-         axios.put(
-         'https://localhost/forum/topic',
-         {
-             category: vals.Name,
-             position: vals.Position.label,
-             visibility: vals.Visibility.label
-         },
-         {
-             headers:{ Authorization: `Bearer ${auth.JWT}`}
-         }
-         ).then(
-             response =>{
-                 console.log("je")
-                 setState({resCode: response.status, resData: ""});
-                 props.callback();
-             }
-         )
-         .catch(error=>{
-             console.log("ne")
-             console.log(error.response.data)
-
-             error.response.status == 403 ? setState({resCode:error.response.status, resData:"Nicht berechtigt"}):
-             setState({resCode:error.response.status, resData:error.response.data})
-         })
-     }
-     const {resCode, resData} = state;
+    async function saveTopicToDB(vals){
+    axios.put(
+    'https://localhost/forum/topic',
+    {
+        topic: vals.Topic
+    },
+    {
+        headers:{ Authorization: `Bearer ${auth.JWT}`}
+        ,params:{category: props.category.id}
+    }
+    ).then(
+        response =>{
+            setState({resCode: response.status, resData: ""});
+            props.callback();
+        }
+    )
+    .catch(error=>{
+        error.response.status == 403 ? setState({resCode:error.response.status, resData:"Nicht berechtigt"}):
+        setState({resCode:error.response.status, resData:error.response.data})
+    })
+    }
+    const {resCode, resData} = state;
 
    return (
-     <React.Fragment >
-          <Formik
-             validateOnChange={true}
-             initialValues={{
-                 Topic: '',
-                 Position: '',
-             }}
-             validationSchema={validationSchema}
-             onSubmit={async (data, { setSubmitting, resetForm }) => {
-                     setSubmitting(true);
-                     await saveCategoryToDB(data);
-                     resetForm(true);
-                     setSubmitting(false);
-                 }
-             }
-         >
-             {
-             ({ values, errors, isSubmitting , touched}) => (
-             <div>
-                 <Container className="Form-Container" sx={{...style, width:0.33}} >
-                     <Typography sx={{marginBottom:5}}>Neues Thema hinzufügen</Typography>
-                     <Form className="Form">
-                     <Field variant="outlined" label="Name des Themas" name="Name" type="input" error={!!errors.Name} helperText={errors.Name} as={TextField} />
-                     <Field  component={Autocomplete} name="Position" options={possibleTopics} getOptionLabel={(option)=>(option ? option.lable : "")} renderInput={(params) => (
-                         <TextField
-                         {...params}
-                         // We have to manually set the corresponding fields on the input component
-                         name="Position"
-                         error={!!touched['Position'] && !!errors['Position']}
-                         helperText={!!touched['Position'] && errors['Position'] && String(errors.Position)}
-                         sx={{
-                             color:red,
-                             marginTop: 3
-                         }}
-                         label="Reihenfolge"
-                         variant="outlined"
-                         />
-                     )}
-                     />
-                     <Grid container direction="row" justifyContent="space-between">
-                     <Button disabled={isSubmitting || !errors} type='submit'> Hinzufügen </Button>
-                     <Button onClick={props.callback} color="error"> Abbrechen </Button>
-                     </Grid>
-                         {/* <pre> {JSON.stringify(values, null, 2)} </pre> */}
-                     </Form>
-                 <Grid container alignItems="center" justifyContent="center">
-                 <Grid item>
-                         <Stack  spacing={2} marginTop={2}>
-                         {
-                             !!resData && resCode > 200 ? <Alert severity="error">{resData}</Alert>:null
-                         }
-                         </Stack>
-                     </Grid>
-                 </Grid >
-                 </Container>
+    <React.Fragment >
+        <Formik
+            validateOnChange={true}
+            initialValues={{
+                Topic: '',
+            //  Position: '',
+            }}
+            validationSchema={validationSchema}
+            onSubmit={async (data, { setSubmitting, resetForm }) => {
+                setSubmitting(true);
+                await saveTopicToDB(data);
+                resetForm(true);
+                setSubmitting(false);
+                }
+            }
+        >
+            {
+            ({ values, errors, isSubmitting , touched}) => (
+            <div>
+                <Container className="Form-Container" sx={{...style, width:0.33}} >
+                    <Typography sx={{marginBottom:5}}>Neues Thema zu {props.category.name} hinzufügen</Typography>
+                    <Typography >{props.category.id} </Typography>
+                    <Form className="Form">
+                    <Field variant="outlined" label="Name des Themas" name="Topic" type="input" error={!!errors.Name} helperText={errors.Name} as={TextField} />
+                    {/* <Field  component={Autocomplete} name="Position" options={possibleTopics} getOptionLabel={(option)=>(option ? option.lable : "")} renderInput={(params) => (
+                        <TextField
+                        {...params}
+                        // We have to manually set the corresponding fields on the input component
+                        name="Position"
+                        error={!!touched['Position'] && !!errors['Position']}
+                        helperText={!!touched['Position'] && errors['Position'] && String(errors.Position)}
+                        sx={{
+                            color:red,
+                            marginTop: 3
+                        }}
+                        label="Reihenfolge"
+                        variant="outlined"
+                        />
+                    )}
+                    /> */}
+                    <Grid container direction="row" justifyContent="space-between">
+                    <Button disabled={isSubmitting || !errors} type='submit'> Hinzufügen </Button>
+                    <Button onClick={props.callback} color="error"> Abbrechen </Button>
+                    </Grid>
+                        {/* <pre> {JSON.stringify(values, null, 2)} </pre> */}
+                    </Form>
+                <Grid container alignItems="center" justifyContent="center">
+                <Grid item>
+                        <Stack  spacing={2} marginTop={2}>
+                        {
+                            !!resData && resCode > 200 ? <Alert severity="error">{resData}</Alert>:null
+                        }
+                        </Stack>
+                    </Grid>
+                </Grid >
+                </Container>
 
-             </div>
-             )
-             }
-         </Formik>
+            </div>
+            )
+            }
+        </Formik>
 
-     </React.Fragment>
+    </React.Fragment>
    );
  })
 

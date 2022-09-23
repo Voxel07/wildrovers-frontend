@@ -25,17 +25,19 @@ import AddTopic from './AddTopic';
 export default function Category(props) {
   const [open, setOpen] = React.useState(false);
   const [topics, setTopics] = useState([]);
-
+  const [val, render] = useState();
   const handleOpen = () => { setOpen(true); };
   const handleClose = () => { setOpen(false); };
-
+  const handleRerender = () =>{ val? render(true): render(false)}
 
   //get all topics in this category
   useEffect(() => {
     console.log("Category mounted, fetching "+props.vals.id);
-    axios.get("https://localhost/forum/topic",{params:{category:props.vals.id}})
+    axios.get("https://localhost/forum/topic",
+    {
+      params:{category:props.vals.id}
+    })
     .then(response => {
-      console.log("cat:"+response);
       setTopics(response.data);
     })
     .catch(error=>{
@@ -47,7 +49,11 @@ export default function Category(props) {
     }
   }, [])
 
-
+  function convertTimestamp(ts){
+    let options = { year: 'numeric', month: 'numeric', day: 'numeric',
+                    hour: 'numeric', minute: 'numeric', second: 'numeric' };
+    return Intl.DateTimeFormat('de-DE',options).format(ts)
+  }
 
   const {category,userName, creationDate,topicCount,id,visibility} = props.vals;
   return (
@@ -68,7 +74,7 @@ export default function Category(props) {
                   <Chip icon={<PersonOutlineIcon/>} label={userName} variant="outlined" />
               </Tooltip>
               <Tooltip title="Erstellungsdatum" placement="top-end">
-              <Chip icon={<EventNoteIcon/>} label={creationDate} variant="outlined" />
+              <Chip icon={<EventNoteIcon/>} label={convertTimestamp(creationDate)} variant="outlined" />
               </Tooltip>
               <Tooltip title="Themen" placement="top-end">
                   <Chip icon={<TopicIcon/>} label={topicCount} variant="outlined" />
@@ -84,18 +90,19 @@ export default function Category(props) {
     </AccordionSummary>
     <Divider  />
     <AccordionDetails>
-      {
-        topics.length ? topics.map(topic => <Topic topic={topic}/>)
-        : <div>In dieser Kategorie gibt es noch keine Themen</div>
-      }
+    {
+      topics.length ? topics.map(topic => <Topic topic={topic}/>)
+      : <div>In dieser Kategorie gibt es noch keine Themen</div>
+    }
     </AccordionDetails>
+    <Button onClick={render}>Klick to reloade</Button>
     <Button variant="outlined" size="small" startIcon={<AddCircleOutlineOutlinedIcon />} sx={{margin: 1}} onClick={handleOpen}>Thema hinzufügen</Button>
     <Modal
             disableScrollLock
             open={open}
             onClose={handleClose}
         >
-          <AddTopic callback={handleClose} topics={topics} />
+          <AddTopic callback={handleClose} topics={topics}  category={{id:id,name:category}} />
         </Modal>
   </Accordion>
   )

@@ -5,15 +5,9 @@ import Typography from '@mui/material/Typography';
 
 import Grid from '@material-ui/core/Grid';
 
-export default function LandingPage() {
+export default function Skeleton_Category() {
   return (
     <Grid container direction="column" alignItems="center" rowSpacing={12}>
-        <Grid item sx={{
-            margin: 5
-        }}>
-            <Typography variant="h5" component="h2">LandingPage</Typography>
-
-        </Grid>
         <Grid item >
             <Stack spacing={1} alignItems="center">
                 {/* For variant="text", adjust the height via font-size */}

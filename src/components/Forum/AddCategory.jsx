@@ -72,8 +72,7 @@ const AddCategory = React.forwardRef((props, ref) => {
 
 
     async function saveCategoryToDB(vals){
-        axios.put(
-        'https://localhost/forum/category',
+        axios.put('https://localhost/forum/category',
         {
             category: vals.Name,
             position: vals.Position.label,
@@ -81,19 +80,16 @@ const AddCategory = React.forwardRef((props, ref) => {
         },
         {
             headers:{ Authorization: `Bearer ${auth.JWT}`}
-        }
-        ).then(
+        }).then(
             response =>{
-                console.log("je")
                 setState({resCode: response.status, resData: ""});
                 props.callback();
             }
         )
         .catch(error=>{
-            console.log("ne")
             console.log(error.response.data)
 
-            error.response.status == 403 ? setState({resCode:error.response.status, resData:"Nicht berechtigt"}):
+            error.response.status == 401 ? setState({resCode:error.response.status, resData:"Nicht berechtigt"}):
             setState({resCode:error.response.status, resData:error.response.data})
         })
     }

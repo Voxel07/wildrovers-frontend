@@ -57,6 +57,12 @@ const lastEntry = post =>{
       }
     }, [])
 
+    function convertTimestamp(ts){
+      let options = { year: 'numeric', month: 'numeric', day: 'numeric',
+                      hour: 'numeric', minute: 'numeric', second: 'numeric' };
+      return Intl.DateTimeFormat('de-DE',options).format(ts)
+    }
+
     const {topic, id, postCount, views, creationDate} = props.topic;
     return (
     <Box key={id} sx={{ flexGrow: 1 }}>
@@ -72,7 +78,7 @@ const lastEntry = post =>{
             <ListItemIcon>
                 <LibraryBooksIcon sx={{ color:orange[500] }} fontSize="large" />
             </ListItemIcon>
-            <ListItemText primary={topic} secondary={creationDate} />
+            <ListItemText primary={topic} secondary={convertTimestamp(creationDate)} />
           </ListItem>
         </List>
       </Grid>

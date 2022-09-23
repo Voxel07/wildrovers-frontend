@@ -14,12 +14,11 @@ import Box from '@mui/material/Box';
 import './Forum-Categories.css';
 import Category from '../../components/Forum/Category';
 import AddCategory from '../../components/Forum/AddCategory';
-
+import Skeleton_Category from '../../components/Forum/Skeleton_Category';
 
 
 const Forum_Categories= () => {
-    const [requestResponseText, setRequestResponseText] = useState();
-    const [requestResponseCode, setRequestResponseCode] = useState();
+
     const [categories, setCategories] = useState([]);
     const [loading, setloading] = useState();
     const [open, setOpen] = React.useState(false);
@@ -28,11 +27,14 @@ const Forum_Categories= () => {
 
     //get all categories
     useEffect(() => {
+        setloading(true);
+
         axios.get("https://localhost/forum/category")
         .then(response => {
             console.log(response.data)
             setCategories(response.data)
-            // setloading(true)
+            setloading(false);
+
         })
         .catch(err =>{
             console.log(err);
@@ -57,7 +59,8 @@ const Forum_Categories= () => {
         </Modal>
         {
             categories.length ? categories.map(category => <Category vals={category}/>)
-            : <Typography sx={{ color:red[500] }}>Keine Daten erhalten</Typography>
+            :
+            loading? <Skeleton_Category /> : <Typography sx={{ color:red[500] }}>Keine Daten erhalten</Typography>
         }
         </Container>
     )
