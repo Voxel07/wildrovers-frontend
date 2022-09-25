@@ -1,10 +1,12 @@
+import React, {useEffect, useState} from 'react'
+import axios from "axios";
+import { useNavigate, useParams } from "react-router-dom";
+
 import Container from '@mui/material/Container';
 import Button from '@mui/material/Button';
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
-
-import Posts from '../../components/Forum/Posts';
+import Post from '../../components/Forum/Post';
 import Typography from '@mui/material/Typography';
-import axios from 'axios'
 import { red } from '@material-ui/core/colors';
 import Box from '@mui/material/Box';
 import Grid from '@material-ui/core/Grid';
@@ -21,31 +23,46 @@ import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Alert } from '@material-ui/core';
-function getPosts(){
-    // axios.get("http://localhost:8080/company", { params: { ctrId: this.state.id } })
-    // .then(response => {
-    //     this.setState({ companyName: response.data[0].name, companyId: response.data[0].id })
-    // })
-    // .catch(error => {
-    // })
-    return[
-        {
-            name: "Allgemein",
-            id: "1"
-        },
-        {
-            name: "Intern",
-            id: "2"
-        },
-        {
-            name: "Sponsor",
-            id: "3"
-        }
-    ]
- }
 
 export default function Forum_Topic(){
-    let categories= getPosts();
+  const navigate = useNavigate();
+  const [posts, setPosts] = useState([]);
+  const [topics, setTopics] = useState([]);
+  const {id} = useParams();
+
+  useEffect(() => {
+
+    axios.get("https://localhost/forum/post",{params:{topic:id}})
+    .then(response =>{
+      console.log(response);
+      setPosts(response.data);
+    })
+    .catch(error=>{
+      console.log(error)
+    })
+
+    axios.get("https://localhost/forum/topic",{params:{topicId:id}})
+    .then(response =>{
+      console.log(response);
+      setTopics(response.data[0]);
+    })
+    .catch(error=>{
+      console.log(error)
+    })
+
+    return () => {
+      console.log("Topic unmounted")
+    }
+  }, [])
+
+  function convertTimestamp(ts){
+    let options = { year: 'numeric', month: 'numeric', day: 'numeric',
+                    hour: 'numeric', minute: 'numeric', second: 'numeric' };
+    return Intl.DateTimeFormat('de-DE',options).format(ts)
+  }
+
+
+     const {topic, postCount, creationDate, creator} = topics;
     return (
       <Container className='posts-container' maxWidth="xl"
       sx={{
@@ -61,19 +78,19 @@ export default function Forum_Topic(){
       >
       <Grid container direction="row" alignItems="center" justifyContent="space-between">
         <Grid item xs={2}>
-          <Typography variant="h5" component="h2">Allgemein</Typography>
+          <Typography variant="h5" component="h2">{topic}</Typography>
         </Grid>
         <Grid item xs={7}>{/*Stats */}
             <Grid container direction="row" justifyContent="flex-start"  alignItems="center">
               <Stack direction="row" spacing={1}>
                 <Tooltip title="Ersteller" placement="top-end">
-                    <Chip icon={<PersonOutlineIcon/>} label={"Ersteller"} variant="outlined" />
+                    <Chip icon={<PersonOutlineIcon/>} label={creator} variant="outlined" />
                 </Tooltip>
                 <Tooltip title="Erstellungsdatum" placement="top-end">
-                <Chip icon={<EventNoteIcon/>} label={"01.01.1990"} variant="outlined" />
+                <Chip icon={<EventNoteIcon/>} label={convertTimestamp(creationDate)} variant="outlined" />
                 </Tooltip>
                 <Tooltip title="Posts" placement="top-end">
-                    <Chip icon={<ForumIcon/>} label={"150"} variant="outlined" />
+                    <Chip icon={<ForumIcon/>} label={postCount} variant="outlined" />
                 </Tooltip>
                 </Stack>
             </Grid>
@@ -89,7 +106,7 @@ export default function Forum_Topic(){
     </AccordionSummary>
     <Divider  />
     <AccordionDetails>
-    <Posts />
+      <Post posts={posts} />
     </AccordionDetails>
 
   </Accordion>

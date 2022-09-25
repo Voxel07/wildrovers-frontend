@@ -89,7 +89,7 @@ const AddCategory = React.forwardRef((props, ref) => {
         .catch(error=>{
             console.log(error.response.data)
 
-            error.response.status == 401 ? setState({resCode:error.response.status, resData:"Nicht berechtigt"}):
+            error.response.status == 403 ? setState({resCode:error.response.status, resData:"Nicht berechtigt"}):
             setState({resCode:error.response.status, resData:error.response.data})
         })
     }

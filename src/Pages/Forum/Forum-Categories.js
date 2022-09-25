@@ -1,69 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios'
 
+//Routing
+import { useParams,  } from 'react-router-dom'
+import { history } from '../../helper/history';
+
 //Mui
 import Container from '@mui/material/Container';
-import Button from '@mui/material/Button';
-import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
-import Typography from '@mui/material/Typography';
-import { red } from '@material-ui/core/colors';
-import Modal from '@mui/material/Modal';
-import Box from '@mui/material/Box';
 
 //Eigene
-import './Forum-Categories.css';
 import Category from '../../components/Forum/Category';
-import AddCategory from '../../components/Forum/AddCategory';
-import Skeleton_Category from '../../components/Forum/Skeleton_Category';
 
 
-const Forum_Categories= () => {
+export default function Forum_Categories(){
+    const {id} = useParams();
+    const [category, setCategory] = useState([]);
 
-    const [categories, setCategories] = useState([]);
-    const [loading, setloading] = useState();
-    const [open, setOpen] = React.useState(false);
-    const handleOpen = () => { setOpen(true); };
-    const handleClose = () => { setOpen(false); };
-
-    //get all categories
+    //get the category
     useEffect(() => {
-        setloading(true);
-
-        axios.get("https://localhost/forum/category")
+        axios.get("https://localhost/forum/category",{params:{categoryId:id}})
         .then(response => {
-            console.log(response.data)
-            setCategories(response.data)
-            setloading(false);
-
+            setCategory(response.data)
+            history.replace({pathname: `/Forum/Category/`+id+'/'+response.data[0].category})
         })
         .catch(err =>{
             console.log(err);
         })
-
     },[]);
 
+  return (
+    <Container className='categories-container' maxWidth="xl"
+    key={id}
+    sx={{
+        backgroundColor : "black",
+        padding: 0
+    }}>
+    {category.length ? category.map(category => <Category vals={category}/>): <div>Kategorie exestiert nicht</div>}
 
-    return(
-        <Container className='categories-container' maxWidth="xl"
-        sx={{
-            backgroundColor : "black",
-            padding: 0
-        }}>
-        <Button startIcon={<AddCircleOutlineOutlinedIcon />} onClick={handleOpen}>Kategorie hinzufügen</Button>
-        <Modal
-            disableScrollLock
-            open={open}
-            onClose={handleClose}
-        >
-          <AddCategory callback={handleClose} cat={categories} />
-        </Modal>
-        {
-            categories.length ? categories.map(category => <Category vals={category}/>)
-            :
-            loading? <Skeleton_Category /> : <Typography sx={{ color:red[500] }}>Keine Daten erhalten</Typography>
-        }
-        </Container>
-    )
+    </Container>
+
+  )
+
 }
 
-export default Forum_Categories;

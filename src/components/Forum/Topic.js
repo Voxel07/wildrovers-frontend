@@ -20,85 +20,90 @@ import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import { Typography } from "@mui/material";
 
-const lastEntry = post =>{
-  // TODO: Get the Username
-  return(
-    <Grid container direction="column">
-        <Typography>{post.title}</Typography>
-        <Typography>Von Fix that</Typography>
-        <Typography>{post.creationDate.substring(0,10)}</Typography>
-    </Grid>
-  )
-}
+export default function Topic (props) {
+  const navigate = useNavigate();
+  const [post, setPost] = useState([]);
+  const {topic, id, postCount, views, creationDate} = props.topic;
 
-  export default function Topic (props) {
-    const navigate = useNavigate();
+  function redirectToTopic (){
+    navigate("/Forum/Topic/"+props.topic.id);
+  }
 
-       const goToPost = thatOne => {
-        navigate("/Forum/Topic"+{thatOne},{replace:true});
-      }
+  function redirectToPost (){
+    navigate("/Forum/Post/"+post.id);
+  }
 
-
-    const [post, setPost] = useState([]);
-
-    useEffect(() => {
-      console.log("Topic mounted, fetching "+props.topic.id);
-      axios.get("https://localhost/forum/post/latest",{params:{topic:props.topic.id}})
-      .then(response =>{
-        console.log(response);
-        setPost(response.data);
-      })
-      .catch(error=>{
-        console.log(error)
-      })
-
-      return () => {
-        console.log("Topic unmounted")
-      }
-    }, [])
-
-    function convertTimestamp(ts){
-      let options = { year: 'numeric', month: 'numeric', day: 'numeric',
-                      hour: 'numeric', minute: 'numeric', second: 'numeric' };
-      return Intl.DateTimeFormat('de-DE',options).format(ts)
-    }
-
-    const {topic, id, postCount, views, creationDate} = props.topic;
-    return (
-    <Box key={id} sx={{ flexGrow: 1 }}>
-    <Grid container spacing={{xs:0, md:1}} direction="row" justifyContent="flex-start"
-    alignItems="center"  columns={{sx:8, md:8, lg:12}}
-    >
-      <Grid item xs={4} md={4} lg={8}> {/*Name*/}
-        <List
-          sx={{
-          maxHeight: '50px',
-        }}>
-          <ListItem onClick={goToPost}>
-            <ListItemIcon>
-                <LibraryBooksIcon sx={{ color:orange[500] }} fontSize="large" />
-            </ListItemIcon>
-            <ListItemText primary={topic} secondary={convertTimestamp(creationDate)} />
-          </ListItem>
-        </List>
+  function lastEntry(){
+    // TODO: Get the Username
+    return(
+      <Grid container direction="column" onClick={redirectToPost}>
+          <Typography>{post.title}</Typography>
+          <Typography>Von Fix that</Typography>
+          <Typography>{convertTimestamp(post.creationDate)}</Typography>
       </Grid>
-      <Grid item xs={2} md={2} lg={2} > {/*Stats*/}
-        <Stack direction="row" spacing={1}>
-          <Tooltip title="Themen" placement="top-end">
-              <Chip icon={<TopicIcon/>} label={postCount} variant="outlined" />
-          </Tooltip>
-          <Tooltip title="Aufrufe" placement="top-end">
-          <Chip icon={<VisibilityIcon/>} label={views} variant="outlined" />
-          </Tooltip>
-        </Stack>
-      </Grid>
-      <Grid item xs={1} md={2} lg={2} alignItems="center" sx={{textAlign: "center"}}>
-      {
-        !!post.title ? lastEntry(post) :<div>Noch keine Posts enthalten</div>
-      }
-      </Grid>
-    </Grid>
-      <Divider variant="inset" />
-    </Box>
     )
+  }
+
+  useEffect(() => {
+    console.log("Topic mounted, fetching "+props.topic.id);
+    if(postCount<1){
+      return( <div>nope</div>)
+    }
+    axios.get("https://localhost/forum/post/latest",{params:{topic:props.topic.id}})
+    .then(response =>{
+      console.log(response);
+      setPost(response.data);
+    })
+    .catch(error=>{
+      console.log(error)
+    })
+
+    return () => {
+      console.log("Topic unmounted")
+    }
+  }, [])
+
+  function convertTimestamp(ts){
+    let options = { year: 'numeric', month: 'numeric', day: 'numeric',
+                    hour: 'numeric', minute: 'numeric', second: 'numeric' };
+    return Intl.DateTimeFormat('de-DE',options).format(ts)
+  }
+
+  return (
+  <Box key={Math.random()} sx={{ flexGrow: 1 }}>
+  <Grid container spacing={{xs:0, md:1}} direction="row" justifyContent="flex-start"
+  alignItems="center"  columns={{sx:8, md:8, lg:12}}
+  >
+    <Grid item xs={4} md={4} lg={8}> {/*Name*/}
+      <List
+        sx={{
+        maxHeight: '50px',
+      }}>
+        <ListItem>
+          <ListItemIcon>
+              <LibraryBooksIcon sx={{ color:orange[500] }} fontSize="large" />
+          </ListItemIcon>
+          <ListItemText onClick={redirectToTopic} primary={topic} secondary={convertTimestamp(creationDate)} />
+        </ListItem>
+      </List>
+    </Grid>
+    <Grid item xs={2} md={2} lg={2} > {/*Stats*/}
+      <Stack direction="row" spacing={1}>
+        <Tooltip title="Posts" placement="top-end">
+            <Chip icon={<TopicIcon/>} label={postCount} variant="outlined" />
+        </Tooltip>
+        <Tooltip title="Aufrufe" placement="top-end">
+        <Chip icon={<VisibilityIcon/>} label={views} variant="outlined" />
+        </Tooltip>
+      </Stack>
+    </Grid>
+    <Grid item xs={1} md={2} lg={2} alignItems="center" sx={{textAlign: "center"}}>
+    {
+      !!post.title ? lastEntry(post) :<div>Noch keine Posts enthalten</div>
+    }
+    </Grid>
+  </Grid>
+    <Divider variant="inset" />
+  </Box>
+  )
 }

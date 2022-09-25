@@ -1,6 +1,8 @@
 import React,{ useState, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
+//MUI
 import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
@@ -14,40 +16,54 @@ import Button from '@mui/material/Button';
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
-import Topic from "./Topic"
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import GroupIcon from '@mui/icons-material/Group';
 import Modal from '@mui/material/Modal';
 
+//Eigene
+import Topic from "./Topic"
 import AddTopic from './AddTopic';
 
 export default function Category(props) {
   const [open, setOpen] = React.useState(false);
   const [topics, setTopics] = useState([]);
-  const [val, render] = useState();
   const handleOpen = () => { setOpen(true); };
   const handleClose = () => { setOpen(false); };
-  const handleRerender = () =>{ val? render(true): render(false)}
+  const [category, setCategory] = useState({category:null, id: null, userName :null, creationDate: null,topicCount:null,visibility:null });
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  //get all topics in this category
   useEffect(() => {
-    console.log("Category mounted, fetching "+props.vals.id);
-    axios.get("https://localhost/forum/topic",
+
+    if(!!props.vals)
     {
-      params:{category:props.vals.id}
-    })
-    .then(response => {
-      setTopics(response.data);
-    })
-    .catch(error=>{
-      console.log(error)
-    })
+      axios.get("https://localhost/forum/topic",
+      {
+        params:{category:props.vals.id}
+      })
+      .then(response => {
+        setTopics(response.data);
+      })
+      .catch(error=>{
+        console.log(error)
+      })
+        setCategory(props.vals);
+    }
 
     return () => {
       console.log("Category unmounted");
     }
+
   }, [])
+
+  function redirectToCategory (){
+    //Disable redirect if we are on the category page
+    if(!location.pathname.includes("Forum/Category"))
+    {
+      navigate("/Forum/Category/"+props.vals.id)
+    }
+  }
 
   function convertTimestamp(ts){
     let options = { year: 'numeric', month: 'numeric', day: 'numeric',
@@ -55,9 +71,9 @@ export default function Category(props) {
     return Intl.DateTimeFormat('de-DE',options).format(ts)
   }
 
-  const {category,userName, creationDate,topicCount,id,visibility} = props.vals;
-  return (
-  <Accordion key={id} defaultExpanded={true} >
+   return (
+    // <div>asd</div>
+  <Accordion key={Math.random()} defaultExpanded={true} >
     <AccordionSummary
       expandIcon={<ExpandMoreIcon />}
       aria-controls="panel1a-content"
@@ -65,22 +81,22 @@ export default function Category(props) {
       >
       <Grid container direction="row" alignItems="center">
         <Grid item xs={2}>
-          <Typography variant="h5" component="h2">{category}</Typography>
+          <Typography variant="h5" component="h2"  onClick={redirectToCategory}>{category.category}</Typography>
         </Grid>
         <Grid item xs={10}> {/*Stats*/}
             <Grid container direction="row" justifyContent="flex-start"  alignItems="center" colomnspacing={1}>
             <Stack direction="row" spacing={1}>
               <Tooltip title="Ersteller" placement="top-end">
-                  <Chip icon={<PersonOutlineIcon/>} label={userName} variant="outlined" />
+                  <Chip icon={<PersonOutlineIcon/>} label={category.userName} variant="outlined" />
               </Tooltip>
               <Tooltip title="Erstellungsdatum" placement="top-end">
-              <Chip icon={<EventNoteIcon/>} label={convertTimestamp(creationDate)} variant="outlined" />
+              <Chip icon={<EventNoteIcon/>} label={convertTimestamp(category.creationDate)} variant="outlined" />
               </Tooltip>
               <Tooltip title="Themen" placement="top-end">
-                  <Chip icon={<TopicIcon/>} label={topicCount} variant="outlined" />
+                  <Chip icon={<TopicIcon/>} label={category.topicCount} variant="outlined" />
               </Tooltip>
               <Tooltip title="Wer darf das sehen" placement="top-end">
-                  <Chip icon={<GroupIcon/>} label={visibility} variant="outlined" />
+                  <Chip icon={<GroupIcon/>} label={category.visibility} variant="outlined" />
               </Tooltip>
               </Stack>
             </Grid>
@@ -95,14 +111,13 @@ export default function Category(props) {
       : <div>In dieser Kategorie gibt es noch keine Themen</div>
     }
     </AccordionDetails>
-    <Button onClick={render}>Klick to reloade</Button>
     <Button variant="outlined" size="small" startIcon={<AddCircleOutlineOutlinedIcon />} sx={{margin: 1}} onClick={handleOpen}>Thema hinzufügen</Button>
     <Modal
             disableScrollLock
             open={open}
             onClose={handleClose}
         >
-          <AddTopic callback={handleClose} topics={topics}  category={{id:id,name:category}} />
+          <AddTopic callback={handleClose} topics={topics}  category={{id:category.id,name:category}} />
         </Modal>
   </Accordion>
   )

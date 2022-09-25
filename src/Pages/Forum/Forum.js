@@ -1,28 +1,68 @@
-/**
- * This is the complete Forum coponent. This holds all forum components that are stored in components/forum
- */
+import React, { useState, useEffect } from 'react';
+import axios from 'axios'
 
-import React, { useContext } from 'react'
-import Topics from './Forum-Topic'
+//Mui
+import Container from '@mui/material/Container';
+import Button from '@mui/material/Button';
+import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
+import Typography from '@mui/material/Typography';
+import { red } from '@material-ui/core/colors';
+import Modal from '@mui/material/Modal';
 import Box from '@mui/material/Box';
-import Posts from '../../components/Forum/Posts'
-
-import { Routes, Route, BrowserRouter as Router } from "react-router-dom";
 
 //Eigene
-import Forum_Categories from './Forum-Categories'
-import Searchbar from '../../components/Forum/Searchbar';
+import './Forum-Categories.css';
+import Category from '../../components/Forum/Category';
+import AddCategory from '../../components/Forum/AddCategory';
+import Skeleton_Category from '../../components/Forum/Skeleton_Category';
 
-export default function Forum(props) {
 
-  // const forumContext
+const Forum= () => {
 
-  return (
-    <Box>
-      <Searchbar />
-      <Forum_Categories />
+    const [categories, setCategories] = useState([]);
+    const [loading, setloading] = useState();
+    const [open, setOpen] = React.useState(false);
+    const handleOpen = () => { setOpen(true); };
+    const handleClose = () => { setOpen(false); };
 
-    </Box>
-  )
+    //get all categories
+    useEffect(() => {
+        setloading(true);
+
+        axios.get("https://localhost/forum/category")
+        .then(response => {
+            setCategories(response.data)
+            setloading(false);
+
+        })
+        .catch(err =>{
+            console.log(err);
+        })
+
+    },[]);
+
+
+    return(
+        <Container className='categories-container' maxWidth="xl"
+        sx={{
+            backgroundColor : "black",
+            padding: 0
+        }}>
+        <Button startIcon={<AddCircleOutlineOutlinedIcon />} onClick={handleOpen}>Kategorie hinzufügen</Button>
+        <Modal
+            disableScrollLock
+            open={open}
+            onClose={handleClose}
+        >
+          <AddCategory callback={handleClose} cat={categories} />
+        </Modal>
+        {
+            categories.length ? categories.map(category => <Category vals={category}/>)
+            :
+            loading? <Skeleton_Category /> : <Typography sx={{ color:red[500] }}>Keine Daten erhalten</Typography>
+        }
+        </Container>
+    )
 }
 
+export default Forum;
