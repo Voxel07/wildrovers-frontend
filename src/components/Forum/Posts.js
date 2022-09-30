@@ -42,11 +42,15 @@ import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import { orange } from '@material-ui/core/colors';
 
-function createData(name, answers, views) {
+import {convertTimestamp} from '../../helper/converter'
+
+function createData(title, answerCount, views, creationDate, creator) {
   return {
-    name,
-    answers,
+    title,
+    answerCount,
     views,
+    creationDate,
+    creator
   };
 }
 
@@ -56,19 +60,19 @@ const formatter = Intl.NumberFormat('en',
 })
 
 const rows = [
-  createData('Cupcake', 305, 5500000000),
-  createData('Donut', 452, 490),
-  createData('Eclair', 262, 1000),
-  createData('Frozen yoghurt', 159, 250),
-  createData('Gingerbread', 356, 239),
-  createData('Honeycomb', 123, 8000),
-  createData('Ice cream sandwich', 237, 10001),
-  createData('Jelly Bean', 375, 1500000),
-  createData('KitKat', 518, 2000),
-  createData('Lollipop', 392, 459),
-  createData('Marshmallow', 318, 0),
-  createData('Nougat', 360, 1200),
-  createData('Oreo', 437, 438)
+  createData('Cupcake', 305, 5500000000, 1664361787659, "camo"),
+  createData('Donut', 452, 490, 1664361787659, "camo"),
+  createData('Eclair', 262, 1000, 1664361787659, "camo"),
+  createData('Frozen yoghurt', 159, 250, 1664361787659, "camo"),
+  createData('Gingerbread', 356, 239, 1664361787659, "camo"),
+  createData('Honeycomb', 123, 8000, 1664361787659, "camo"),
+  createData('Ice cream sandwich', 237, 10001, 1664361787659, "camo"),
+  createData('Jelly Bean', 375, 1500000, 1664361787659, "camo"),
+  createData('KitKat', 518, 2000, 1664361787659, "camo"),
+  createData('Lollipop', 392, 459, 1664361787659, "camo"),
+  createData('Marshmallow', 318, 0, 1664361787659, "camo"),
+  createData('Nougat', 360, 1200, 1664361787659, "camo"),
+  createData('Oreo', 437, 438, 1664361787659, "camo")
 ];
 
 function descendingComparator(a, b, orderBy) {
@@ -101,7 +105,7 @@ const headCells = [
     label: 'Titel des Posts',
   },
   {
-    id: 'answers',
+    id: 'answerCount',
     numeric: true,
     disablePadding: false,
     label: 'Antworten'
@@ -172,6 +176,99 @@ EnhancedTableHead.propTypes = {
   orderBy: PropTypes.string.isRequired,
   rowCount: PropTypes.number.isRequired,
 };
+
+function MyTableBody(props){
+  const { tableData, order, orderBy, page, rowsPerPage, isSelected, multi, handleClick, dense, emptyRows } =
+  props;
+  return(
+    <TableBody>
+
+    {tableData.slice().sort(getComparator(order, orderBy))
+      .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+      .map((row, index) => {
+        const isItemSelected = isSelected(row.title);
+        const labelId = `enhanced-table-checkbox-${index}`;
+
+        return (
+          <TableRow
+            hover
+            role="checkbox"
+            aria-checked={isItemSelected}
+            tabIndex={-1}
+            key={row.title}
+            selected={isItemSelected}
+          >
+          {multi?
+          <TableCell padding="checkbox">
+              <Checkbox
+                onClick={(event) => handleClick(event, row.title)}
+                color="primary"
+                checked={isItemSelected}
+                inputProps={{
+                  'aria-labelledby': labelId,
+                }}
+              />
+            </TableCell>:null
+            }
+      <TableCell align="center" padding='none' width={45}>
+          <ForumIcon sx={{ color:orange[500] }}  fontSize="medium"/>
+      </TableCell>
+      <TableCell align="left">
+      <List
+          sx={{
+           maxHeight: '40px',
+           padding: 0
+          }}>
+          <ListItem
+          sx={{
+              maxHeight: '30px',
+              padding: 0,
+          }}>
+            {
+              <ListItemText primary={row.title} secondary={dense? "": "von: "+ row.creator + " am: " + convertTimestamp(row.timestamp,true)} />
+            }
+          </ListItem>
+          </List>
+      </TableCell>
+      <TableCell sx={{width:20}}>
+      <Stack direction="row" spacing={1}   justifyContent="flex-end"  alignItems="center">
+          <Tooltip title="Antworten" placement="top-end">
+              <Chip icon={<ForumIcon/>} label={formatter.format(row.answerCount)} variant="outlined" />
+          </Tooltip>
+      </Stack>
+      </TableCell>
+      <TableCell sx={{width:20}}>
+        <Stack direction="row" spacing={1}   justifyContent="flex-end"  alignItems="center">
+          <Tooltip title="Aufrufe" placement="top-end">
+          <Chip icon={<VisibilityIcon/>} label={formatter.format(row.views)} variant="outlined" size='medium'/>
+        </Tooltip>
+      </Stack>
+      </TableCell>
+          </TableRow>
+        );
+      })}
+    {emptyRows > 0 && (
+      <TableRow
+        style={{
+          height: (dense ? 33 : 53) * emptyRows,
+        }}
+      >
+        <TableCell colSpan={6} />
+      </TableRow>
+    )}
+  </TableBody>
+  )
+}
+
+MyTableBody.propTypes = {
+  numSelected: PropTypes.number.isRequired,
+  onRequestSort: PropTypes.func.isRequired,
+  onSelectAllClick: PropTypes.func.isRequired,
+  order: PropTypes.oneOf(['asc', 'desc']).isRequired,
+  orderBy: PropTypes.string.isRequired,
+  rowCount: PropTypes.number.isRequired,
+};
+
 
 const EnhancedTableToolbar = (props) => {
   const { numSelected, handleEdit, handleAdd, handleDelete, topicTitle } = props;
@@ -313,6 +410,11 @@ export default function Post(props) {
   const [multi, setMulti] = useState(false);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [tableData, setTableData] = useState(rows)
+  // const [tableData, setTableData] = useState(props.posts)
+
+  console.log("props:")
+  console.log(props.posts)
+  console.log(tableData)
 
   const handleRequestSort = (event, property) => {
     const isAsc = orderBy === property && order === 'asc';
@@ -320,21 +422,22 @@ export default function Post(props) {
     setOrderBy(property);
   };
 
+  //This breaks is the order isn't title
   const handleSelectAllClick = (event) => {
     if (event.target.checked && selected.length < rowsPerPage) {
-      const newSelected = tableData.slice(0, rowsPerPage).map((n) => n.name);
+      const newSelected = tableData.slice(0, rowsPerPage).map((n) => n.title);
       setSelected(newSelected);
       return;
     }
     setSelected([]);
   };
 
-  const handleClick = (event, name) => {
-    const selectedIndex = selected.indexOf(name);
+  const handleClick = (event, title) => {
+    const selectedIndex = selected.indexOf(title);
     let newSelected = [];
 
     if (selectedIndex === -1) {
-      newSelected = newSelected.concat(selected, name);
+      newSelected = newSelected.concat(selected, title);
     } else if (selectedIndex === 0) {
       newSelected = newSelected.concat(selected.slice(1));
     } else if (selectedIndex === selected.length - 1) {
@@ -386,7 +489,7 @@ export default function Post(props) {
 
     filterList.forEach(elm =>{
       newData = newData.filter(entry=>{
-        return entry.name !== elm
+        return entry.title !== elm
       })
     })
 
@@ -396,11 +499,12 @@ export default function Post(props) {
 
   }
 
-  const isSelected = (name) => selected.indexOf(name) !== -1;
+  const isSelected = (title) => selected.indexOf(title) !== -1;
 
   // Avoid a layout jump when reaching the last page with empty rows.
   const emptyRows =
-    page > 0 ? Math.max(0, (1 + page) * rowsPerPage - rows.length) : 0;
+    page > 0 ? Math.max(0, (1 + page) * rowsPerPage - tableData.length) : 0;
+    // page > 0 ? Math.max(0, (1 + page) * rowsPerPage - props.posts.length) : 0;
 
   return (
         <TableContainer>
@@ -416,85 +520,24 @@ export default function Post(props) {
               orderBy={orderBy}
               onSelectAllClick={handleSelectAllClick}
               onRequestSort={handleRequestSort}
-              rowCount={rows.length}
+              rowCount={tableData.length}
+              // rowCount={props.posts.length}
               multi={multi}
             />
-            <TableBody>
-
-              {tableData.slice().sort(getComparator(order, orderBy))
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((row, index) => {
-                  const isItemSelected = isSelected(row.name);
-                  const labelId = `enhanced-table-checkbox-${index}`;
-
-                  return (
-                    <TableRow
-                      hover
-                      role="checkbox"
-                      aria-checked={isItemSelected}
-                      tabIndex={-1}
-                      key={row.name}
-                      selected={isItemSelected}
-                    >
-                    {multi?
-                    <TableCell padding="checkbox">
-                        <Checkbox
-                          onClick={(event) => handleClick(event, row.name)}
-                          color="primary"
-                          checked={isItemSelected}
-                          inputProps={{
-                            'aria-labelledby': labelId,
-                          }}
-                        />
-                      </TableCell>:null
-                      }
-                <TableCell align="center" padding='none' width={45}>
-                    <ForumIcon sx={{ color:orange[500] }}  fontSize="medium"/>
-                </TableCell>
-                <TableCell align="left">
-                <List
-                    sx={{
-                     maxHeight: '40px',
-                     padding: 0
-                    }}>
-                    <ListItem
-                    sx={{
-                        maxHeight: '30px',
-                        padding: 0,
-                    }}>
-                      {
-                        <ListItemText primary={row.name} secondary={dense? "": "von matze, 04.05.2022"} />
-                      }
-                    </ListItem>
-                    </List>
-                </TableCell>
-                <TableCell sx={{width:20}}>
-                <Stack direction="row" spacing={1}   justifyContent="flex-end"  alignItems="center">
-                    <Tooltip title="Antworten" placement="top-end">
-                        <Chip icon={<ForumIcon/>} label={formatter.format(row.answers)} variant="outlined" />
-                    </Tooltip>
-                </Stack>
-                </TableCell>
-                <TableCell sx={{width:20}}>
-                  <Stack direction="row" spacing={1}   justifyContent="flex-end"  alignItems="center">
-                    <Tooltip title="Aufrufe" placement="top-end">
-                    <Chip icon={<VisibilityIcon/>} label={formatter.format(row.views)} variant="outlined" size='medium'/>
-                  </Tooltip>
-                </Stack>
-                </TableCell>
-                    </TableRow>
-                  );
-                })}
-              {emptyRows > 0 && (
-                <TableRow
-                  style={{
-                    height: (dense ? 33 : 53) * emptyRows,
-                  }}
-                >
-                  <TableCell colSpan={6} />
-                </TableRow>
-              )}
-            </TableBody>
+            <MyTableBody
+              page={page}
+              rowsPerPage={rowsPerPage}
+              isSelected={isSelected}
+              handleClick={handleClick}
+              onSelectAllClick={handleSelectAllClick}
+              dense={dense}
+              order={order}
+              orderBy={orderBy}
+              rowCount={tableData.length}
+              tableData={tableData}
+              emptyRows={emptyRows}
+              multi={multi}
+            />
       </Table>
 
                 <TablePagination
