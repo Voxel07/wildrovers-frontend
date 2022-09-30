@@ -5,7 +5,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import Container from '@mui/material/Container';
 import Button from '@mui/material/Button';
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
-import Post from '../../components/Forum/Post';
+import Post from '../../components/Forum/Posts';
 import Typography from '@mui/material/Typography';
 import { red } from '@material-ui/core/colors';
 import Box from '@mui/material/Box';
@@ -23,6 +23,9 @@ import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Alert } from '@material-ui/core';
+
+//eigene
+import { convertTimestamp } from '../../helper/converter';
 
 export default function Forum_Topic(){
   const navigate = useNavigate();
@@ -55,14 +58,7 @@ export default function Forum_Topic(){
     }
   }, [])
 
-  function convertTimestamp(ts){
-    let options = { year: 'numeric', month: 'numeric', day: 'numeric',
-                    hour: 'numeric', minute: 'numeric', second: 'numeric' };
-    return Intl.DateTimeFormat('de-DE',options).format(ts)
-  }
-
-
-     const {topic, postCount, creationDate, creator} = topics;
+    const {topic, postCount, creationDate, creator} = topics;
     return (
       <Container className='posts-container' maxWidth="xl"
       sx={{

@@ -24,7 +24,7 @@ import Modal from '@mui/material/Modal';
 //Eigene
 import Topic from "./Topic"
 import AddTopic from './AddTopic';
-
+import { convertTimestamp } from '../../helper/converter';
 export default function Category(props) {
   const [open, setOpen] = React.useState(false);
   const [topics, setTopics] = useState([]);
@@ -63,12 +63,6 @@ export default function Category(props) {
     {
       navigate("/Forum/Category/"+props.vals.id)
     }
-  }
-
-  function convertTimestamp(ts){
-    let options = { year: 'numeric', month: 'numeric', day: 'numeric',
-                    hour: 'numeric', minute: 'numeric', second: 'numeric' };
-    return Intl.DateTimeFormat('de-DE',options).format(ts)
   }
 
    return (

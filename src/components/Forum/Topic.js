@@ -20,6 +20,10 @@ import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import { Typography } from "@mui/material";
 
+//eigene
+import { convertTimestamp } from '../../helper/converter';
+
+
 export default function Topic (props) {
   const navigate = useNavigate();
   const [post, setPost] = useState([]);
@@ -62,12 +66,6 @@ export default function Topic (props) {
       console.log("Topic unmounted")
     }
   }, [])
-
-  function convertTimestamp(ts){
-    let options = { year: 'numeric', month: 'numeric', day: 'numeric',
-                    hour: 'numeric', minute: 'numeric', second: 'numeric' };
-    return Intl.DateTimeFormat('de-DE',options).format(ts)
-  }
 
   return (
   <Box key={Math.random()} sx={{ flexGrow: 1 }}>
