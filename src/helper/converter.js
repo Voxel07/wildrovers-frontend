@@ -11,3 +11,10 @@ export function convertTimestamp(ts,short=false){
 
     return Intl.DateTimeFormat('de-DE',options).format(ts)
   }
+
+export function formatNumber(number){
+  return Intl.NumberFormat('en',
+  {
+      notation:'compact'
+  }).format(number);
+}

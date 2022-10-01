@@ -11,29 +11,44 @@ import Stack from '@mui/material/Stack';
 
 //Auth
 import useAuth from '../../context/useAuth';
+import el from 'date-fns/esm/locale/el/index.js';
 export default function TextEditor(props)
 {
   const{ auth } = useAuth();
 
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState();
   const [state, setState] = useState({ resCode: null, resData: null });
+  const [readonly,setReadonly] = useState()
+  const [rolf, setRolf] = useState()
 
   useEffect(() => {
-    axios.get("https://localhost/forum/post",{
-      params:{}
-    },
+    console.log("changed")
+    if(props.readonly == "true")
     {
-      headers:{ Authorization: `Bearer ${auth.JWT}`}
-    })
-    .then(response=>{
-      setValue(response.data[0].content)
-      console.log(response.data)
-    })
+      setReadonly(true);
+      setRolf(noModules);
+    }
+    else{
+      setReadonly(false);
+      setRolf(myModules);
+    }
+    setValue(props.value)
+
+    // axios.get("https://localhost/forum/post",{
+    //   params:{}
+    // },sasdasd
+    // {
+    //   headers:{ Authorization: `Bearer ${auth.JWT}`}
+    // })
+    // .then(response=>{
+    //   setValue(response.data[0].content)
+    //   console.log(response.data)
+    // })
 
     return () => {
       console.log("fertig")
     }
-  }, [])
+  }, [props.readonly])
 
   function saveImages(images,id){
     console.log("Bilder sepeichern")
@@ -98,7 +113,7 @@ export default function TextEditor(props)
 
 
   }
-  const rolf = {
+  const myModules = {
     toolbar: [
       [{ 'size': ['huge', 'large', false, 'small'] }],
       ['bold', 'italic', 'underline','strike', 'blockquote'],
@@ -111,15 +126,44 @@ export default function TextEditor(props)
     ]
   }
 
-  const {resCode, resData} = state;
+  const noModules = {
+    toolbar: false
+  }
 
+  function ReadOnlyEditor () {
+    return(
+      <ReactQuill
+      theme="snow"
+      modules={noModules}
+      value={value}
+      onChange={setValue}
+      readOnly
+    />
+    )
+  }
+
+  function Editor (){
+    return(
+      <ReactQuill
+      theme="snow"
+      modules={myModules}
+      value={value}
+      onChange={setValue}
+    />
+    )
+  }
+
+  const {resCode, resData} = state;
   return (
     <Box>
       <ReactQuill
         theme="snow"
-        modules={rolf}
+        // modules={rolf}
+        modules={noModules}
+        // modules={readonly ? noModules:myModules}
         value={value}
         onChange={setValue}
+        readOnly={readonly}
       />
 
 

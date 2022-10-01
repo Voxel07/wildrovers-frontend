@@ -102,7 +102,7 @@ export default function Forum_Topic(){
     </AccordionSummary>
     <Divider  />
     <AccordionDetails>
-      <Post posts={posts} />
+      {posts.length?<Post posts={posts} />:<div>Keine Daten erhalten</div>}
     </AccordionDetails>
 
   </Accordion>

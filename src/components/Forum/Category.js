@@ -24,9 +24,10 @@ import Modal from '@mui/material/Modal';
 //Eigene
 import Topic from "./Topic"
 import AddTopic from './AddTopic';
-import { convertTimestamp } from '../../helper/converter';
+import { convertTimestamp, formatNumber } from '../../helper/converter';
+
 export default function Category(props) {
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = useState(false);
   const [topics, setTopics] = useState([]);
   const handleOpen = () => { setOpen(true); };
   const handleClose = () => { setOpen(false); };
@@ -87,7 +88,7 @@ export default function Category(props) {
               <Chip icon={<EventNoteIcon/>} label={convertTimestamp(category.creationDate)} variant="outlined" />
               </Tooltip>
               <Tooltip title="Themen" placement="top-end">
-                  <Chip icon={<TopicIcon/>} label={category.topicCount} variant="outlined" />
+                  <Chip icon={<TopicIcon/>} label={formatNumber(category.topicCount)} variant="outlined" />
               </Tooltip>
               <Tooltip title="Wer darf das sehen" placement="top-end">
                   <Chip icon={<GroupIcon/>} label={category.visibility} variant="outlined" />

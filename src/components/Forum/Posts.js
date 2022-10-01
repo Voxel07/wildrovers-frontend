@@ -42,7 +42,7 @@ import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import { orange } from '@material-ui/core/colors';
 
-import {convertTimestamp} from '../../helper/converter'
+import {convertTimestamp, formatNumber} from '../../helper/converter'
 
 function createData(title, answerCount, views, creationDate, creator) {
   return {
@@ -53,11 +53,6 @@ function createData(title, answerCount, views, creationDate, creator) {
     creator
   };
 }
-
-const formatter = Intl.NumberFormat('en',
-{
-    notation:'compact'
-})
 
 const rows = [
   createData('Cupcake', 305, 5500000000, 1664361787659, "camo"),
@@ -233,14 +228,14 @@ function MyTableBody(props){
       <TableCell sx={{width:20}}>
       <Stack direction="row" spacing={1}   justifyContent="flex-end"  alignItems="center">
           <Tooltip title="Antworten" placement="top-end">
-              <Chip icon={<ForumIcon/>} label={formatter.format(row.answerCount)} variant="outlined" />
+              <Chip icon={<ForumIcon/>} label={formatNumber(row.answerCount)} variant="outlined" />
           </Tooltip>
       </Stack>
       </TableCell>
       <TableCell sx={{width:20}}>
         <Stack direction="row" spacing={1}   justifyContent="flex-end"  alignItems="center">
           <Tooltip title="Aufrufe" placement="top-end">
-          <Chip icon={<VisibilityIcon/>} label={formatter.format(row.views)} variant="outlined" size='medium'/>
+          <Chip icon={<VisibilityIcon/>} label={formatNumber(row.views)} variant="outlined" size='medium'/>
         </Tooltip>
       </Stack>
       </TableCell>
