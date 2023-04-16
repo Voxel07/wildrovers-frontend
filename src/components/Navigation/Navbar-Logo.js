@@ -43,7 +43,7 @@ const NavbarLogo = props => {
         navigate("/", {replace:true});
     })
     .catch(error =>{
-      console.log(error);
+      console.log("!!!!"+error);
     })
 }
 

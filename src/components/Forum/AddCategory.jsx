@@ -1,7 +1,7 @@
 /**
  * This is the Modal to add a ne Category
  */
-import React, { useState, useEffect } from 'react';
+import React, {useRef , useState, useEffect } from 'react';
 import axios from 'axios';
 import { Formik, Field, Form } from 'formik';
 import * as yup from 'yup';
@@ -23,9 +23,13 @@ import { red } from '@mui/material/colors';
 
 //Auth
 import useAuth from '../../context/useAuth';
-
 const AddCategory = React.forwardRef((props, ref) => {
 
+    console.log("props !!")
+    console.log(props)
+    console.log("---------------------------")
+
+    const formikRef = useRef();
     const{ auth } = useAuth();
     const [state, setState] = useState({ resCode: null, resData: null });
 
@@ -51,9 +55,8 @@ const AddCategory = React.forwardRef((props, ref) => {
         Name: yup
             .string()
             .required()
-            .min(3, "Name muss min. 3 Zeichen haben")
+            .min(4, "Name muss min. 3 Zeichen haben")
             .max(20,"Name darf max. 20 Zeichen haben"),
-        // Position: yup.mixed().required(),
         Visibility: yup.mixed().required()
     })
 
@@ -66,16 +69,16 @@ const AddCategory = React.forwardRef((props, ref) => {
             });
 
       return () => {
-        console.log("AddCategory unmout")
       }
-    }, [])
+    })
 
 
-    async function saveCategoryToDB(vals){
+    async function saveCategoryToDB(vals)
+    {
         axios.put('https://localhost/forum/category',
         {
             category: vals.Name,
-            position: vals.Position.label,
+            position: vals.Position.label === null ? 0 : vals.Position.label,
             visibility: vals.Visibility.label
         },
         {
@@ -84,13 +87,23 @@ const AddCategory = React.forwardRef((props, ref) => {
             response =>{
                 setState({resCode: response.status, resData: ""});
                 props.callback();
+                props.onAddCategory();
             }
         )
         .catch(error=>{
             console.log(error.response.data)
+            let resCode = error.response.status;
+            let resData;
 
-            error.response.status == 403 ? setState({resCode:error.response.status, resData:"Nicht berechtigt"}):
-            setState({resCode:error.response.status, resData:error.response.data})
+            if (resCode === 401) {
+                resData = "Nicht angemeldet!";
+            } else if (resCode === 403) {
+                resData = "Du bist für diese Aktion nicht berechtigt";
+            } else {
+                resData = error.response.data;
+            }
+
+            setState({ resCode, resData });
         })
     }
     const {resCode, resData} = state;
@@ -98,6 +111,7 @@ const AddCategory = React.forwardRef((props, ref) => {
   return (
     <React.Fragment >
          <Formik
+            innerRef={formikRef}
             validateOnChange={true}
             initialValues={{
                 Name: '',
@@ -105,10 +119,9 @@ const AddCategory = React.forwardRef((props, ref) => {
                 Visibility: ''
             }}
             validationSchema={validationSchema}
-            onSubmit={async (data, { setSubmitting, resetForm }) => {
+            onSubmit={async (data, { setSubmitting }) => {
                     setSubmitting(true);
-                    await saveCategoryToDB(data);
-                    resetForm(true);
+                    await saveCategoryToDB(data, () => formikRef.current?.resetForm(true));
                     setSubmitting(false);
                 }
             }
@@ -120,45 +133,56 @@ const AddCategory = React.forwardRef((props, ref) => {
                     <Typography sx={{marginBottom:5}}>Neue Kategorie hinzufügen</Typography>
                     <Form className="Form">
                     <Field variant="outlined" label="Name der Kategorie" name="Name" type="input" error={!!errors.Name} helperText={errors.Name} as={TextField} />
-                    <Field  component={Autocomplete} name="Position" options={possibleCategories} getOptionLabel={(option)=>(option ? option.lable : "")} renderInput={(params) => (
-                        <TextField
-                        {...params}
-                        // We have to manually set the corresponding fields on the input component
+
+                    <Field
+                        component={Autocomplete}
                         name="Position"
-                        error={!!touched['Position'] && !!errors['Position']}
-                        helperText={!!touched['Position'] && errors['Position'] && String(errors.Position)}
-                        sx={{
-                            color:red,
-                            marginTop: 3
-                        }}
-                        label="Reihenfolge"
-                        variant="outlined"
-                        />
-                    )}
-                    />
-                    <Field name="Visibility"  component={Autocomplete} options={posibleRanks} getOptionLabel={posibleRanks.lable}renderInput={(params) => (
+                        options={possibleCategories} getOptionLabel={(option) => (option ? option.lable : "")}
+                        isOptionEqualToValue={(option, value) => option.lable === value.lable}
+                        renderInput={(params) => (
                         <TextField
-                        {...params}
-                        // We have to manually set the corresponding fields on the input component
-                        name="Visibility"
-                        error={!!touched['Visibility'] && !!errors['Visibility']}
-                        helperText={!!touched['Visibility'] && errors['Visibility']&& String(errors.Visibility)}
-                        sx={{
-                            color:red,
-                            marginTop: 3
-                        }}
-                        label="Sichtbarkeit"
-                        variant="outlined"
-                        />
+                            {...params}
+                            name="Position"
+                            error={!!touched['Position'] && !!errors['Position']}
+                            helperText={!!touched['Position'] && errors['Position'] && String(errors.Position)}
+                            sx={{
+                                color:red,
+                                marginTop: 3
+                            }}
+                            label="Reihenfolge"
+                            variant="outlined"
+                            />
                     )}
                     />
+                    <Field
+                        name="Visibility"
+                        component={Autocomplete}
+                        options={posibleRanks}
+                        getOptionLabel={posibleRanks.lable}
+                        isOptionEqualToValue={(option, value) => option.lable === value.lable}
+                        renderInput={(params) => (
+                        <TextField
+                            {...params}
+                            name="Visibility"
+                            error={!!touched['Visibility'] && !!errors['Visibility']}
+                            helperText={!!touched['Visibility'] && errors['Visibility']&& String(errors.Visibility)}
+                            sx={{
+                                color:red,
+                                marginTop: 3
+                            }}
+                            label="Sichtbarkeit"
+                            variant="outlined"
+                            />
+                    )}
+                    />
+
                     <Grid container direction="row" justifyContent="space-between">
-                    <Button disabled={isSubmitting || !errors} type='submit'> Hinzufügen </Button>
-                    <Button onClick={props.callback} color="error"> Abbrechen </Button>
+                    <Button variant='outlined' onClick={props.callback} color="error" sx={{marginTop: 2}}> Abbrechen </Button>
+                    <Button variant='outlined' disabled={isSubmitting || !errors} type='submit' sx={{marginTop: 2}}> Hinzufügen </Button>
                     </Grid>
                         {/* <pre> {JSON.stringify(values, null, 2)} </pre> */}
                     </Form>
-                <Grid container alignItems="center" justifyContent="center">
+                <Grid container alignItems="center" justifyContent="start">
                 <Grid item>
                         <Stack  spacing={2} marginTop={2}>
                         {

@@ -20,6 +20,7 @@ import Categories from './Pages/Forum/Forum-Categories'
 import Topics from './Pages/Forum/Forum-Topic';
 import Posts from './Pages/Forum/Forum-Post'
 import TextEditor from './Pages/Texteditor/Texteditor';
+
 //context
 import { useMemo, useState } from "react";
 import { UserContext } from './context/UserContext';
@@ -27,6 +28,9 @@ import { UserContext } from './context/UserContext';
 //Protected routes
 import RequireAuth from './components/Router/RequireAuth';
 import Rules from './Pages/Rules/Rules';
+
+//temp Stuff
+import Member from './Pages/StaticContent/Member';
 
 function App() {
   const [user, setUser] = useState({valid:false,name:"",role:"",jwt:""});
@@ -36,7 +40,8 @@ function App() {
         <Navbar/>
       <Routes history={history}>
         {/*Public Routes */}
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={<Member />} />
+        {/* <Route path="/" element={<LandingPage />} /> */}
         <Route path="Login" element={<LogIn />} />
         <Route path="Regestrieren" element={<SignUp />} />
         <Route path="Regestrieren/Erfolgreich" element={<VerificationPrompt />} />

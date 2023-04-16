@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios'
 
 //Mui
@@ -8,7 +8,6 @@ import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOu
 import Typography from '@mui/material/Typography';
 import { red } from '@material-ui/core/colors';
 import Modal from '@mui/material/Modal';
-import Box from '@mui/material/Box';
 
 //Eigene
 import './Forum-Categories.css';
@@ -16,15 +15,21 @@ import Category from '../../components/Forum/Category';
 import AddCategory from '../../components/Forum/AddCategory';
 import Skeleton_Category from '../../components/Forum/Skeleton_Category';
 
+import { AlertsManager} from '../../components/utils/AlertsManager';
 
-const Forum= () => {
-
+const Forum = () => {
+    const alertsManagerRef = useRef();
     const [categories, setCategories] = useState([]);
     const [loading, setloading] = useState();
     const [open, setOpen] = React.useState(false);
     const handleOpen = () => { setOpen(true); };
     const handleClose = () => { setOpen(false); };
-
+    const [updateData, setUpdateData] = useState(false);
+    const handleUpdate = () =>
+    {
+      console.log("test")
+      setUpdateData(true)
+    }
     //get all categories
     useEffect(() => {
         setloading(true);
@@ -39,10 +44,10 @@ const Forum= () => {
             console.log(err);
         })
 
-    },[]);
-
+    },[updateData]);
 
     return(
+
         <Container className='categories-container' maxWidth="xl"
         sx={{
             backgroundColor : "black",
@@ -54,14 +59,21 @@ const Forum= () => {
             open={open}
             onClose={handleClose}
         >
-          <AddCategory callback={handleClose} cat={categories} />
+          <AddCategory onAddCategory={handleUpdate} callback={handleClose} cat={categories} />
         </Modal>
+        <button onClick={() => {alertsManagerRef.current.showAlert('success', 'Erfolg!')}}>Zeige Erfolg</button>
+        <button onClick={() => {alertsManagerRef.current.showAlert('warning', 'Warnung!')}}>Zeige Warnung</button>
+        <button onClick={() => {alertsManagerRef.current.showAlert('info', 'Info!')}}>Zeige Info</button>
+        <button onClick={() => {alertsManagerRef.current.showAlert('error', 'Fehler!')}}>Zeige Fehler</button>
+        <AlertsManager ref={alertsManagerRef} />
         {
-            categories.length ? categories.map(category => <Category vals={category}/>)
+            categories.length ? categories.map((category, index) => <Category key={index} currentIndex ={index} vals={category}/>)
             :
             loading? <Skeleton_Category /> : <Typography sx={{ color:red[500] }}>Keine Daten erhalten</Typography>
         }
         </Container>
+
+
     )
 }
 

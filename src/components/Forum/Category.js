@@ -1,4 +1,4 @@
-import React,{ useState, useEffect } from 'react'
+import React,{ useMemo, useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
@@ -16,24 +16,55 @@ import Button from '@mui/material/Button';
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
-import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
+// Icons
+import IconButton from '@mui/material/IconButton';
+import PersonIcon from '@mui/icons-material/Person';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import GroupIcon from '@mui/icons-material/Group';
 import Modal from '@mui/material/Modal';
-
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
+import EditIcon from '@mui/icons-material/Edit';
 //Eigene
 import Topic from "./Topic"
 import AddTopic from './AddTopic';
+
+// Context and Auth
 import { convertTimestamp, formatNumber } from '../../helper/converter';
+import { UserContext } from '../../context/UserContext';
+import useAuth from '../../context/useAuth';
 
 export default function Category(props) {
+
+  const{ auth } = useAuth();
+
+  const [user, setUser] = useState({valid:false, name:"", role:"", jwt:""});
+  const stateValue = useMemo(() => ({ user, setUser }), [user, setUser]);
+  const [state, setState] = useState({ resCode: null, resData: null });
   const [open, setOpen] = useState(false);
   const [topics, setTopics] = useState([]);
   const handleOpen = () => { setOpen(true); };
   const handleClose = () => { setOpen(false); };
-  const [category, setCategory] = useState({category:null, id: null, userName :null, creationDate: null,topicCount:null,visibility:null });
+  const [category, setCategory] = useState({category:null, id: null, creator :null, creationDate: null,topicCount:null,visibility:null });
   const navigate = useNavigate();
   const location = useLocation();
+  // const [updateData, setUpdateData] = useState(false);
+  // const handleUpdate = () =>
+  // {
+  //   console.log("test")
+  //  setUpdateData(true)
+  // }
+  const [expandAccordion, setexpandAccordion] = useState(false);
+
+  useEffect(() => {
+    if (props.currentIndex === 0)
+    {
+      setexpandAccordion(true);
+    }
+  }, [props.currentIndex]);
+
+  const handleExpandClick = () => {
+    setexpandAccordion(!expandAccordion);
+  };
 
   useEffect(() => {
 
@@ -50,27 +81,74 @@ export default function Category(props) {
         console.log(error)
       })
         setCategory(props.vals);
+        // setUpdateData(false);
     }
 
     return () => {
       console.log("Category unmounted");
     }
 
+  // }, [updateData])
   }, [])
 
   function redirectToCategory (){
     //Disable redirect if we are on the category page
     if(!location.pathname.includes("Forum/Category"))
     {
-      navigate("/Forum/Category/"+props.vals.id)
+      navigate("/Forum/Category/"+props.vals.id);
     }
   }
 
+  function handleDelete()
+  {
+    axios.delete('https://localhost/forum/category',
+        {
+            id:category.id
+        },
+        {
+            headers:{ Authorization: `Bearer ${auth.JWT}`}
+        }).then(
+            response =>{
+                setState({resCode: response.status, resData: ""});
+                props.callback();
+                console.log("JAA")
+                props.onAddCategory();
+            }
+        )
+        .catch(error=>{
+            console.log(error.response.data)
+            let resCode = error.response.status;
+            let resData;
+
+            if (resCode === 401) {
+                resData = "Nicht angemeldet!";
+            } else if (resCode === 403) {
+                resData = "Du bist für diese Aktion nicht berechtigt";
+            } else {
+                resData = error.response.data;
+            }
+
+            setState({ resCode, resData });
+        })
+    // console.log(category.id);
+  }
+  function handleEdit(id)
+  {
+    console.log("edit"+ id);
+
+  }
    return (
-    // <div>asd</div>
-  <Accordion key={Math.random()} defaultExpanded={true} >
+    <UserContext.Provider value={stateValue}>
+      {
+        console.log(user)
+      }
+  <Accordion expanded={expandAccordion} >
     <AccordionSummary
-      expandIcon={<ExpandMoreIcon />}
+      expandIcon={
+        <IconButton disableRipple onClick={handleExpandClick}>
+          <ExpandMoreIcon />
+        </IconButton>
+      }
       aria-controls="panel1a-content"
       id="panel1a-header"
       >
@@ -78,14 +156,14 @@ export default function Category(props) {
         <Grid item xs={2}>
           <Typography variant="h5" component="h2"  onClick={redirectToCategory}>{category.category}</Typography>
         </Grid>
-        <Grid item xs={10}> {/*Stats*/}
+        <Grid item xs={9}> {/*Stats*/}
             <Grid container direction="row" justifyContent="flex-start"  alignItems="center" colomnspacing={1}>
             <Stack direction="row" spacing={1}>
               <Tooltip title="Ersteller" placement="top-end">
-                  <Chip icon={<PersonOutlineIcon/>} label={category.userName} variant="outlined" />
+                <Chip icon={<PersonIcon/>} label={category.creator} variant="outlined" />
               </Tooltip>
               <Tooltip title="Erstellungsdatum" placement="top-end">
-              <Chip icon={<EventNoteIcon/>} label={convertTimestamp(category.creationDate)} variant="outlined" />
+                <Chip icon={<EventNoteIcon/>} label={convertTimestamp(category.creationDate)} variant="outlined" />
               </Tooltip>
               <Tooltip title="Themen" placement="top-end">
                   <Chip icon={<TopicIcon/>} label={formatNumber(category.topicCount)} variant="outlined" />
@@ -96,6 +174,22 @@ export default function Category(props) {
               </Stack>
             </Grid>
         </Grid>
+        {
+          // category.creator ==
+        }
+        <Grid item xs={1}>
+          <Grid container direction="row" justifyContent="center"  alignItems="center" colomnspacing={1}>{/*Edit and Delete*/}
+            <Stack  direction="row" spacing={1}>
+              <Tooltip title="Kategorie editieren" placement="top-end" onClick={handleEdit} was = {category.id}>
+                <EditIcon/>
+              </Tooltip>
+              <Tooltip title="Kategorie löschen" placement="top-end"  onClick={handleDelete} was = {category.id}>
+                <DeleteForeverIcon/>
+              </Tooltip>
+            </Stack>
+          </Grid>
+        </Grid>
+
       </Grid>
 
     </AccordionSummary>
@@ -103,7 +197,7 @@ export default function Category(props) {
     <AccordionDetails>
     {
       topics.length ? topics.map(topic => <Topic topic={topic}/>)
-      : <div>In dieser Kategorie gibt es noch keine Themen</div>
+      : <Typography>In dieser Kategorie gibt es noch keine Themen</Typography>
     }
     </AccordionDetails>
     <Button variant="outlined" size="small" startIcon={<AddCircleOutlineOutlinedIcon />} sx={{margin: 1}} onClick={handleOpen}>Thema hinzufügen</Button>
@@ -112,8 +206,9 @@ export default function Category(props) {
             open={open}
             onClose={handleClose}
         >
-          <AddTopic callback={handleClose} topics={topics}  category={{id:category.id,name:category}} />
+          <AddTopic callback={handleClose} topics={topics} category={{id:category.id,name:category}} />
         </Modal>
   </Accordion>
+  </UserContext.Provider>
   )
 }

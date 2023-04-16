@@ -23,15 +23,7 @@ export default function TextEditor(props)
 
   useEffect(() => {
     console.log("changed")
-    if(props.readonly == "true")
-    {
-      setReadonly(true);
-      setRolf(noModules);
-    }
-    else{
-      setReadonly(false);
-      setRolf(myModules);
-    }
+    setReadonly(false);
     setValue(props.value)
 
     // axios.get("https://localhost/forum/post",{
@@ -75,15 +67,15 @@ export default function TextEditor(props)
     console.log("speichern")
     //Gett all images in the editor
     const imageTags = document.getElementsByTagName("img");
-    var numPics = imageTags.length
+    let numPics = imageTags.length
 
     if (numPics){
       console.log("Bilder gefunden")
       var sources = [];
       var filteredPost = value;
 
-      for (var i = 0; i < numPics; i++) {
-        var src = imageTags[i].src; //Get all image sources
+      for (let i = 0; i < numPics; i++) {
+        let src = imageTags[i].src; //Get all image sources
         sources.push(src); // Add all sources to an array
         //Remove all image tags from the post data
         filteredPost = filteredPost.replace(/<img[^>]*>/,"<div id=picture_"+ i +"></div>");
@@ -146,7 +138,7 @@ export default function TextEditor(props)
     return(
       <ReactQuill
       theme="snow"
-      modules={myModules}
+      // modules={myModules}
       value={value}
       onChange={setValue}
     />
@@ -156,7 +148,11 @@ export default function TextEditor(props)
   const {resCode, resData} = state;
   return (
     <Box>
-      <ReactQuill
+      {
+        <Editor />
+        // readonly ? <ReadOnlyEditor />: <Editor />
+      }
+      {/* <ReactQuill
         theme="snow"
         // modules={rolf}
         modules={noModules}
@@ -164,7 +160,7 @@ export default function TextEditor(props)
         value={value}
         onChange={setValue}
         readOnly={readonly}
-      />
+      /> */}
 
 
       <Button varian onClick={save}>Save</Button>

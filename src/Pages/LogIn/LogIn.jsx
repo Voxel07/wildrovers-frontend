@@ -66,12 +66,12 @@ const submitForms = async(formData) =>{
        password: formData.password,
     })
     .then(response => {//handels only status code 200-300?
-        console.log(response.data);
-        console.log(response.status);
+        // console.log(response.data);
+        // console.log(response.status);
         setState({resCode: response.status, resData: ""})
         setUser({name: response.data.USER.Name, roles: response.data.USER.Role});
         setAuth({JWT: response.data.JWT, user: response.data.USER.Name, roles: response.data.USER.Role});
-        console.log(props);
+        // console.log(props);
         {
             if(!!!props.modal)
             {
