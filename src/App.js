@@ -22,12 +22,15 @@ import Posts from './Pages/Forum/Forum-Post'
 import TextEditor from './Pages/Texteditor/Texteditor';
 
 //context
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { UserContext } from './context/UserContext';
 
 //Protected routes
 import RequireAuth from './components/Router/RequireAuth';
 import Rules from './Pages/Rules/Rules';
+
+//user Feedback
+import { AlertsManager, AlertsContext } from './components/utils/AlertsManager';
 
 //temp Stuff
 import Member from './Pages/StaticContent/Member';
@@ -35,9 +38,13 @@ import Member from './Pages/StaticContent/Member';
 function App() {
   const [user, setUser] = useState({valid:false,name:"",role:"",jwt:""});
   const stateValue = useMemo(() => ({ user, setUser }), [user, setUser]);
+  const alertsManagerRef = useRef();
+
   return (
       <UserContext.Provider value={stateValue}>
+      <AlertsContext.Provider value={alertsManagerRef}>
         <Navbar/>
+        <AlertsManager ref={alertsManagerRef} />
       <Routes history={history}>
         {/*Public Routes */}
         <Route path="/" element={<Member />} />
@@ -68,6 +75,7 @@ function App() {
 
         {/* </Route> */}
       </Routes>
+      </AlertsContext.Provider>
       </UserContext.Provider>
   );
 }

@@ -25,15 +25,14 @@ import { red } from '@mui/material/colors';
 import useAuth from '../../context/useAuth';
 const AddCategory = React.forwardRef((props, ref) => {
 
-    console.log("props !!")
-    console.log(props)
-    console.log("---------------------------")
-
     const formikRef = useRef();
     const{ auth } = useAuth();
     const [state, setState] = useState({ resCode: null, resData: null });
 
-    const possibleCategories = [ ];
+    const [possibleCategories, setPossibleCategories] = useState('');
+    const [selectedValuePos, setSelectedValuePos] = useState(null);
+    const [selectedValueVis, setSelectedValueVis] = useState(null);
+
 
 //------------Modal-------------------------------------
 
@@ -54,23 +53,21 @@ const AddCategory = React.forwardRef((props, ref) => {
     const validationSchema = yup.object({
         Name: yup
             .string()
-            .required()
+            .required("Du musst dem Ding schon einen Namen geben")
             .min(4, "Name muss min. 3 Zeichen haben")
             .max(20,"Name darf max. 20 Zeichen haben"),
-        Visibility: yup.mixed().required()
-    })
+    });
 
 //----Functions-------------------------
 
-    useEffect(() => {
-        props.cat.forEach(element =>
-            {
-                possibleCategories.push({lable:element.category, id:element.position})
-            });
 
-      return () => {
-      }
-    })
+useEffect(() => {
+  const categories = props.aviableCategories.map((element) => ({
+    label: element.category,
+    id: element.id,
+  }));
+  setPossibleCategories(categories);
+}, [props.aviableCategories]);
 
 
     async function saveCategoryToDB(vals)
@@ -78,8 +75,8 @@ const AddCategory = React.forwardRef((props, ref) => {
         axios.put('https://localhost/forum/category',
         {
             category: vals.Name,
-            position: vals.Position.label === null ? 0 : vals.Position.label,
-            visibility: vals.Visibility.label
+            position: selectedValuePos.id,
+            visibility: selectedValueVis.label
         },
         {
             headers:{ Authorization: `Bearer ${auth.JWT}`}
@@ -98,7 +95,8 @@ const AddCategory = React.forwardRef((props, ref) => {
             if (resCode === 401) {
                 resData = "Nicht angemeldet!";
             } else if (resCode === 403) {
-                resData = "Du bist für diese Aktion nicht berechtigt";
+                console.log(auth)
+                resData = "Du bist für diese Aktion nicht berechtigt!\nDein Rang: "+ auth.roles +" benötigter Rang: Frischling";
             } else {
                 resData = error.response.data;
             }
@@ -133,12 +131,15 @@ const AddCategory = React.forwardRef((props, ref) => {
                     <Typography sx={{marginBottom:5}}>Neue Kategorie hinzufügen</Typography>
                     <Form className="Form">
                     <Field variant="outlined" label="Name der Kategorie" name="Name" type="input" error={!!errors.Name} helperText={errors.Name} as={TextField} />
-
+                    {possibleCategories.length ?
                     <Field
                         component={Autocomplete}
                         name="Position"
-                        options={possibleCategories} getOptionLabel={(option) => (option ? option.lable : "")}
-                        isOptionEqualToValue={(option, value) => option.lable === value.lable}
+                        options={possibleCategories}
+                        getOptionLabel={(option) => (option ? option.label : "")}
+                        isOptionEqualToValue={(option, value) => option.label === value.label}
+                        onChange={(event, newValue) => setSelectedValuePos(newValue)}
+                        value={selectedValuePos || null}
                         renderInput={(params) => (
                         <TextField
                             {...params}
@@ -152,14 +153,18 @@ const AddCategory = React.forwardRef((props, ref) => {
                             label="Reihenfolge"
                             variant="outlined"
                             />
-                    )}
-                    />
+                            )}
+                          />: null
+                        }
+
                     <Field
                         name="Visibility"
                         component={Autocomplete}
                         options={posibleRanks}
-                        getOptionLabel={posibleRanks.lable}
-                        isOptionEqualToValue={(option, value) => option.lable === value.lable}
+                        getOptionLabel={posibleRanks.label}
+                        isOptionEqualToValue={(option, value) => option.label === value.label}
+                        onChange={(event, newValue) => setSelectedValueVis(newValue)}
+                        value={selectedValueVis || null}
                         renderInput={(params) => (
                         <TextField
                             {...params}
@@ -184,9 +189,9 @@ const AddCategory = React.forwardRef((props, ref) => {
                     </Form>
                 <Grid container alignItems="center" justifyContent="start">
                 <Grid item>
-                        <Stack  spacing={2} marginTop={2}>
+                        <Stack spacing={2} marginTop={2}>
                         {
-                            !!resData && resCode > 200 ? <Alert severity="error">{resData}</Alert>:null
+                            !!resData && resCode > 200 ? <Alert severity="error" style={{ whiteSpace: "pre-wrap" }}>{resData}</Alert>:null
                         }
                         </Stack>
                     </Grid>

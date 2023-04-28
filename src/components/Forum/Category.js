@@ -1,4 +1,4 @@
-import React,{ useMemo, useState, useEffect } from 'react'
+import React,{ useMemo, useState, useEffect, useContext } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
@@ -27,6 +27,7 @@ import EditIcon from '@mui/icons-material/Edit';
 //Eigene
 import Topic from "./Topic"
 import AddTopic from './AddTopic';
+import { AlertsContext } from '../../components/utils/AlertsManager';
 
 // Context and Auth
 import { convertTimestamp, formatNumber } from '../../helper/converter';
@@ -36,29 +37,27 @@ import useAuth from '../../context/useAuth';
 export default function Category(props) {
 
   const{ auth } = useAuth();
+  const alertsManagerRef = useContext(AlertsContext);
 
   const [user, setUser] = useState({valid:false, name:"", role:"", jwt:""});
   const stateValue = useMemo(() => ({ user, setUser }), [user, setUser]);
-  const [state, setState] = useState({ resCode: null, resData: null });
   const [open, setOpen] = useState(false);
   const [topics, setTopics] = useState([]);
   const handleOpen = () => { setOpen(true); };
   const handleClose = () => { setOpen(false); };
-  const [category, setCategory] = useState({category:null, id: null, creator :null, creationDate: null,topicCount:null,visibility:null });
+  const [category, setCategory] = useState({category:null, id: null, creator :null, creationDate: null,topicCount:null,visibility:null, position:null });
   const navigate = useNavigate();
   const location = useLocation();
-  // const [updateData, setUpdateData] = useState(false);
-  // const handleUpdate = () =>
-  // {
-  //   console.log("test")
-  //  setUpdateData(true)
-  // }
   const [expandAccordion, setexpandAccordion] = useState(false);
 
   useEffect(() => {
     if (props.currentIndex === 0)
     {
       setexpandAccordion(true);
+    }
+    else
+    {
+      setexpandAccordion(false);
     }
   }, [props.currentIndex]);
 
@@ -78,18 +77,13 @@ export default function Category(props) {
         setTopics(response.data);
       })
       .catch(error=>{
-        console.log(error)
       })
         setCategory(props.vals);
-        // setUpdateData(false);
     }
 
     return () => {
-      console.log("Category unmounted");
     }
-
-  // }, [updateData])
-  }, [])
+  }, [props.vals])
 
   function redirectToCategory (){
     //Disable redirect if we are on the category page
@@ -102,21 +96,17 @@ export default function Category(props) {
   function handleDelete()
   {
     axios.delete('https://localhost/forum/category',
-        {
-            id:category.id
-        },
-        {
-            headers:{ Authorization: `Bearer ${auth.JWT}`}
+    {
+      headers:{ Authorization: `Bearer ${auth.JWT}`},
+      data:{ id: category.id }
+
         }).then(
             response =>{
-                setState({resCode: response.status, resData: ""});
-                props.callback();
-                console.log("JAA")
-                props.onAddCategory();
+                alertsManagerRef.current.showAlert('success', 'Kategorie: '+ category.category +' Erfolgreich gelöscht');
+                props.deleteCallback(category)
             }
         )
         .catch(error=>{
-            console.log(error.response.data)
             let resCode = error.response.status;
             let resData;
 
@@ -127,22 +117,44 @@ export default function Category(props) {
             } else {
                 resData = error.response.data;
             }
+            alertsManagerRef.current.showAlert('error', resCode+ " " + resData);
 
-            setState({ resCode, resData });
         })
-    // console.log(category.id);
   }
-  function handleEdit(id)
+
+  function handleEdit ()
   {
-    console.log("edit"+ id);
+    props.editCallback(category);
+  }
+
+  function  displayEditDelete()
+  {
+    if(auth.user === category.creator || auth.roles === "Admin")
+    {
+      return(
+        <Grid item xs={1}>
+          <Grid container direction="row" justifyContent="center"  alignItems="center" colomnspacing={1}>{/*Edit and Delete*/}
+            <Stack  direction="row" spacing={1}>
+              <Tooltip title="Kategorie editieren" placement="top-end" onClick={handleEdit}>
+                  <EditIcon/>
+              </Tooltip>
+              <Tooltip title="Kategorie löschen" placement="top-end"  onClick={handleDelete}>
+                  <DeleteForeverIcon/>
+              </Tooltip>
+              </Stack>
+            </Grid>
+          </Grid>
+        )
+    }
+    else
+    {
+      return null;
+    }
 
   }
    return (
-    <UserContext.Provider value={stateValue}>
-      {
-        console.log(user)
-      }
-  <Accordion expanded={expandAccordion} >
+  <UserContext.Provider value={stateValue}>
+  <Accordion expanded={expandAccordion} sx={{backgroundColor: 'darkgrey'}}>
     <AccordionSummary
       expandIcon={
         <IconButton disableRipple onClick={handleExpandClick}>
@@ -175,20 +187,8 @@ export default function Category(props) {
             </Grid>
         </Grid>
         {
-          // category.creator ==
+          displayEditDelete()
         }
-        <Grid item xs={1}>
-          <Grid container direction="row" justifyContent="center"  alignItems="center" colomnspacing={1}>{/*Edit and Delete*/}
-            <Stack  direction="row" spacing={1}>
-              <Tooltip title="Kategorie editieren" placement="top-end" onClick={handleEdit} was = {category.id}>
-                <EditIcon/>
-              </Tooltip>
-              <Tooltip title="Kategorie löschen" placement="top-end"  onClick={handleDelete} was = {category.id}>
-                <DeleteForeverIcon/>
-              </Tooltip>
-            </Stack>
-          </Grid>
-        </Grid>
 
       </Grid>
 
