@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react"
+import React, {useEffect, useState, useContext} from "react"
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -19,15 +19,20 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import { Typography } from "@mui/material";
-
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
+import EditIcon from '@mui/icons-material/Edit';
 //eigene
 import { convertTimestamp } from '../../helper/converter';
-
+import useAuth from '../../context/useAuth';
+import { AlertsContext } from '../../components/utils/AlertsManager';
 
 export default function Topic (props) {
+  const{ auth } = useAuth();
+
   const navigate = useNavigate();
   const [post, setPost] = useState([]);
   const {topic, id, postCount, views, creationDate} = props.topic;
+  const alertsManagerRef = useContext(AlertsContext);
 
   function redirectToTopic (){
     navigate("/Forum/Topic/"+props.topic.id);
@@ -53,7 +58,7 @@ export default function Topic (props) {
     if(postCount<1){
       return( <div>nope</div>)
     }
-    axios.get("https://localhost/forum/post/latest",{params:{topic:props.topic.id}})
+    axios.get("http://localhost/forum/post/latest:8080",{params:{topic:props.topic.id}})
     .then(response =>{
       console.log(response);
       setPost(response.data);
@@ -66,6 +71,65 @@ export default function Topic (props) {
       console.log("Topic unmounted")
     }
   }, [])
+
+  function handleDelete()
+  {
+    axios.delete('http://localhost:8080/forum/topic',
+    {
+      headers:{ Authorization: `Bearer ${auth.JWT}`},
+      data:{ id: topic.id }
+
+        }).then(
+            response =>{
+                alertsManagerRef.current.showAlert('success', 'Kategorie: '+ topic.topic +' Erfolgreich gelöscht');
+                props.deleteCallback(topic)
+            }
+        )
+        .catch(error=>{
+            let resCode = error.response.status;
+            let resData;
+
+            if (resCode === 401) {
+                resData = "Nicht angemeldet!";
+            } else if (resCode === 403) {
+                resData = "Du bist für diese Aktion nicht berechtigt";
+            } else {
+                resData = error.response.data;
+            }
+            alertsManagerRef.current.showAlert('error', resCode+ " " + resData);
+
+        })
+  }
+
+  function handleEdit ()
+  {
+    props.editCallback(topic);
+  }
+
+  function  displayEditDelete()
+  {
+    if(auth.user === topic.creator || auth.roles === "Admin")
+    {
+      return(
+        <Grid item xs={1}>
+          <Grid container direction="row" justifyContent="center"  alignItems="center" colomnspacing={1}>{/*Edit and Delete*/}
+            <Stack  direction="row" spacing={1}>
+              <Tooltip title="Kategorie editieren" placement="top-end" onClick={handleEdit}>
+                  <EditIcon/>
+              </Tooltip>
+              <Tooltip title="Kategorie löschen" placement="top-end" onClick={handleDelete}>
+                  <DeleteForeverIcon/>
+              </Tooltip>
+              </Stack>
+            </Grid>
+          </Grid>
+        )
+    }
+    else
+    {
+      return null;
+    }
+  }
 
   return (
   <Box key={Math.random()} sx={{ flexGrow: 1 }}>
@@ -100,6 +164,9 @@ export default function Topic (props) {
       !!post.title ? lastEntry(post) :<div>Noch keine Posts enthalten</div>
     }
     </Grid>
+    {
+      displayEditDelete()
+    }
   </Grid>
     <Divider variant="inset" />
   </Box>

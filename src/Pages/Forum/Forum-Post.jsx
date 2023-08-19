@@ -20,7 +20,7 @@ export default function Forum_Post() {
     history.replace({pathname: `/Forum/Post/`+id+'/'+name})
 
     useEffect(() => {
-      axios.get("https://localhost/forum/post",{params:{post:id}})
+      axios.get("http://localhost:8080/forum/post",{params:{post:id}})
       .then(response =>{
         console.log(response);
         setPost(response.data);
@@ -30,7 +30,7 @@ export default function Forum_Post() {
       })
       console.log(post.length)
       if(post.length == 0) { console.log("war null"); return}
-      axios.get("https://localhost/forum/answer",{params:{post:id}})
+      axios.get("http://localhost:8080/forum/answer",{params:{post:id}})
       .then(response =>{
         console.log(response);
         setAnswers(response.data);

@@ -18,7 +18,7 @@ export default function Forum_Categories(){
 
     //get the category
     useEffect(() => {
-        axios.get("https://localhost/forum/category",{params:{categoryId:id}})
+        axios.get("http://localhost:8080/forum/category",{params:{categoryId:id}})
         .then(response => {
             setCategory(response.data)
             history.replace({pathname: `/Forum/Category/`+id+'/'+response.data[0].category})

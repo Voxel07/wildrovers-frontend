@@ -36,7 +36,7 @@ const NavbarLogo = props => {
   };
 
   async function LogOut (){
-    axios.post('https://localhost/user/logout')
+    axios.post('http://localhost:8080/user/logout')
     .then(response=>{
         setUser({valid:false, jwt:null});
         setAuth({JWT: null, user: null, roles: null});

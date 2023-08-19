@@ -1,7 +1,8 @@
 /**
  * This is the Modal to add a ne Category
  */
- import React, { useState, useEffect } from 'react';
+import React, {useRef , useState, useEffect, useContext } from 'react';
+
  import axios from 'axios';
  import { Formik, Field, Form } from 'formik';
  import * as yup from 'yup';
@@ -19,11 +20,16 @@
  import { Container, Typography } from '@mui/material';
  import { Autocomplete } from 'formik-mui'; //https://stackworx.github.io/formik-mui/
  import { red } from '@mui/material/colors';
+ import { AlertsContext } from '../../components/utils/AlertsManager';
 
  //Auth
  import useAuth from '../../context/useAuth';
 
  const AddTopic = React.forwardRef((props, ref) => {
+    console.log(props.category)
+    const formikRef = useRef();
+    const alertsManagerRef = useContext(AlertsContext);
+
 
     const{ auth } = useAuth();
     const [state, setState] = useState({ resCode: null, resData: null });
@@ -53,21 +59,18 @@
  //----Functions-------------------------
 
     useEffect(() => {
-        // setTopics(props.topics)
-        props.topics.forEach(element =>
-            {
-            possibleTopics.push({lable:element.category, id:element.position})
-            })
+        const topics = props.topics.map((element) => ({
+            label: element.topic,
+            id: element.id,
+        }));
 
-    return () => {
-        console.log("AddTopic unmout")
-    }
-    }, [])
+        setTopics(topics)
+    }, [props.topics])
 
 
     async function saveTopicToDB(vals){
     axios.put(
-    'https://localhost/forum/topic',
+    'http://localhost/forum/topic:8080',
     {
         topic: vals.Topic
     },
@@ -78,20 +81,33 @@
     ).then(
         response =>{
             setState({resCode: response.status, resData: ""});
+            alertsManagerRef.current.showAlert('success', 'Thema: '+ vals.Topic +' Erfolgreich erstellt');
+
             props.callback();
+            props.onAddTopic();
         }
     )
     .catch(error=>{
-        error.response.status == 403 ? setState({resCode:error.response.status, resData:"Nicht berechtigt"}):
-        setState({resCode:error.response.status, resData:error.response.data})
+        let resCode = error.response.status;
+        let resData;
+
+        if (resCode === 401) {
+            resData = "Nicht angemeldet!";
+        } else if (resCode === 403) {
+            resData = "Du bist für diese Aktion nicht berechtigt!\nDein Rang: "+ auth.roles +" benötigter Rang: Frischling";
+        } else {
+            resData = error.response.data;
+        }
+
+        setState({ resCode, resData });
     })
     }
     const {resCode, resData} = state;
 
-    return(<div>"hallo"</div>)
    return (
     <React.Fragment >
         <Formik
+            innerRef={formikRef}
             validateOnChange={true}
             initialValues={{
                 Topic: '',
@@ -111,7 +127,6 @@
             <div>
                 <Container className="Form-Container" sx={{...style, width:0.33}} >
                     <Typography sx={{marginBottom:5}}>Neues Thema zu {props.category.name} hinzufügen</Typography>
-                    <Typography >{props.category.id} </Typography>
                     <Form className="Form">
                     <Field variant="outlined" label="Name des Themas" name="Topic" type="input" error={!!errors.Name} helperText={errors.Name} as={TextField} />
                     {/* <Field  component={Autocomplete} name="Position" options={possibleTopics} getOptionLabel={(option)=>(option ? option.lable : "")} renderInput={(params) => (
@@ -136,11 +151,12 @@
                     </Grid>
                         {/* <pre> {JSON.stringify(values, null, 2)} </pre> */}
                     </Form>
-                <Grid container alignItems="center" justifyContent="center">
+                <Grid container alignItems="center" justifyContent="start">
                 <Grid item>
                         <Stack  spacing={2} marginTop={2}>
                         {
-                            !!resData && resCode > 200 ? <Alert severity="error">{resData}</Alert>:null
+                            !!resData && resCode > 200 ? <Alert severity="error" style={{ whiteSpace: "pre-wrap" }}>{resData}</Alert>:null
+
                         }
                         </Stack>
                     </Grid>

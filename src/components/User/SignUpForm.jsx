@@ -31,7 +31,7 @@ function SignUpForm() {
 
     const handleSubmit = async(formData) =>{
 
-        await axios.put('https://localhost/user',
+        await axios.put('http://localhost:8080/user',
         {
             firstName: formData.firstName,
             lastName: formData.lastName,

@@ -44,7 +44,7 @@ export default function TextEditor(props)
 
   function saveImages(images,id){
     console.log("Bilder sepeichern")
-    axios.post('https://localhost/forum/post/img',
+    axios.post('http://localhost:8080/forum/post/img',
     {
       files: images,
       postId: state.resData
@@ -82,7 +82,7 @@ export default function TextEditor(props)
       }
     }
 
-    axios.put('https://localhost/forum/post?topic='+1,
+    axios.put('http://localhost:8080/forum/post?topic='+1,
     {
       title: Math.random()*10,
       content: filteredPost

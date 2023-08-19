@@ -28,6 +28,8 @@ import EditIcon from '@mui/icons-material/Edit';
 import Topic from "./Topic"
 import AddTopic from './AddTopic';
 import { AlertsContext } from '../../components/utils/AlertsManager';
+// import CustomBorderChip from '../styledComponents/chip';
+import { styled } from "@mui/system";
 
 // Context and Auth
 import { convertTimestamp, formatNumber } from '../../helper/converter';
@@ -49,6 +51,22 @@ export default function Category(props) {
   const navigate = useNavigate();
   const location = useLocation();
   const [expandAccordion, setexpandAccordion] = useState(false);
+  const [updateData, setUpdateData] = useState(false);
+
+  const handleUpdate = () =>
+  {
+    setUpdateData(true)
+  }
+
+  const StyledChip = styled(Chip)(({ theme }) => ({
+    '&.MuiChip-outlined': {
+      borderColor: 'gray',
+      color: 'black',
+      '&:hover, &:focus': {
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      },
+    },
+  }));
 
   useEffect(() => {
     if (props.currentIndex === 0)
@@ -69,7 +87,7 @@ export default function Category(props) {
 
     if(!!props.vals)
     {
-      axios.get("https://localhost/forum/topic",
+      axios.get("http://localhost:8080/forum/topic",
       {
         params:{category:props.vals.id}
       })
@@ -83,7 +101,7 @@ export default function Category(props) {
 
     return () => {
     }
-  }, [props.vals])
+  }, [props.vals, updateData])
 
   function redirectToCategory (){
     //Disable redirect if we are on the category page
@@ -95,7 +113,7 @@ export default function Category(props) {
 
   function handleDelete()
   {
-    axios.delete('https://localhost/forum/category',
+    axios.delete('http://localhost:8080/forum/category',
     {
       headers:{ Authorization: `Bearer ${auth.JWT}`},
       data:{ id: category.id }
@@ -138,7 +156,7 @@ export default function Category(props) {
               <Tooltip title="Kategorie editieren" placement="top-end" onClick={handleEdit}>
                   <EditIcon/>
               </Tooltip>
-              <Tooltip title="Kategorie löschen" placement="top-end"  onClick={handleDelete}>
+              <Tooltip title="Kategorie löschen" placement="top-end" onClick={handleDelete}>
                   <DeleteForeverIcon/>
               </Tooltip>
               </Stack>
@@ -150,8 +168,8 @@ export default function Category(props) {
     {
       return null;
     }
-
   }
+
    return (
   <UserContext.Provider value={stateValue}>
   <Accordion expanded={expandAccordion} sx={{backgroundColor: 'darkgrey'}}>
@@ -181,14 +199,15 @@ export default function Category(props) {
                   <Chip icon={<TopicIcon/>} label={formatNumber(category.topicCount)} variant="outlined" />
               </Tooltip>
               <Tooltip title="Wer darf das sehen" placement="top-end">
-                  <Chip icon={<GroupIcon/>} label={category.visibility} variant="outlined" />
+                  <StyledChip icon={<GroupIcon sx={{ color: "gray !important" }}/>} label={category.visibility} variant="outlined" />
               </Tooltip>
               </Stack>
             </Grid>
-        </Grid>
-        {
+            {
           displayEditDelete()
         }
+
+        </Grid>
 
       </Grid>
 
@@ -206,7 +225,7 @@ export default function Category(props) {
             open={open}
             onClose={handleClose}
         >
-          <AddTopic callback={handleClose} topics={topics} category={{id:category.id,name:category}} />
+          <AddTopic onAddTopic={handleUpdate} callback={handleClose} topics={topics} category={{id:category.id,name:category.category}} />
         </Modal>
   </Accordion>
   </UserContext.Provider>

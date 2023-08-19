@@ -35,7 +35,7 @@ export default function Forum_Topic(){
 
   useEffect(() => {
 
-    axios.get("https://localhost/forum/post",{params:{topic:id}})
+    axios.get("http://localhost:8080/forum/post",{params:{topic:id}})
     .then(response =>{
       console.log(response);
       setPosts(response.data);
@@ -44,7 +44,7 @@ export default function Forum_Topic(){
       console.log(error)
     })
 
-    axios.get("https://localhost/forum/topic",{params:{topicId:id}})
+    axios.get("http://localhost:8080/forum/topic",{params:{topicId:id}})
     .then(response =>{
       console.log(response);
       setTopics(response.data[0]);

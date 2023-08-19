@@ -31,14 +31,13 @@ const Forum = () => {
     const [sort, setSort] = useState({ field: "name", direction: "asc" });
     const handleUpdate = () =>
     {
-      console.log("test")
       setUpdateData(true)
     }
     //get all categories
     useEffect(() => {
         setloading(true);
 
-        axios.get("https://localhost/forum/category")
+        axios.get("http://localhost:8080/forum/category")
         .then(response => {
             setCategories(response.data)
             setloading(false);

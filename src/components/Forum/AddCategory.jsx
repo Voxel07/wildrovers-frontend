@@ -1,7 +1,7 @@
 /**
  * This is the Modal to add a ne Category
  */
-import React, {useRef , useState, useEffect } from 'react';
+import React, {useRef , useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { Formik, Field, Form } from 'formik';
 import * as yup from 'yup';
@@ -20,6 +20,7 @@ import { Container, Typography } from '@mui/material';
 // import Autocomplete from '@mui/material/Autocomplete';
 import { Autocomplete } from 'formik-mui'; //https://stackworx.github.io/formik-mui/
 import { red } from '@mui/material/colors';
+import { AlertsContext } from '../../components/utils/AlertsManager';
 
 //Auth
 import useAuth from '../../context/useAuth';
@@ -28,6 +29,7 @@ const AddCategory = React.forwardRef((props, ref) => {
     const formikRef = useRef();
     const{ auth } = useAuth();
     const [state, setState] = useState({ resCode: null, resData: null });
+    const alertsManagerRef = useContext(AlertsContext);
 
     const [possibleCategories, setPossibleCategories] = useState('');
     const [selectedValuePos, setSelectedValuePos] = useState(null);
@@ -72,7 +74,7 @@ useEffect(() => {
 
     async function saveCategoryToDB(vals)
     {
-        axios.put('https://localhost/forum/category',
+        axios.put('http://localhost:8080/forum/category',
         {
             category: vals.Name,
             position: selectedValuePos.id,
@@ -83,6 +85,8 @@ useEffect(() => {
         }).then(
             response =>{
                 setState({resCode: response.status, resData: ""});
+                alertsManagerRef.current.showAlert('success', 'Kategorie: '+ vals.Name +' Erfolgreich erstellt');
+
                 props.callback();
                 props.onAddCategory();
             }
