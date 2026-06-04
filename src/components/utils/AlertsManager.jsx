@@ -1,5 +1,5 @@
 
-import React, { useState, forwardRef, useEffect, useImperativeHandle, createContext } from 'react';
+import React, { useState, useEffect, useImperativeHandle, createContext } from 'react';
 import Alert from '@mui/material/Alert';
 import Slide from '@mui/material/Slide';
 import  LinearProgress  from '@mui/material/LinearProgress';
@@ -7,7 +7,7 @@ import  LinearProgress  from '@mui/material/LinearProgress';
 import './AlertsManager.css';
 const AlertsContext = createContext();
 
-const AlertsManager = forwardRef((props, ref) => {
+const AlertsManager = ({ ref, ...props }) => {
     const [alerts, setAlerts] = useState([]);
 
     useEffect(() => {
@@ -87,5 +87,5 @@ const AlertsManager = forwardRef((props, ref) => {
     ))}
       </div>
     );
-  });
+};
 export { AlertsManager, AlertsContext };

@@ -2,7 +2,7 @@ import React from 'react'
 import SignUpForm from '../../components/User/SignUpForm'
 
 import Typography from '@mui/material/Typography';
-import Grid from '@material-ui/core/Grid';
+import Grid from '@mui/material/Grid';
 
 export default function SignUp() {
   return (

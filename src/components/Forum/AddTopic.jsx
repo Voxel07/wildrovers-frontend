@@ -1,7 +1,7 @@
 /**
  * This is the Modal to add a ne Category
  */
-import React, {useRef , useState, useEffect, useContext } from 'react';
+import React, {useRef , useState, useEffect, use } from 'react';
 
  import axios from 'axios';
  import { Formik, Field, Form } from 'formik';
@@ -18,23 +18,19 @@ import React, {useRef , useState, useEffect, useContext } from 'react';
  //Button
  import Button from '@mui/material/Button';
  import { Container, Typography } from '@mui/material';
- import { Autocomplete } from 'formik-mui'; //https://stackworx.github.io/formik-mui/
+ // Autocomplete handled via native MUI if needed
  import { red } from '@mui/material/colors';
  import { AlertsContext } from '../../components/utils/AlertsManager';
 
  //Auth
  import useAuth from '../../context/useAuth';
 
- const AddTopic = React.forwardRef((props, ref) => {
-    console.log(props.category)
-    const formikRef = useRef();
-    const alertsManagerRef = useContext(AlertsContext);
-
-
-    const{ auth } = useAuth();
-    const [state, setState] = useState({ resCode: null, resData: null });
-    const [topics, setTopics] = useState([]);
-    const possibleTopics = [];
+const AddTopic = ({ ref, ...props }) => {
+     const formikRef = useRef();
+     const{ auth } = useAuth();
+     const [state, setState] = useState({ resCode: null, resData: null });
+     const [topics, setTopics] = useState([]);
+     const alertsManagerRef = use(AlertsContext);
 
  //------------Modal-------------------------------------
 
@@ -70,7 +66,7 @@ import React, {useRef , useState, useEffect, useContext } from 'react';
 
     async function saveTopicToDB(vals){
     axios.put(
-    'http://localhost/forum/topic:8080',
+    'http://localhost:8080/forum/topic',
     {
         topic: vals.Topic
     },
@@ -93,10 +89,10 @@ import React, {useRef , useState, useEffect, useContext } from 'react';
 
         if (resCode === 401) {
             resData = "Nicht angemeldet!";
-        } else if (resCode === 403) {
-            resData = "Du bist für diese Aktion nicht berechtigt!\nDein Rang: "+ auth.roles +" benötigter Rang: Frischling";
+        } else if (resCode === 403 || resCode === 406) {
+            resData = error.response.data || "Du bist für diese Aktion nicht berechtigt!";
         } else {
-            resData = error.response.data;
+            resData = error.response.data || "Ein Fehler ist aufgetreten.";
         }
 
         setState({ resCode, resData });
@@ -124,7 +120,7 @@ import React, {useRef , useState, useEffect, useContext } from 'react';
         >
             {
             ({ values, errors, isSubmitting , touched}) => (
-            <div>
+            <div ref={ref} tabIndex={-1}>
                 <Container className="Form-Container" sx={{...style, width:0.33}} >
                     <Typography sx={{marginBottom:5}}>Neues Thema zu {props.category.name} hinzufügen</Typography>
                     <Form className="Form">
@@ -170,7 +166,6 @@ import React, {useRef , useState, useEffect, useContext } from 'react';
 
     </React.Fragment>
    );
- })
+};
 
-
- export default AddTopic;
+export default AddTopic;

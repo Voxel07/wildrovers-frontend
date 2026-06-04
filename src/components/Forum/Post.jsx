@@ -1,65 +1,252 @@
-import React from 'react'
+import React, { useState, use } from 'react';
+import PropTypes from 'prop-types';
+import api from '../../helper/api';
 
-//Mui
-import { Grid } from '@mui/material';
-import {Typography} from '@mui/material';
-import {Avatar} from '@mui/material';
-import {Stack, Tooltip, Chip} from '@mui/material';
-import TopicIcon from '@mui/icons-material/Topic';
-//Quill
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
-//Eigene
+// Mui
+import Grid from '@mui/material/Grid';
+import Typography from '@mui/material/Typography';
+import Avatar from '@mui/material/Avatar';
+import Stack from '@mui/material/Stack';
+import Tooltip from '@mui/material/Tooltip';
+import Chip from '@mui/material/Chip';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import IconButton from '@mui/material/IconButton';
+import ForumIcon from '@mui/icons-material/Forum';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import ThumbUpOutlinedIcon from '@mui/icons-material/ThumbUpOutlined';
+import ThumbUpIcon from '@mui/icons-material/ThumbUp';
+import ThumbDownOutlinedIcon from '@mui/icons-material/ThumbDownOutlined';
+import ThumbDownIcon from '@mui/icons-material/ThumbDown';
+import EditIcon from '@mui/icons-material/Edit';
+import SaveIcon from '@mui/icons-material/Save';
+import CancelIcon from '@mui/icons-material/Cancel';
+import Box from '@mui/material/Box';
+import Divider from '@mui/material/Divider';
+
+// Quill
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
+
+// Eigene
 import { convertTimestamp, formatNumber } from '../../helper/converter';
-import TextEditor from '../../Pages/Texteditor/Texteditor';
+import useAuth from '../../context/useAuth';
+import { AlertsContext } from '../utils/AlertsManager';
 
-export default function Post(props) {
-    console.log("props")
-    console.log(props)
-    console.log(props.post)
-    const  {id, title, creator, creationDate, answerCount, views, content} = props.post[0];
-
-    function PostStats(){
-        return(
+function PostStats({ answerCount, views }) {
+    return (
         <Stack direction="row" spacing={1}>
-            <Tooltip title="Antworten" placement="top-end">
-                <Chip icon={<TopicIcon />} lable={formatNumber(answerCount)}/>
+            <Tooltip title="Antworten" placement="top">
+                <Chip icon={<ForumIcon />} label={formatNumber(answerCount)} variant="outlined" size="small" />
             </Tooltip>
-            <Tooltip title="Aufrufe" placement="top-end">
-                <Chip icon={<TopicIcon />} lable={formatNumber(views)}/>
+            <Tooltip title="Aufrufe" placement="top">
+                <Chip icon={<VisibilityIcon />} label={formatNumber(views)} variant="outlined" size="small" />
             </Tooltip>
         </Stack>
-        )
+    );
+}
 
-    }
+export default function Post({ post, onUpdate }) {
+    const { auth } = useAuth();
+    const alertsManagerRef = use(AlertsContext);
+
+    const [isEditing, setIsEditing] = useState(false);
+    const [editContent, setEditContent] = useState(post?.content ?? '');
+    const [saving, setSaving] = useState(false);
+
+    // Optimistic like/dislike state
+    const [likes, setLikes] = useState(post?.likes ?? 0);
+    const [dislikes, setDislikes] = useState(post?.dislikes ?? 0);
+    const [voted, setVoted] = useState(null); // 'like' | 'dislike' | null
+
+    if (!post) return null;
+
+    const { id, title, creator, creationDate, answerCount, views } = post;
+    const isCreatorOrAdmin = auth.user === creator || auth.roles === 'Admin';
+
+    const handleVote = (type) => {
+        if (!auth.user) {
+            alertsManagerRef.current.showAlert('warning', 'Bitte einloggen um abzustimmen');
+            return;
+        }
+        if (voted === type) return; // already voted this type
+
+        // Optimistic update
+        if (type === 'like') {
+            setLikes(prev => prev + 1);
+            if (voted === 'dislike') setDislikes(prev => prev - 1);
+        } else {
+            setDislikes(prev => prev + 1);
+            if (voted === 'like') setLikes(prev => prev - 1);
+        }
+        setVoted(type);
+
+        api.post(`/forum/post/vote?post=${id}&type=${type}`)
+            .then(res => {
+                // Sync with server truth
+                if (res.data) {
+                    setLikes(res.data.likes);
+                    setDislikes(res.data.dislikes);
+                }
+            })
+            .catch(err => {
+                console.error('Vote error', err);
+                // Revert optimistic on error
+                if (type === 'like') setLikes(prev => prev - 1);
+                else setDislikes(prev => prev - 1);
+                setVoted(null);
+            });
+    };
+
+    const handleSaveEdit = () => {
+        if (!editContent || editContent.trim() === '' || editContent === '<p><br></p>') {
+            alertsManagerRef.current.showAlert('warning', 'Bitte gib einen Inhalt ein');
+            return;
+        }
+        setSaving(true);
+        api.post('/forum/post', { id, content: editContent })
+            .then(() => {
+                alertsManagerRef.current.showAlert('success', 'Beitrag erfolgreich aktualisiert');
+                setIsEditing(false);
+                if (onUpdate) onUpdate();
+            })
+            .catch(err => {
+                const status = err.response?.status || 500;
+                const msg = err.response?.data || 'Fehler beim Speichern';
+                alertsManagerRef.current.showAlert('error', `${status}: ${msg}`);
+            })
+            .finally(() => setSaving(false));
+    };
+
+    const noModules = { toolbar: false };
 
     return (
-        <Grid container key={id} direction="column" justifySelf="flex-start" justifyContent="flex-start" alignItems="center"
-        sx={{bgcolor:"green"}}
-        >
-            <Grid item> {/*Header */}
-                <Grid container direction="column" justifyContent="flex-start" alignItems="center"
-                 sx={{bgcolor:"blue"}}>
-                    <Typography>{title}Hallo</Typography>
+        <Card sx={{ width: '100%', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+            <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+                <Grid container direction="column" spacing={2}>
                     <Grid item>
-                        <Grid container direction="row" justifyContent="flex-start" alignItems="center">
-                            <Avatar />
-                            <Grid item >
-                                <Typography>Von {creator}</Typography>
-                                <Typography>AM {convertTimestamp(creationDate)}</Typography>
-                            </Grid>
-                            <PostStats />
-                        </Grid>
+                        <Stack
+                            direction={{ xs: 'column', sm: 'row' }}
+                            spacing={2}
+                            alignItems={{ xs: 'flex-start', sm: 'center' }}
+                            justifyContent="space-between"
+                        >
+                            <Typography variant="h4" component="h2" sx={{ fontWeight: 'bold' }}>
+                                {title}
+                            </Typography>
+
+                            {/* Edit controls (creator / admin only) */}
+                            {isCreatorOrAdmin && !saving && (
+                                <Stack direction="row" spacing={0.5}>
+                                    {isEditing ? (
+                                        <>
+                                            <Tooltip title="Speichern">
+                                                <IconButton size="small" color="primary" onClick={handleSaveEdit}>
+                                                    <SaveIcon fontSize="small" />
+                                                </IconButton>
+                                            </Tooltip>
+                                            <Tooltip title="Abbrechen">
+                                                <IconButton size="small" color="error" onClick={() => { setIsEditing(false); setEditContent(post.content); }}>
+                                                    <CancelIcon fontSize="small" />
+                                                </IconButton>
+                                            </Tooltip>
+                                        </>
+                                    ) : (
+                                        <Tooltip title="Beitrag bearbeiten">
+                                            <IconButton size="small" color="primary" onClick={() => setIsEditing(true)}>
+                                                <EditIcon fontSize="small" />
+                                            </IconButton>
+                                        </Tooltip>
+                                    )}
+                                </Stack>
+                            )}
+                        </Stack>
+
+                        <Stack
+                            direction={{ xs: 'column', sm: 'row' }}
+                            spacing={2}
+                            alignItems={{ xs: 'flex-start', sm: 'center' }}
+                            justifyContent="space-between"
+                            sx={{ mt: 1 }}
+                        >
+                            <Stack direction="row" spacing={1.5} alignItems="center">
+                                <Avatar
+                                    alt={creator ? creator[0].toUpperCase() : 'U'}
+                                    sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', fontWeight: 'bold' }}
+                                />
+                                <Box>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                                        von {creator}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                        erstellt am {convertTimestamp(creationDate)}
+                                    </Typography>
+                                </Box>
+                            </Stack>
+                            <PostStats answerCount={answerCount} views={views} />
+                        </Stack>
+                    </Grid>
+
+                    <Divider sx={{ my: 1.5 }} />
+
+                    {/* Content — edit mode shows Quill, view mode shows read-only */}
+                    <Grid item xs={12}>
+                        {isEditing ? (
+                            <Box sx={{ mb: 1 }}>
+                                <ReactQuill
+                                    theme="snow"
+                                    value={editContent}
+                                    onChange={setEditContent}
+                                    style={{ height: 300, marginBottom: 50 }}
+                                />
+                            </Box>
+                        ) : (
+                            <Box className="post-body-content" sx={{ mt: 1 }}>
+                                <ReactQuill
+                                    theme="snow"
+                                    modules={noModules}
+                                    value={post.content}
+                                    readOnly
+                                />
+                            </Box>
+                        )}
+                    </Grid>
+
+                    <Divider sx={{ mt: 1 }} />
+
+                    {/* Like / Dislike bar */}
+                    <Grid item>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                            <Tooltip title="Gefällt mir">
+                                <IconButton
+                                    size="small"
+                                    color={voted === 'like' ? 'primary' : 'default'}
+                                    onClick={() => handleVote('like')}
+                                >
+                                    {voted === 'like' ? <ThumbUpIcon /> : <ThumbUpOutlinedIcon />}
+                                </IconButton>
+                            </Tooltip>
+                            <Typography variant="body2" sx={{ minWidth: 20 }}>{formatNumber(likes)}</Typography>
+
+                            <Tooltip title="Gefällt mir nicht">
+                                <IconButton
+                                    size="small"
+                                    color={voted === 'dislike' ? 'error' : 'default'}
+                                    onClick={() => handleVote('dislike')}
+                                >
+                                    {voted === 'dislike' ? <ThumbDownIcon /> : <ThumbDownOutlinedIcon />}
+                                </IconButton>
+                            </Tooltip>
+                            <Typography variant="body2" sx={{ minWidth: 20 }}>{formatNumber(dislikes)}</Typography>
+                        </Stack>
                     </Grid>
                 </Grid>
-            </Grid>
-            <Grid item xs={12}> {/*Body */}
-            <TextEditor
-                readonly="true"
-                value={content}
-                // readOnly
-            />
-            </Grid>
-        </Grid>
-    )
+            </CardContent>
+        </Card>
+    );
 }
+
+Post.propTypes = {
+    post: PropTypes.object,
+    onUpdate: PropTypes.func,
+};

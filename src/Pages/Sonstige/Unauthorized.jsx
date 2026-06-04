@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom"
-import Grid from '@material-ui/core/Grid';
+import Grid from '@mui/material/Grid';
 
 const Unauthorized = () => {
     const navigate = useNavigate();

@@ -1,6 +1,6 @@
-import React, { useContext, useState } from 'react'
+import React, { use, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios'
+import api from '../../helper/api'
 
 import Tooltip from '@mui/material/Tooltip';
 import Avatar from '@mui/material/Avatar';
@@ -21,12 +21,31 @@ import useAuth from '../../context/useAuth';
 const settings = ['Profile', 'Account', 'Dashboard', 'Logout'];
 
 
+const NavBarLogoMenue = ({ onLogout }) => {
+  const [, setAnchorElNav] = React.useState(null);
+
+  const handleCloseNavMenu = () => {
+    setAnchorElNav(null);
+  };
+
+  return(
+    <Paper  sx={{ width: 120, margin: 0, padding: 0 }}>
+      <Link to={"/Profil"} key={"Profil"}><MenuItem onClick={handleCloseNavMenu}>
+                  <Typography textAlign="center">{"Profil"}</Typography>
+                </MenuItem></Link>
+        <MenuItem>
+          <ListItemText onClick={onLogout}>LogOut</ListItemText >
+        </MenuItem>
+    </Paper>
+  )
+}
+
 const NavbarLogo = props => {
 
   const [anchorElUser, setAnchorElUser] = React.useState(null);
   const { setAuth } = useAuth();
   const navigate = useNavigate();
-  const { setUser} = useContext(UserContext);
+  const { setUser} = use(UserContext);
 
   const handleOpenUserMenu = (event) => {
       setAnchorElUser(event.currentTarget);
@@ -35,8 +54,8 @@ const NavbarLogo = props => {
     setAnchorElUser(null);
   };
 
-  async function LogOut (){
-    axios.post('http://localhost:8080/user/logout')
+  async function logOut (){
+    api.post('/user/logout')
     .then(response=>{
         setUser({valid:false, jwt:null});
         setAuth({JWT: null, user: null, roles: null});
@@ -44,27 +63,11 @@ const NavbarLogo = props => {
     })
     .catch(error =>{
       console.log("!!!!"+error);
+      setUser({valid:false, jwt:null});
+      setAuth({JWT: null, user: null, roles: null});
+      navigate("/", {replace:true});
     })
-}
-
-const NavBarLogoMenue = () =>{
-  const [ setAnchorElNav] = React.useState(null);
-
-  const handleCloseNavMenu = () => {
-    setAnchorElNav(null);
-  };
-
-  return(
-    <Paper  sx={{ width: 120, magin:0, padding:0  }}>
-      <Link to={"Profil"}key={"Profil"}><MenuItem onClick={handleCloseNavMenu}>
-                  <Typography textAlign="center">{"Profil"}</Typography>
-                </MenuItem></Link>
-        <MenuItem>
-          <ListItemText onClick={LogOut}>LogOut</ListItemText >
-        </MenuItem>
-    </Paper>
-  )
-}
+  }
 
   return (
     <Box sx={{ flexGrow: 0}}>
@@ -74,7 +77,7 @@ const NavBarLogoMenue = () =>{
             </IconButton>
         </Tooltip>
         <Menu
-            sx={{ mt: '45px', magin:0, padding:0  }}
+            sx={{ mt: '45px', margin: 0, padding: 0 }}
             id="menu-appbar"
             anchorEl={anchorElUser}
             anchorOrigin={{
@@ -89,12 +92,10 @@ const NavBarLogoMenue = () =>{
             open={Boolean(anchorElUser)}
             onClose={handleCloseUserMenu}
         >
-            <NavBarLogoMenue />
+            <NavBarLogoMenue onLogout={logOut} />
         </Menu>
     </Box>
   )
 };
 
 export default NavbarLogo;
-
-

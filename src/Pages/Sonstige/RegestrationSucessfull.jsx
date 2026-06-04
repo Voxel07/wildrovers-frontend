@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom"
 //Mui
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
-import Grid from '@material-ui/core/Grid';
+import Grid from '@mui/material/Grid';
 
 export default function RegestrationSucessfull() {
 

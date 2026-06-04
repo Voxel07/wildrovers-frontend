@@ -1,5 +1,26 @@
-
+/* Global css resets */
 body {
-    margin: 0px;
-    background: #807474;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  background-color: #121212;
+}
+
+/* Custom scrollbar for premium dark mode style */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #121212;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a2a2a;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3a3a;
 }

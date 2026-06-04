@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react'
+import React, { useState } from 'react'
 // import './SignUp.csks';
 import { useNavigate } from 'react-router-dom';
 
@@ -9,17 +9,17 @@ import axios from 'axios'
 
 
 //MUI
-import Button from '@material-ui/core/Button'
-import TextField from '@material-ui/core/TextField';
-import Grid from '@material-ui/core/Grid';
+import Button from '@mui/material/Button'
+import TextField from '@mui/material/TextField';
+import Grid from '@mui/material/Grid';
 
 //Eigene
-import { UserContext } from '../../context/UserContext';
+
 
 //Feedback
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
-import differenceInYears from "date-fns/differenceInYears";
+import { differenceInYears } from 'date-fns';
 
 
 

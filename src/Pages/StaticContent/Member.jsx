@@ -1,9 +1,6 @@
 import React from 'react'
 import Tilt from 'react-parallax-tilt';
-import { Grid } from '@material-ui/core';
-import { borderRadius } from '@material-ui/system';
-import { border } from '@mui/system';
-import { Margin, Scale } from '@mui/icons-material';
+import { Grid } from '@mui/material';
 
 export default function Member() {
   return (

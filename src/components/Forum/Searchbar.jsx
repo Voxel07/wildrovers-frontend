@@ -1,7 +1,6 @@
 import React from 'react'
 import Typography  from '@mui/material/Typography';
-import { Box } from '@material-ui/core';
-import { width } from '@mui/system';
+import { Box } from '@mui/material';
 
 export default function Searchbar() {
   return (
