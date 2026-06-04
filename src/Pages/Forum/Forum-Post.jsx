@@ -104,7 +104,7 @@ export default function Forum_Post() {
   if (!post) {
     return (
       <Container sx={{ py: 8, textAlign: 'center' }}>
-        <Typography variant="h5" color="error">Dieser Post existiert nicht</Typography>
+        <Typography variant="h5" color="error">Dieser Post existiert nicht oder Sie haben keine Berechtigung, ihn anzusehen.</Typography>
         <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} sx={{ mt: 3 }}>
           Zurück
         </Button>

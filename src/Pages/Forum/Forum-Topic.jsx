@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../helper/api';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
@@ -9,11 +9,14 @@ import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Divider from '@mui/material/Divider';
 import TableSortLabel from '@mui/material/TableSortLabel';
+import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
 
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import ForumIcon from '@mui/icons-material/Forum';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import Tooltip from '@mui/material/Tooltip';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
@@ -25,31 +28,36 @@ import { convertTimestamp } from '../../helper/converter';
 
 export default function Forum_Topic() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
-  const [topicData, setTopicData] = useState({});
+  const [topicData, setTopicData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState({ field: 'creationDate', direction: 'asc' });
 
   useEffect(() => {
     const controller = new AbortController();
+    setLoading(true);
 
-    api.get('/forum/post', {
-      params: { topic: id },
-      signal: controller.signal,
-    })
-      .then(response => setPosts(response.data))
+    Promise.all([
+      api.get('/forum/post', {
+        params: { topic: id },
+        signal: controller.signal,
+      }),
+      api.get('/forum/topic', {
+        params: { topicId: id },
+        signal: controller.signal,
+      })
+    ])
+      .then(([postsRes, topicRes]) => {
+        setPosts(postsRes.data || []);
+        setTopicData(topicRes.data?.[0] || null);
+      })
       .catch(error => {
         if (error.code === 'ERR_CANCELED') return;
         console.error(error);
-      });
-
-    api.get('/forum/topic', {
-      params: { topicId: id },
-      signal: controller.signal,
-    })
-      .then(response => setTopicData(response.data[0] || {}))
-      .catch(error => {
-        if (error.code === 'ERR_CANCELED') return;
-        console.error(error);
+      })
+      .finally(() => {
+        setLoading(false);
       });
 
     return () => {
@@ -72,6 +80,25 @@ export default function Forum_Topic() {
       : valA < valB ? -1 : valA > valB ? 1 : 0;
     return sort.direction === 'asc' ? cmp : -cmp;
   });
+
+  if (loading) {
+    return (
+      <Container sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <CircularProgress color="primary" />
+      </Container>
+    );
+  }
+
+  if (!topicData || !topicData.id) {
+    return (
+      <Container sx={{ py: 8, textAlign: 'center' }}>
+        <Typography variant="h5" color="error">Dieses Thema existiert nicht oder Sie haben keine Berechtigung, es anzusehen.</Typography>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} sx={{ mt: 3 }}>
+          Zurück
+        </Button>
+      </Container>
+    );
+  }
 
   const { topic, postCount, creationDate, creator } = topicData;
 

@@ -59,7 +59,7 @@ export default function Forum_Categories() {
                 ))
                 : (
                     <Box sx={{ textAlign: 'center', py: 8 }}>
-                        <Typography color="text.secondary">Kategorie existiert nicht.</Typography>
+                        <Typography color="text.secondary">Kategorie existiert nicht oder Sie haben keine Berechtigung, sie anzusehen.</Typography>
                     </Box>
                 )
             }
