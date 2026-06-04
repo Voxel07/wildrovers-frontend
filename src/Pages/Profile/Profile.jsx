@@ -91,7 +91,10 @@ export default function Profile() {
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState({
     phrase: '',
-    birthday: ''
+    birthday: '',
+    firstName: '',
+    lastName: '',
+    email: ''
   });
   const [saving, setSaving] = useState(false);
 
@@ -102,7 +105,10 @@ export default function Profile() {
         dispatch({ type: 'FETCH_SUCCESS', payload: response.data });
         setEditData({
           phrase: response.data.phrase || '',
-          birthday: response.data.birthday || ''
+          birthday: response.data.birthday || '',
+          firstName: response.data.firstName || '',
+          lastName: response.data.lastName || '',
+          email: response.data.email || ''
         });
       })
       .catch(err => {
@@ -186,7 +192,12 @@ export default function Profile() {
 
   const handleSaveProfile = () => {
     setSaving(true);
-    api.post('/user/me/profile', editData)
+    const cleanedData = {
+      ...editData,
+      birthday: editData.birthday || null,
+      phrase: editData.phrase || null
+    };
+    api.post('/user/me/profile', cleanedData)
       .then(res => {
         dispatch({ type: 'UPDATE_PROFILE_SUCCESS', payload: res.data });
         setEditMode(false);
@@ -220,8 +231,6 @@ export default function Profile() {
       </Container>
     );
   }
-
-
 
   const initial = profile.userName ? profile.userName[0].toUpperCase() : 'U';
   const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8080';
@@ -263,7 +272,13 @@ export default function Profile() {
               color="inherit"
               onClick={() => {
                 setEditMode(false);
-                setEditData({ phrase: profile.phrase || '', birthday: profile.birthday || '' });
+                setEditData({
+                  phrase: profile.phrase || '',
+                  birthday: profile.birthday || '',
+                  firstName: profile.firstName || '',
+                  lastName: profile.lastName || '',
+                  email: profile.email || ''
+                });
               }}
               disabled={saving}
             >
@@ -331,13 +346,34 @@ export default function Profile() {
                 <Box>
                   <Stack direction="row" spacing={2} alignItems="center">
                     <PersonIcon color="action" />
-                    <Box>
+                    <Box sx={{ width: '100%' }}>
                       <Typography variant="caption" color="text.secondary" display="block">
                         Vollständiger Name
                       </Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                        {profile.firstName} {profile.lastName}
-                      </Typography>
+                      {!editMode ? (
+                        <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                          {profile.firstName} {profile.lastName}
+                        </Typography>
+                      ) : (
+                        <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
+                          <TextField
+                            name="firstName"
+                            label="Vorname"
+                            size="small"
+                            fullWidth
+                            value={editData.firstName}
+                            onChange={handleEditChange}
+                          />
+                          <TextField
+                            name="lastName"
+                            label="Nachname"
+                            size="small"
+                            fullWidth
+                            value={editData.lastName}
+                            onChange={handleEditChange}
+                          />
+                        </Stack>
+                      )}
                     </Box>
                   </Stack>
                 </Box>
@@ -347,13 +383,25 @@ export default function Profile() {
                 <Box>
                   <Stack direction="row" spacing={2} alignItems="center">
                     <EmailIcon color="action" />
-                    <Box>
+                    <Box sx={{ width: '100%' }}>
                       <Typography variant="caption" color="text.secondary" display="block">
                         E-Mail-Adresse
                       </Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                        {profile.email}
-                      </Typography>
+                      {!editMode ? (
+                        <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                          {profile.email}
+                        </Typography>
+                      ) : (
+                        <TextField
+                          name="email"
+                          label="E-Mail"
+                          size="small"
+                          fullWidth
+                          value={editData.email}
+                          onChange={handleEditChange}
+                          sx={{ mt: 1 }}
+                        />
+                      )}
                     </Box>
                   </Stack>
                 </Box>
@@ -385,6 +433,38 @@ export default function Profile() {
                       </Typography>
                       <Typography variant="body1" sx={{ fontWeight: 'medium', color: profile.isActive ? 'success.main' : 'error.main' }}>
                         {profile.isActive ? 'Aktiv' : 'Inaktiv'}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Box>
+
+                <Divider />
+
+                <Box>
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <WorkspacePremiumIcon color={profile.yearlyFeePaid ? "success" : "action"} />
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        Mitgliedsbeitrag bezahlt
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 'medium', color: profile.yearlyFeePaid ? 'success.main' : 'error.main' }}>
+                        {profile.yearlyFeePaid ? 'Ja' : 'Nein'}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Box>
+
+                <Divider />
+
+                <Box>
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <WorkspacePremiumIcon color="action" />
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        Besuchte Events
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                        {profile.eventsAttended ?? 0} Events besucht
                       </Typography>
                     </Box>
                   </Stack>

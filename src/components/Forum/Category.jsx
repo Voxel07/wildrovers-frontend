@@ -55,6 +55,11 @@ function categoryReducer(state, action) {
           topicCount: (state.category.topicCount ?? 0) + 1,
         },
       };
+    case 'TRIGGER_REFETCH':
+      return {
+        ...state,
+        updateData: !state.updateData,
+      };
     default:
       return state;
   }
@@ -74,6 +79,16 @@ export default function Category(props) {
     updateData: false,
   });
   const { topics, category, updateData } = state;
+
+  const [editingTopic, setEditingTopic] = useState(null);
+
+  const handleEditTopic = (topicToEdit) => {
+    setEditingTopic(topicToEdit);
+  };
+
+  const handleDeleteTopic = () => {
+    dispatch({ type: 'TRIGGER_REFETCH' });
+  };
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -182,18 +197,50 @@ export default function Category(props) {
             </Typography>
           </Grid>
           <Grid item xs={12} md={8}>
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ gap: 1 }}>
+            <Stack
+              direction="row"
+              spacing={0}
+              divider={<Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255, 255, 255, 0.08)', my: 0.75 }} />}
+              sx={{
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '20px',
+                overflow: 'hidden',
+                bgcolor: 'rgba(255, 255, 255, 0.01)',
+                width: 'fit-content'
+              }}
+            >
               <Tooltip title="Ersteller" placement="top">
-                <Chip icon={<PersonIcon />} label={category.creator || 'Unbekannt'} variant="outlined" size="medium" />
+                <Chip
+                  icon={<PersonIcon />}
+                  label={category.creator || 'Unbekannt'}
+                  variant="standard"
+                  sx={{ border: 'none', borderRadius: 0, bgcolor: 'transparent', height: 32 }}
+                />
               </Tooltip>
               <Tooltip title="Erstellungsdatum" placement="top">
-                <Chip icon={<EventNoteIcon />} label={convertTimestamp(category.creationDate)} variant="outlined" size="small" />
+                <Chip
+                  icon={<EventNoteIcon />}
+                  label={convertTimestamp(category.creationDate)}
+                  variant="standard"
+                  sx={{ border: 'none', borderRadius: 0, bgcolor: 'transparent', height: 32 }}
+                />
               </Tooltip>
               <Tooltip title="Themen" placement="top">
-                <Chip icon={<TopicIcon />} label={formatNumber(category.topicCount)} variant="outlined" size="small" />
+                <Chip
+                  icon={<TopicIcon />}
+                  label={formatNumber(category.topicCount)}
+                  variant="standard"
+                  sx={{ border: 'none', borderRadius: 0, bgcolor: 'transparent', height: 32 }}
+                />
               </Tooltip>
               <Tooltip title="Sichtbarkeit" placement="top">
-                <Chip icon={<GroupIcon />} label={category.visibility} variant="outlined" size="small" color="secondary" />
+                <Chip
+                  icon={<GroupIcon />}
+                  label={category.visibility}
+                  variant="standard"
+                  color="error"
+                  sx={{ border: 'none', borderRadius: 0, bgcolor: 'transparent', height: 32 }}
+                />
               </Tooltip>
             </Stack>
           </Grid>
@@ -260,7 +307,14 @@ export default function Category(props) {
           </Box>
         )}
         {sortedTopics.length ? (
-          sortedTopics.map(topic => <Topic key={topic.id} topic={topic} />)
+          sortedTopics.map(topic => (
+            <Topic
+              key={topic.id}
+              topic={topic}
+              editCallback={handleEditTopic}
+              deleteCallback={handleDeleteTopic}
+            />
+          ))
         ) : (
           <Box sx={{ p: 3, textAlign: 'center' }}>
             <Typography variant="body2" color="text.secondary">In dieser Kategorie gibt es noch keine Themen</Typography>
@@ -288,6 +342,24 @@ export default function Category(props) {
       >
         <Box>
           <AddTopic onAddTopic={handleUpdate} callback={handleClose} topics={topics} category={{ id: category.id, name: category.category }} />
+        </Box>
+      </Modal>
+
+      <Modal
+        disableScrollLock
+        open={!!editingTopic}
+        onClose={() => setEditingTopic(null)}
+      >
+        <Box>
+          <AddTopic
+            topicToEdit={editingTopic}
+            onAddTopic={() => {
+              dispatch({ type: 'TRIGGER_REFETCH' });
+            }}
+            callback={() => setEditingTopic(null)}
+            topics={topics}
+            category={{ id: category.id, name: category.category }}
+          />
         </Box>
       </Modal>
     </Accordion>

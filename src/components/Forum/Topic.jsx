@@ -140,12 +140,33 @@ export default function Topic(props) {
         </Grid>
 
         <Grid item xs={12} sm={3} md={3} lg={2}>
-          <Stack direction="row" spacing={1}>
+          <Stack 
+            direction="row" 
+            spacing={0}
+            divider={<Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255, 255, 255, 0.08)', my: 0.75 }} />}
+            sx={{ 
+              border: '1px solid rgba(255, 255, 255, 0.08)', 
+              borderRadius: '20px', 
+              overflow: 'hidden', 
+              bgcolor: 'rgba(255, 255, 255, 0.01)',
+              width: 'fit-content'
+            }}
+          >
             <Tooltip title="Beiträge">
-              <Chip icon={<TopicIcon />} label={postCount} variant="outlined" size="small" />
+              <Chip 
+                icon={<TopicIcon />} 
+                label={postCount} 
+                variant="standard" 
+                sx={{ border: 'none', borderRadius: 0, bgcolor: 'transparent', height: 32 }} 
+              />
             </Tooltip>
             <Tooltip title="Aufrufe">
-              <Chip icon={<VisibilityIcon />} label={views} variant="outlined" size="small" />
+              <Chip 
+                icon={<VisibilityIcon />} 
+                label={views} 
+                variant="standard" 
+                sx={{ border: 'none', borderRadius: 0, bgcolor: 'transparent', height: 32 }} 
+              />
             </Tooltip>
           </Stack>
         </Grid>

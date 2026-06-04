@@ -1,4 +1,4 @@
-import React, { useState, useEffect, use, useReducer } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import api from '../../helper/api';
 import useAuth from '../../context/useAuth';
 
@@ -19,67 +19,42 @@ import AddCategory from '../../components/Forum/AddCategory';
 import Skeleton_Category from '../../components/Forum/Skeleton_Category';
 import { AlertsContext } from '../../components/utils/AlertsManager';
 
-const initialForumState = {
-  categories: [],
-  loading: false,
-  updateData: false,
-};
-
-function forumReducer(state, action) {
-  switch (action.type) {
-    case 'FETCH_START':
-      return { ...state, loading: true };
-    case 'FETCH_SUCCESS':
-      return { ...state, loading: false, categories: action.payload };
-    case 'FETCH_FAILURE':
-      return { ...state, loading: false };
-    case 'TRIGGER_UPDATE':
-      return { ...state, updateData: !state.updateData };
-    case 'DELETE_CATEGORY':
-      return {
-        ...state,
-        categories: state.categories.filter(c => c.id !== action.payload.id)
-      };
-    default:
-      return state;
-  }
-}
-
 const Forum = () => {
     const { auth } = useAuth();
     const alertsManagerRef = use(AlertsContext);
-    const [state, dispatch] = useReducer(forumReducer, initialForumState);
-    const { categories, loading, updateData } = state;
-
+    const [categories, setCategories] = useState([]);
+    const [loading, setloading] = useState(false);
     const [open, setOpen] = useState(false);
     const handleOpen = () => { setOpen(true); };
     const handleClose = () => { setOpen(false); };
+    const [updateData, setUpdateData] = useState(false);
     const [sort, setSort] = useState({ field: "position", direction: "asc" });
 
+    // Category edit state
+    const [editingCategory, setEditingCategory] = useState(null);
+
     const handleUpdate = () => {
-      dispatch({ type: 'TRIGGER_UPDATE' });
+      setUpdateData(prev => !prev);
     }
 
     // Get all categories
     useEffect(() => {
-        dispatch({ type: 'FETCH_START' });
+        setloading(true);
         api.get("/forum/category")
         .then(response => {
-            dispatch({ type: 'FETCH_SUCCESS', payload: response.data });
+            setCategories(response.data);
+            setloading(false);
         })
         .catch(err => {
             console.error(err);
-            dispatch({ type: 'FETCH_FAILURE' });
+            setloading(false);
         });
     }, [updateData]);
 
     const handleDelete = (deletedCategory) => {
-        dispatch({ type: 'DELETE_CATEGORY', payload: deletedCategory });
-    }
-
-    const handleEdit = (editedCategory) => {
-        // Reload categories on edit success
-        dispatch({ type: 'TRIGGER_UPDATE' });
+        setCategories((prevCategories) => 
+            prevCategories.filter(category => category.id !== deletedCategory.id)
+        );
     }
 
     const sortedCategories = [...categories].sort((a, b) => {
@@ -94,7 +69,7 @@ const Forum = () => {
           key={category.id}
           currentIndex={index}
           vals={category}
-          editCallback={handleEdit}
+          editCallback={(cat) => setEditingCategory(cat)}
           deleteCallback={handleDelete}
         />
     ));
@@ -135,18 +110,18 @@ const Forum = () => {
                     <Grid item xs={3}>
                         <Stack direction="row" spacing={2}>
                             <TableSortLabel
-                                active={sort.field === "position"}
-                                direction={sort.direction}
-                                onClick={() => handleSort("position")}
+                              active={sort.field === "position"}
+                              direction={sort.direction}
+                              onClick={() => handleSort("position")}
                             >
-                                <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>Pos</Typography>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>Pos</Typography>
                             </TableSortLabel>
                             <TableSortLabel
-                                active={sort.field === "category"}
-                                direction={sort.direction}
-                                onClick={() => handleSort("category")}
+                              active={sort.field === "category"}
+                              direction={sort.direction}
+                              onClick={() => handleSort("category")}
                             >
-                                <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>Name</Typography>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>Name</Typography>
                             </TableSortLabel>
                         </Stack>
                     </Grid>
@@ -154,38 +129,38 @@ const Forum = () => {
                         <Grid container direction="row" spacing={4} sx={{ pl: 2 }}>
                             <Grid item xs={3}>
                                 <TableSortLabel
-                                    active={sort.field === "creator"}
-                                    direction={sort.direction}
-                                    onClick={() => handleSort("creator")}
+                                  active={sort.field === "creator"}
+                                  direction={sort.direction}
+                                  onClick={() => handleSort("creator")}
                                 >
-                                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>Ersteller</Typography>
+                                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>Ersteller</Typography>
                                 </TableSortLabel>
                             </Grid>
                             <Grid item xs={3}>
                                 <TableSortLabel
-                                    active={sort.field === "creationDate"}
-                                    direction={sort.direction}
-                                    onClick={() => handleSort("creationDate")}
+                                  active={sort.field === "creationDate"}
+                                  direction={sort.direction}
+                                  onClick={() => handleSort("creationDate")}
                                 >
-                                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>Erstellungsdatum</Typography>
+                                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>Erstellungsdatum</Typography>
                                 </TableSortLabel>
                             </Grid>
                             <Grid item xs={3}>
                                 <TableSortLabel
-                                    active={sort.field === "topicCount"}
-                                    direction={sort.direction}
-                                    onClick={() => handleSort("topicCount")}
+                                  active={sort.field === "topicCount"}
+                                  direction={sort.direction}
+                                  onClick={() => handleSort("topicCount")}
                                 >
-                                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>Themen</Typography>
+                                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>Themen</Typography>
                                 </TableSortLabel>
                             </Grid>
                             <Grid item xs={3}>
                                 <TableSortLabel
-                                    active={sort.field === "visibility"}
-                                    direction={sort.direction}
-                                    onClick={() => handleSort("visibility")}
+                                  active={sort.field === "visibility"}
+                                  direction={sort.direction}
+                                  onClick={() => handleSort("visibility")}
                                 >
-                                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>Sichtbarkeit</Typography>
+                                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>Sichtbarkeit</Typography>
                                 </TableSortLabel>
                             </Grid>
                         </Grid>
@@ -207,11 +182,16 @@ const Forum = () => {
 
             <Modal
                 disableScrollLock
-                open={open}
-                onClose={handleClose}
+                open={open || !!editingCategory}
+                onClose={() => { handleClose(); setEditingCategory(null); }}
             >
                 <Box>
-                    <AddCategory onAddCategory={handleUpdate} callback={handleClose} aviableCategories={categories} />
+                    <AddCategory 
+                        categoryToEdit={editingCategory}
+                        onAddCategory={handleUpdate} 
+                        callback={() => { handleClose(); setEditingCategory(null); }} 
+                        aviableCategories={categories} 
+                    />
                 </Box>
             </Modal>
         </Container>

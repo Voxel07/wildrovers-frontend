@@ -44,8 +44,18 @@ const AddCategory = ({ ref, ...props }) => {
     const [state, setState] = useState({ resCode: null, resData: null });
     const alertsManagerRef = use(AlertsContext);
 
-    const [selectedValuePos, setSelectedValuePos] = useState(null);
-    const [selectedValueVis, setSelectedValueVis] = useState(null);
+    const [selectedValuePos, setSelectedValuePos] = useState(() => {
+        if (props.categoryToEdit && props.categoryToEdit.position != null) {
+            return { label: String(props.categoryToEdit.position), id: props.categoryToEdit.position };
+        }
+        return null;
+    });
+    const [selectedValueVis, setSelectedValueVis] = useState(() => {
+        if (props.categoryToEdit && props.categoryToEdit.visibility) {
+            return posibleRanks.find(r => r.label === props.categoryToEdit.visibility) || null;
+        }
+        return null;
+    });
 
     const possibleCategories = useMemo(() => {
         return (props.aviableCategories || []).map((element) => ({
@@ -73,23 +83,32 @@ const AddCategory = ({ ref, ...props }) => {
 
 
     async function saveCategoryToDB(vals) {
-        axios.put('http://localhost:8080/forum/category',
-            {
-                category: vals.Name,
-                position: selectedValuePos ? selectedValuePos.id : null,
-                visibility: selectedValueVis ? selectedValueVis.label : 'Besucher'
-            },
-            {
-                headers: { Authorization: `Bearer ${auth.JWT}` }
-            }).then(
-                response => {
-                    setState({ resCode: response.status, resData: "" });
-                    alertsManagerRef.current.showAlert('success', 'Kategorie: ' + vals.Name + ' Erfolgreich erstellt');
+        const isEdit = !!props.categoryToEdit;
+        const url = 'http://localhost:8080/forum/category';
+        const data = isEdit ? {
+            id: props.categoryToEdit.id,
+            category: vals.Name
+        } : {
+            category: vals.Name,
+            position: selectedValuePos ? selectedValuePos.id : null,
+            visibility: selectedValueVis ? selectedValueVis.label : 'Besucher'
+        };
+        const method = isEdit ? 'post' : 'put';
 
-                    props.callback();
-                    props.onAddCategory();
-                }
-            )
+        axios({
+            method,
+            url,
+            data,
+            headers: { Authorization: `Bearer ${auth.JWT}` }
+        }).then(
+            response => {
+                setState({ resCode: response.status, resData: "" });
+                alertsManagerRef.current.showAlert('success', isEdit ? 'Kategorie erfolgreich aktualisiert' : 'Kategorie: ' + vals.Name + ' Erfolgreich erstellt');
+
+                props.callback();
+                props.onAddCategory();
+            }
+        )
             .catch(error => {
                 console.log(error.response.data)
                 let resCode = error.response.status;
@@ -114,7 +133,7 @@ const AddCategory = ({ ref, ...props }) => {
                 innerRef={formikRef}
                 validateOnChange={true}
                 initialValues={{
-                    Name: '',
+                    Name: props.categoryToEdit ? props.categoryToEdit.category : '',
                     Position: '',
                     Visibility: ''
                 }}
@@ -130,7 +149,9 @@ const AddCategory = ({ ref, ...props }) => {
                     ({ values, errors, isSubmitting, touched }) => (
                         <div ref={ref} tabIndex={-1}>
                             <Container className="Form-Container" sx={{ ...style, width: 0.33 }} >
-                                <Typography sx={{ marginBottom: 5 }}>Neue Kategorie hinzufügen</Typography>
+                                <Typography sx={{ marginBottom: 5 }}>
+                                    {props.categoryToEdit ? 'Kategorie editieren' : 'Neue Kategorie hinzufügen'}
+                                </Typography>
                                 <Form className="Form">
                                     <Field variant="outlined" label="Name der Kategorie" name="Name" type="input" error={!!errors.Name} helperText={errors.Name} as={TextField} />
                                     {possibleCategories.length ?
@@ -183,7 +204,9 @@ const AddCategory = ({ ref, ...props }) => {
 
                                     <Grid container direction="row" justifyContent="space-between">
                                         <Button variant='outlined' onClick={props.callback} color="error" sx={{ marginTop: 2 }}> Abbrechen </Button>
-                                        <Button variant='outlined' disabled={isSubmitting || !errors} type='submit' sx={{ marginTop: 2 }}> Hinzufügen </Button>
+                                        <Button variant='outlined' disabled={isSubmitting || !errors} type='submit' sx={{ marginTop: 2 }}>
+                                            {props.categoryToEdit ? 'Speichern' : 'Hinzufügen'}
+                                        </Button>
                                     </Grid>
                                     {/* <pre> {JSON.stringify(values, null, 2)} </pre> */}
                                 </Form>

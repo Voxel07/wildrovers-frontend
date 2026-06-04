@@ -20,33 +20,81 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import HandshakeIcon from '@mui/icons-material/Handshake';
 import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
 import DoubleArrowIcon from '@mui/icons-material/DoubleArrow';
+import AddIcon from '@mui/icons-material/Add';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 
 // Eigene assets
 import SchriftImage from '../../images/Schrift.png';
 import LogoHellImage from '../../images/Logo_hell.png';
+import TsatLogo from '../../images/TSAT_small.webp';
+import LegionLogo from '../../images/Legion1_small.webp';
+import RoversLogo from '../../images/WRW_small.webp';
 
-const milestones = [
-  {
-    year: '2013',
-    title: 'Gründung des Teams',
-    description: 'Gegründet am 14. Dezember 2013 im Herzen Württembergs. Gestartet als eine kleine Gruppe begeisterter Softairspieler mit dem Ziel, den Sport legal und mit maximalem Spaß auszuüben.'
-  },
-  {
-    year: '2014',
-    title: 'Erstes Regelwerk',
-    description: 'Inkrafttreten des ersten offiziellen Regelwerks am 01. Januar 2014 zur Etablierung eines geordneten und sicheren Trainings- und Spielbetriebs.'
-  },
-  {
-    year: '2019',
-    title: 'Neuausrichtung & Name',
-    description: 'Am 23. Juli 2019 wurde das Regelwerk grundlegend überarbeitet und der offizielle Teamname auf "Wild Rovers Württemberg" festgelegt, um unsere regionale Verbundenheit auszudrücken.'
-  },
-  {
-    year: 'Heute',
-    title: 'Aktive Gemeinschaft',
-    description: 'Eine eingeschworene Truppe im Raum Stuttgart, Esslingen und Göppingen. Wir stehen für taktischen Anspruch, fairen Sportsgeist und starke freundschaftliche Kontakte in der deutschen Airsoft-Szene.'
-  }
-];
+function TeamCard({ primaryText, secondaryText, image, alt, highlighted }) {
+  return (
+    <Card sx={{
+      width: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      p: 2,
+      background: highlighted 
+        ? 'linear-gradient(135deg, rgba(180, 195, 192, 0.08) 0%, rgba(180, 195, 192, 0.02) 100%)'
+        : 'linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)',
+      border: highlighted 
+        ? '1px solid rgba(180, 195, 192, 0.2)' 
+        : '1px solid rgba(255, 255, 255, 0.08)',
+      borderRadius: 3,
+      transition: 'all 0.3s ease',
+      position: 'relative',
+      overflow: 'hidden',
+      ...(highlighted && {
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: 4,
+          height: '100%',
+          bgcolor: 'primary.main'
+        }
+      }),
+      '&:hover': {
+        transform: 'translateY(-2px)',
+        boxShadow: highlighted 
+          ? '0 8px 24px rgba(180, 195, 192, 0.15)'
+          : '0 8px 24px rgba(0, 0, 0, 0.4)',
+        borderColor: 'primary.main',
+      }
+    }}>
+      {image && (
+        <Box sx={{ 
+          width: 80, 
+          height: 80, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          mr: 3, 
+          flexShrink: 0, 
+          bgcolor: 'rgba(0,0,0,0.2)',
+          borderRadius: 2,
+          p: 0.5,
+          overflow: 'hidden' 
+        }}>
+          <Box component="img" src={image} alt={alt || primaryText} sx={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+        </Box>
+      )}
+      <Box>
+        <Typography variant="subtitle1" sx={{ fontWeight: 700, color: highlighted ? 'primary.main' : 'text.primary' }}>
+          {primaryText}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {secondaryText}
+        </Typography>
+      </Box>
+    </Card>
+  );
+}
+
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -201,42 +249,82 @@ export default function LandingPage() {
 
       {/* History (Chronik) Section */}
       <Container id="chronik" maxWidth="lg" sx={{ py: 10 }}>
-        <Typography variant="h4" component="h2" align="center" sx={{ fontWeight: 'bold', mb: 1, color: 'primary.main' }}>
-          Unsere Geschichte
-        </Typography>
-        <Typography variant="body1" align="center" color="text.secondary" sx={{ mb: 8, maxWidth: '600px', mx: 'auto' }}>
-          Wie aus einer geteilten Leidenschaft ein festes Team gewachsen ist.
-        </Typography>
+        <Grid container spacing={6} alignItems="flex-start">
+          <Grid item xs={12} md={7}>
+            <Box sx={{ textAlign: 'left' }}>
+              <Typography variant="h4" color="primary" gutterBottom sx={{ borderBottom: '1px solid', borderColor: 'divider', pb: 1, textTransform: 'uppercase', fontWeight: 700 }}>
+                Die Geschichte
+              </Typography>
+              <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.8, mb: 2 }}>
+                Das Team Wild Rovers Württemberg gibt es jetzt schon seit Mitte 2006 damals als TSAT – BW gegründet. Unter diesem Namen habt ihr uns bestimmt auch schonmal angetroffen. Nach einem Jahrzehnt Airsoft auf den verschiedensten Events und Spielfeldern hat sich das Team stark verändert. Auf der einen Seite ist das Team stark gewachsen und hat viele junge Mitglieder gewonnen. Auf der anderen Seite hat ein Großteil des Gründungsteams sich anderen Hobbys zugewendet. Um nicht in der Vergangenheit hängenzubleiben, wurde es Zeit, den alten Relikten Lebewohl zu sagen.
+              </Typography>
+              <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.8, mb: 4 }}>
+                Ein neuer Name, ein neues Logo und eine Fusion mit unseren langjährigen Freunden und Partnerteam Legion Esslingen 1 später, waren die Wild Rovers geboren.
+              </Typography>
 
-        <Grid container spacing={4}>
-          {milestones.map((item) => (
-            <Grid item xs={12} sm={6} md={3} key={item.year}>
-              <Card sx={{
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  transform: 'translateY(-5px)',
-                  borderColor: 'primary.main',
-                }
-              }}>
-                <CardContent sx={{ flexGrow: 1, p: 3 }}>
-                  <Typography variant="h3" sx={{ fontWeight: '900', color: 'primary.main', mb: 2 }}>
-                    {item.year}
-                  </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1.5 }}>
-                    {item.title}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
-                    {item.description}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
+              <Typography variant="h4" color="primary" gutterBottom sx={{ borderBottom: '1px solid', borderColor: 'divider', pb: 1, textTransform: 'uppercase', fontWeight: 700, mt: 4 }}>
+                Aktuelles
+              </Typography>
+              <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.8, mb: 2 }}>
+                Aktuell haben wir 12 Mitglieder und 1 Frischlinge (Anwärter). Wir kommen aus den unterschiedlichsten Ecken aus Deutschland. Der Hauptteil des Teams ist aber im Großraum Esslingen / Stuttgart zu finden. In den letzten Jahren haben wir viele neue junge Mitglieder dazugewonnen, dennoch ist von 18 bis 41 Jahren alles dabei.
+              </Typography>
+              <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.8, mb: 2 }}>
+                Solltet ihr ein Team suchen oder ihr wollt uns näher kennenlernen, findet ihr alle weiteren Informationen unter dem Reiter Infos/Regeln.
+              </Typography>
+            </Box>
+          </Grid>
+
+          <Grid item xs={12} md={5}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, mt: { xs: 4, md: 0 } }}>
+              <Typography variant="h5" color="primary.main" sx={{ fontWeight: 700, mb: 2, textTransform: 'uppercase', letterSpacing: '1px', alignSelf: 'flex-start' }}>
+                Die Fusion der Teams
+              </Typography>
+
+              {/* Card 1: TSAT-BW */}
+              <TeamCard
+                primaryText="TSAT – BW"
+                secondaryText="Gegründet Mitte 2006, legte den Grundstein unseres Teams."
+                image={TsatLogo}
+                alt="TSAT Logo"
+              />
+
+              {/* Connection 1 */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, my: 0.5, color: 'primary.main' }}>
+                <AddIcon fontSize="small" />
+                <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 700, color: 'text.secondary' }}>
+                  Fusioniert mit
+                </Typography>
+              </Box>
+
+              {/* Card 2: Legion Esslingen 1 */}
+              <TeamCard
+                primaryText="Legion Esslingen 1"
+                secondaryText="Langjähriger Partner und treuer Freund auf dem Spielfeld."
+                image={LegionLogo}
+                alt="Legion Esslingen 1 Logo"
+              />
+
+              {/* Connection 2 */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, my: 0.5, color: 'primary.main' }}>
+                <ArrowDownwardIcon fontSize="small" />
+                <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 700, color: 'text.secondary' }}>
+                  Entstanden daraus
+                </Typography>
+              </Box>
+
+              {/* Card 3: Wild Rovers Württemberg */}
+              <TeamCard
+                primaryText="Wild Rovers Württemberg"
+                secondaryText="Heute vereint unter einem neuen Namen, Logo und Spirit."
+                image={RoversLogo}
+                alt="Wild Rovers Württemberg Logo"
+                highlighted
+              />
+            </Box>
+          </Grid>
         </Grid>
       </Container>
+
 
       {/* Upcoming Events Section */}
       <Box sx={{ bgcolor: 'rgba(255,255,255,0.01)', borderTop: '1px solid rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.03)', py: 10 }}>

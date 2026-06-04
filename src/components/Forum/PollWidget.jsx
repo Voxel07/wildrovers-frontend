@@ -1,4 +1,4 @@
-import React, { useState, useEffect, use, useReducer } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import PropTypes from 'prop-types';
 import api from '../../helper/api';
 
@@ -8,6 +8,7 @@ import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
+import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import FormControl from '@mui/material/FormControl';
 import Button from '@mui/material/Button';
@@ -19,106 +20,78 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 
 // Eigene
 import useAuth from '../../context/useAuth';
-import { AlertsContext } from '../utils/AlertsManager';
-
-function pollReducer(state, action) {
-  switch (action.type) {
-    case 'FETCH_SUCCESS':
-      return {
-        ...state,
-        loading: false,
-        hasVoted: action.payload,
-      };
-    case 'FETCH_FAILURE':
-      return {
-        ...state,
-        loading: false,
-      };
-    case 'VOTE_START':
-      return {
-        ...state,
-        voting: true,
-      };
-    case 'VOTE_SUCCESS': {
-      const selectedOptionId = action.payload;
-      const updatedOptions = state.poll.options.map(opt => {
-        if (opt.id === Number(selectedOptionId)) {
-          return { ...opt, votes: opt.votes + 1 };
-        }
-        return opt;
-      });
-      return {
-        ...state,
-        voting: false,
-        hasVoted: true,
-        poll: { ...state.poll, options: updatedOptions },
-      };
-    }
-    case 'VOTE_FAILURE':
-      return {
-        ...state,
-        voting: false,
-      };
-    default:
-      return state;
-  }
-}
+import { AlertsContext } from '../../components/utils/AlertsManager';
 
 export default function PollWidget(props) {
   const { pollData } = props;
   const { auth } = useAuth();
   const alertsManagerRef = use(AlertsContext);
 
-  const [state, dispatch] = useReducer(pollReducer, {
-    hasVoted: false,
-    loading: true,
-    poll: pollData,
-    voting: false,
-  });
-  const { hasVoted, loading, poll, voting } = state;
-
-  const [selectedOption, setSelectedOption] = useState('');
-  const pollId = pollData?.id;
+  const [hasVoted, setHasVoted] = useState(false);
+  const [selectedOptions, setSelectedOptions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [poll, setPoll] = useState(pollData);
+  const [voting, setVoting] = useState(false);
 
   // Check if current user has already voted
   useEffect(() => {
-    if (auth.user && pollId) {
-      api.get('/forum/poll/hasVoted', { params: { poll: pollId } })
+    if (auth.user && poll) {
+      api.get('/forum/poll/hasVoted', { params: { poll: poll.id } })
         .then(response => {
-          dispatch({ type: 'FETCH_SUCCESS', payload: response.data === true });
+          setHasVoted(response.data === true);
         })
         .catch(err => {
           console.error("Failed to check if user has voted", err);
-          dispatch({ type: 'FETCH_FAILURE' });
+        })
+        .finally(() => {
+          setLoading(false);
         });
     } else {
-      dispatch({ type: 'FETCH_FAILURE' });
+      setLoading(false);
     }
-  }, [pollId, auth.user]);
+  }, [poll, auth.user]);
+
+  const handleCheckboxChange = (optionId) => {
+    setSelectedOptions(prev =>
+      prev.includes(optionId) ? prev.filter(id => id !== optionId) : [...prev, optionId]
+    );
+  };
 
   const handleVoteSubmit = () => {
-    if (!selectedOption) {
-      alertsManagerRef.current.showAlert('warning', 'Bitte wähle eine Option aus.');
+    if (selectedOptions.length === 0) {
+      alertsManagerRef.current.showAlert('warning', 'Bitte wähle mindestens eine Option aus.');
       return;
     }
 
-    dispatch({ type: 'VOTE_START' });
-    api.post('/forum/poll/vote', null, {
-      params: {
-        poll: poll.id,
-        option: selectedOption
-      }
-    })
+    setVoting(true);
+    const searchParams = new URLSearchParams();
+    searchParams.append('poll', poll.id);
+    selectedOptions.forEach(optId => searchParams.append('option', optId));
+
+    api.post(`/forum/poll/vote?${searchParams.toString()}`)
     .then(response => {
       alertsManagerRef.current.showAlert('success', 'Stimme erfolgreich abgegeben!');
-      dispatch({ type: 'VOTE_SUCCESS', payload: selectedOption });
+      setHasVoted(true);
+      
+      // Update local poll votes count dynamically
+      setPoll(prev => {
+        const updatedOptions = prev.options.map(opt => {
+          if (selectedOptions.includes(opt.id)) {
+            return { ...opt, votes: (opt.votes || 0) + 1 };
+          }
+          return opt;
+        });
+        return { ...prev, options: updatedOptions };
+      });
     })
     .catch(error => {
       console.error("Voting failed", error);
       const status = error.response?.status || 500;
       const data = error.response?.data || 'Fehler beim Abstimmen';
       alertsManagerRef.current.showAlert('error', `${status}: ${data}`);
-      dispatch({ type: 'VOTE_FAILURE' });
+    })
+    .finally(() => {
+      setVoting(false);
     });
   };
 
@@ -141,20 +114,39 @@ export default function PollWidget(props) {
 
         {!hasVoted && auth.user ? (
           <FormControl component="fieldset" sx={{ width: '100%' }}>
-            <RadioGroup
-              value={selectedOption}
-              onChange={(e) => setSelectedOption(e.target.value)}
-            >
-              {poll.options.map((option) => (
-                <FormControlLabel
-                  key={option.id}
-                  value={option.id.toString()}
-                  control={<Radio color="primary" />}
-                  label={option.optionText}
-                  sx={{ mb: 1 }}
-                />
-              ))}
-            </RadioGroup>
+            {poll.allowMultiple ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                {poll.options.map((option) => (
+                  <FormControlLabel
+                    key={option.id}
+                    control={
+                      <Checkbox
+                        color="primary"
+                        checked={selectedOptions.includes(option.id)}
+                        onChange={() => handleCheckboxChange(option.id)}
+                      />
+                    }
+                    label={option.optionText}
+                    sx={{ mb: 1 }}
+                  />
+                ))}
+              </Box>
+            ) : (
+              <RadioGroup
+                value={selectedOptions[0] || ''}
+                onChange={(e) => setSelectedOptions([Number(e.target.value)])}
+              >
+                {poll.options.map((option) => (
+                  <FormControlLabel
+                    key={option.id}
+                    value={option.id}
+                    control={<Radio color="primary" />}
+                    label={option.optionText}
+                    sx={{ mb: 1 }}
+                  />
+                ))}
+              </RadioGroup>
+            )}
             <Button
               variant="contained"
               color="primary"
@@ -170,7 +162,7 @@ export default function PollWidget(props) {
             {poll.options.map((option) => {
               const optVotes = option.votes || 0;
               const percentage = totalVotes > 0 ? Math.round((optVotes / totalVotes) * 100) : 0;
-              const isUserChoice = Number(selectedOption) === option.id;
+              const isUserChoice = selectedOptions.includes(option.id);
 
               return (
                 <Box key={option.id} sx={{ mb: 2 }}>

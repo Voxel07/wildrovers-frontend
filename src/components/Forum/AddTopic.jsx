@@ -55,24 +55,32 @@ const AddTopic = ({ ref, ...props }) => {
 
 
     async function saveTopicToDB(vals){
-    axios.put(
-    'http://localhost:8080/forum/topic',
-    {
-        topic: vals.Topic
-    },
-    {
-        headers:{ Authorization: `Bearer ${auth.JWT}`}
-        ,params:{category: props.category.id}
-    }
-    ).then(
-        response =>{
-            setState({resCode: response.status, resData: ""});
-            alertsManagerRef.current.showAlert('success', 'Thema: '+ vals.Topic +' Erfolgreich erstellt');
+        const isEdit = !!props.topicToEdit;
+        const url = 'http://localhost:8080/forum/topic';
+        const data = isEdit ? {
+            id: props.topicToEdit.id,
+            topic: vals.Topic
+        } : {
+            topic: vals.Topic
+        };
+        const method = isEdit ? 'post' : 'put';
+        const params = isEdit ? {} : { category: props.category.id };
 
-            props.callback();
-            props.onAddTopic();
-        }
-    )
+        axios({
+            method,
+            url,
+            data,
+            params,
+            headers: { Authorization: `Bearer ${auth.JWT}` }
+        }).then(
+            response =>{
+                setState({resCode: response.status, resData: ""});
+                alertsManagerRef.current.showAlert('success', isEdit ? 'Thema erfolgreich aktualisiert' : 'Thema: '+ vals.Topic +' Erfolgreich erstellt');
+
+                props.callback();
+                props.onAddTopic();
+            }
+        )
     .catch(error=>{
         let resCode = error.response.status;
         let resData;
@@ -96,8 +104,7 @@ const AddTopic = ({ ref, ...props }) => {
             innerRef={formikRef}
             validateOnChange={true}
             initialValues={{
-                Topic: '',
-            //  Position: '',
+                Topic: props.topicToEdit ? props.topicToEdit.topic : '',
             }}
             validationSchema={validationSchema}
             onSubmit={async (data, { setSubmitting, resetForm }) => {
@@ -112,7 +119,9 @@ const AddTopic = ({ ref, ...props }) => {
             ({ values, errors, isSubmitting , touched}) => (
             <div ref={ref} tabIndex={-1}>
                 <Container className="Form-Container" sx={{...style, width:0.33}} >
-                    <Typography sx={{marginBottom:5}}>Neues Thema zu {props.category.name} hinzufügen</Typography>
+                    <Typography sx={{marginBottom:5}}>
+                        {props.topicToEdit ? 'Thema editieren' : `Neues Thema zu ${props.category.name} hinzufügen`}
+                    </Typography>
                     <Form className="Form">
                     <Field variant="outlined" label="Name des Themas" name="Topic" type="input" error={!!errors.Name} helperText={errors.Name} as={TextField} />
                     {/* <Field  component={Autocomplete} name="Position" options={possibleTopics} getOptionLabel={(option)=>(option ? option.lable : "")} renderInput={(params) => (
@@ -132,8 +141,10 @@ const AddTopic = ({ ref, ...props }) => {
                     )}
                     /> */}
                     <Grid container direction="row" justifyContent="space-between">
-                    <Button disabled={isSubmitting || !errors} type='submit'> Hinzufügen </Button>
-                    <Button onClick={props.callback} color="error"> Abbrechen </Button>
+                        <Button disabled={isSubmitting || !errors} type='submit'>
+                            {props.topicToEdit ? 'Speichern' : 'Hinzufügen'}
+                        </Button>
+                        <Button onClick={props.callback} color="error"> Abbrechen </Button>
                     </Grid>
                         {/* <pre> {JSON.stringify(values, null, 2)} </pre> */}
                     </Form>
@@ -153,7 +164,6 @@ const AddTopic = ({ ref, ...props }) => {
             )
             }
         </Formik>
-
     </React.Fragment>
    );
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useReducer, useMemo, use } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import { alpha } from '@mui/material/styles';
@@ -21,7 +21,8 @@ import {
   Chip, 
   Switch, 
   FormControlLabel,
-  Paper
+  Paper,
+  Button
 } from '@mui/material';
 
 import { useTheme } from '@mui/material/styles';
@@ -38,8 +39,6 @@ import LastPageIcon from '@mui/icons-material/LastPage';
 import { visuallyHidden } from '@mui/utils';
 
 import { convertTimestamp, formatNumber } from '../../helper/converter';
-import api from '../../helper/api';
-import { AlertsContext } from '../utils/AlertsManager';
 
 function descendingComparator(a, b, orderBy) {
   if (b[orderBy] < a[orderBy]) {
@@ -222,11 +221,11 @@ function TablePaginationActions(props) {
     onPageChange(event, 0);
   };
 
-  const handleBackButtonClick = (event) => {
+  const handleBackButtonOpen = (event) => {
     onPageChange(event, page - 1);
   };
 
-  const handleNextButtonClick = (event) => {
+  const handleNextButtonOpen = (event) => {
     onPageChange(event, page + 1);
   };
 
@@ -244,14 +243,14 @@ function TablePaginationActions(props) {
         {theme.direction === 'rtl' ? <LastPageIcon /> : <FirstPageIcon />}
       </IconButton>
       <IconButton
-        onClick={handleBackButtonClick}
+        onClick={handleBackButtonOpen}
         disabled={page === 0}
         aria-label="previous page"
       >
         {theme.direction === 'rtl' ? <KeyboardArrowRight /> : <KeyboardArrowLeft />}
       </IconButton>
       <IconButton
-        onClick={handleNextButtonClick}
+        onClick={handleNextButtonOpen}
         disabled={page >= Math.ceil(count / rowsPerPage) - 1}
         aria-label="next page"
       >
@@ -268,80 +267,37 @@ function TablePaginationActions(props) {
   );
 }
 
-const initialTableState = {
-  order: 'desc',
-  orderBy: 'creationDate',
-  selected: [],
-  page: 0,
-  rowsPerPage: 10,
-};
-
-function tableReducer(state, action) {
-  switch (action.type) {
-    case 'SORT':
-      return {
-        ...state,
-        order: action.payload.order,
-        orderBy: action.payload.orderBy,
-      };
-    case 'SELECT':
-      return {
-        ...state,
-        selected: action.payload,
-      };
-    case 'CHANGE_PAGE':
-      return {
-        ...state,
-        page: action.payload,
-      };
-    case 'CHANGE_ROWS_PER_PAGE':
-      return {
-        ...state,
-        rowsPerPage: action.payload,
-        page: 0,
-      };
-    case 'RESET_SELECTION':
-      return {
-        ...state,
-        selected: [],
-      };
-    default:
-      return state;
-  }
-}
-
 export default function Posts(props) {
   const navigate = useNavigate();
-  const [tableState, dispatchTable] = useReducer(tableReducer, initialTableState);
-  const { order, orderBy, selected, page, rowsPerPage } = tableState;
+  const [order, setOrder] = useState('desc');
+  const [orderBy, setOrderBy] = useState('creationDate');
+  const [selected, setSelected] = useState([]);
+  const [page, setPage] = useState(0);
   const [dense, setDense] = useState(false);
   const [multi, setMulti] = useState(false);
-  const [deletedPostIds, setDeletedPostIds] = useState([]);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [tableData, setTableData] = useState([]);
 
-  const tableData = useMemo(() => {
-    return (props.posts || []).filter(post => !deletedPostIds.includes(post.id));
-  }, [props.posts, deletedPostIds]);
-
-  const alertsManagerRef = use(AlertsContext);
+  // Sync state with incoming props
+  useEffect(() => {
+    if (props.posts) {
+      setTableData(props.posts);
+    }
+  }, [props.posts]);
 
   const handleRequestSort = (event, property) => {
     const isAsc = orderBy === property && order === 'asc';
-    dispatchTable({
-      type: 'SORT',
-      payload: {
-        order: isAsc ? 'desc' : 'asc',
-        orderBy: property,
-      }
-    });
+    setOrder(isAsc ? 'desc' : 'asc');
+    setOrderBy(property);
   };
 
   const handleSelectAllClick = (event) => {
     if (event.target.checked) {
       const newSelected = tableData.map((n) => n.title);
-      dispatchTable({ type: 'SELECT', payload: newSelected });
+      setSelected(newSelected);
       return;
     }
-    dispatchTable({ type: 'RESET_SELECTION' });
+    setSelected([]);
   };
 
   const handleCheckboxClick = (event, title) => {
@@ -361,7 +317,7 @@ export default function Posts(props) {
         selected.slice(selectedIndex + 1),
       );
     }
-    dispatchTable({ type: 'SELECT', payload: newSelected });
+    setSelected(newSelected);
   };
 
   const handleRowClick = (id) => {
@@ -371,11 +327,12 @@ export default function Posts(props) {
   };
 
   const handleChangePage = (event, newPage) => {
-    dispatchTable({ type: 'CHANGE_PAGE', payload: newPage });
+    setPage(newPage);
   };
 
   const handleChangeRowsPerPage = (event) => {
-    dispatchTable({ type: 'CHANGE_ROWS_PER_PAGE', payload: parseInt(event.target.value, 10) });
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
 
   const handleAdd = () => {
@@ -388,23 +345,9 @@ export default function Posts(props) {
 
   const handleDelete = () => {
     // Delete selected items
-    const postsToDelete = tableData.filter(entry => selected.includes(entry.title));
-    const idsToDelete = postsToDelete.map(p => p.id);
-
-    setDeletedPostIds(prev => [...prev, ...idsToDelete]);
-    dispatchTable({ type: 'RESET_SELECTION' });
-
-    postsToDelete.forEach(post => {
-      api.delete('/forum/post', { data: { id: post.id } })
-        .then(() => {
-          alertsManagerRef.current.showAlert('success', `Beitrag "${post.title}" erfolgreich gelöscht`);
-        })
-        .catch(err => {
-          console.error("Failed to delete post", err);
-          alertsManagerRef.current.showAlert('error', `Fehler beim Löschen von "${post.title}"`);
-          setDeletedPostIds(prev => prev.filter(id => id !== post.id));
-        });
-    });
+    const updatedData = tableData.filter(entry => !selected.includes(entry.title));
+    setTableData(updatedData);
+    setSelected([]);
   };
 
   const isSelected = (title) => selected.indexOf(title) !== -1;
@@ -509,15 +452,25 @@ export default function Posts(props) {
         ActionsComponent={TablePaginationActions}
       />
 
-      <Stack direction="row" spacing={2} sx={{ p: 2, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        <FormControlLabel
-          control={<Switch checked={dense} onChange={(e) => setDense(e.target.checked)} />}
-          label="Kompakte Ansicht"
-        />
-        <FormControlLabel
-          control={<Switch checked={multi} onChange={(e) => setMulti(e.target.checked)} />}
-          label="Mehrfachauswahl"
-        />
+      <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ p: 2, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+        <Stack direction="row" spacing={2}>
+          <FormControlLabel
+            control={<Switch checked={dense} onChange={(e) => setDense(e.target.checked)} />}
+            label="Kompakte Ansicht"
+          />
+          <FormControlLabel
+            control={<Switch checked={multi} onChange={(e) => setMulti(e.target.checked)} />}
+            label="Mehrfachauswahl"
+          />
+        </Stack>
+        <Button 
+          variant="contained" 
+          color="primary" 
+          startIcon={<AddIcon />} 
+          onClick={handleAdd}
+        >
+          Beitrag hinzufügen
+        </Button>
       </Stack>
     </Paper>
   );
@@ -526,4 +479,5 @@ export default function Posts(props) {
 Posts.propTypes = {
   posts: PropTypes.array,
   topic: PropTypes.string,
+  topicId: PropTypes.number,
 };

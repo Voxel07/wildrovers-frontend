@@ -44,6 +44,7 @@ const initialPollState = {
   pollQuestion: '',
   pollOptions: [makeOption(), makeOption()],
   pollDialogOpen: false,
+  allowMultiple: false,
 };
 
 function pollReducer(state, action) {
@@ -70,6 +71,8 @@ function pollReducer(state, action) {
     }
     case 'SET_QUESTION':
       return { ...state, pollQuestion: action.payload };
+    case 'TOGGLE_ALLOW_MULTIPLE':
+      return { ...state, allowMultiple: action.payload };
     case 'SAVE_POLL_CONFIG':
       return {
         ...state,
@@ -95,7 +98,7 @@ export default function TextEditor(props) {
   const [error, setError] = useState(null);
 
   const [pollState, dispatchPoll] = useReducer(pollReducer, initialPollState);
-  const { hasPoll, pollQuestion, pollOptions, pollDialogOpen } = pollState;
+  const { hasPoll, pollQuestion, pollOptions, pollDialogOpen, allowMultiple } = pollState;
 
   const topicId = location.state?.topicId;
   const quillRef = useRef(null);
@@ -183,7 +186,8 @@ export default function TextEditor(props) {
 
           api.post(`/forum/poll/create?post=${postId}`, {
             question: pollQuestion,
-            options: optionsPayload
+            options: optionsPayload,
+            allowMultiple: allowMultiple
           })
             .then(() => {
               alertsManagerRef.current.showAlert('success', 'Umfrage erfolgreich hinzugefügt!');
@@ -381,6 +385,17 @@ export default function TextEditor(props) {
             <Button startIcon={<AddIcon />} onClick={handleAddOption} variant="outlined" size="small" sx={{ width: 'fit-content' }}>
               Option hinzufügen
             </Button>
+            <Divider sx={{ my: 1 }} />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={allowMultiple}
+                  onChange={(e) => dispatchPoll({ type: 'TOGGLE_ALLOW_MULTIPLE', payload: e.target.checked })}
+                  color="primary"
+                />
+              }
+              label="Mehrfachauswahl erlauben"
+            />
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
