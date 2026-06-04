@@ -27,6 +27,9 @@ import useAuth from './context/useAuth';
 //Protected routes
 import RequireAuth from './components/Router/RequireAuth';
 import Rules from './Pages/Rules/Rules';
+import Gallery from './Pages/Gallery/Gallery';
+import Events from './Pages/Events/Events';
+import Team from './Pages/Team/Team';
 
 //user Feedback
 import { AlertsManager, AlertsContext } from './components/utils/AlertsManager';
@@ -74,6 +77,9 @@ function App() {
           <Route path="Regestrieren/Erfolgreich" element={<VerificationPrompt />} />
           <Route path="unauthorized" element={<Unauthorized />} />
           <Route path="404" element={<PageNotFound />} />
+          <Route path="galery" element={<Gallery />} />
+          <Route path="events" element={<Events />} />
+          <Route path="team" element={<Team />} />
 
           <Route path="*" element={<Navigate to="/404" replace />} /> {/*Redirect any invalide url to home */}
 

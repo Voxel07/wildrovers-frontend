@@ -21,7 +21,10 @@ import useAuth from '../../context/useAuth';
 
 const pages = [
   { key: 1, name: "Forum", path: "/Forum" },
-  { key: 2, name: "Regeln", path: "/Regeln" }
+  { key: 2, name: "Galerie", path: "/galery" },
+  { key: 3, name: "Events", path: "/events" },
+  { key: 4, name: "Team", path: "/team" },
+  { key: 5, name: "Regeln", path: "/Regeln" }
 ];
 
 const ResponsiveAppBar = () => {

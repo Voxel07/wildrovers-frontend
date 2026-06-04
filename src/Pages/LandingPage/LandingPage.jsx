@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../../helper/api';
 
 // Mui
 import Container from '@mui/material/Container';
@@ -54,36 +55,35 @@ export default function LandingPage() {
     }
   ];
 
-  const events = [
-    {
-      title: 'Dark Emergency',
-      date: 'Jährlich im Mai',
-      location: 'Mahlwinkel',
-      role: 'Miliz / LARP / Event-Support',
-      desc: 'Das größte Airsoft-Event Deutschlands. Die Wild Rovers unterstützen seit Jahren aktiv die Organisation und bespielen leidenschaftlich verschiedene Sonderrollen.'
-    },
-    {
-      title: 'Beerzone',
-      date: 'Spätsommer',
-      location: 'Tschechien',
-      role: 'Taktische Fraktionsführung',
-      desc: 'Traditionelles Großevent mit hohem Spaßfaktor und taktischer Koordination in großen Verbänden.'
-    },
-    {
-      title: 'Borderwar',
-      date: 'Sommer',
-      location: 'Tschechien',
-      role: 'Milsim / Zugkooperation',
-      desc: 'Internationales Milsim-Großevent. Anspruchsvolle Missionen über mehrere Tage im bewaldeten Terrain.'
-    },
-    {
-      title: 'Freundschaftsspiele',
-      date: 'Regelmäßig',
-      location: 'Frankreich / Österreich / Inlandsfelder',
-      role: 'Speedsoft & Training',
-      desc: 'Schnelle, actiongeladene Spiele auf Feldern befreundeter Teams, um unsere Dynamik und Reflexe zu schärfen.'
+  const [events, setEvents] = useState([]);
+
+  useEffect(() => {
+    api.get('/event/upcoming')
+      .then(res => {
+        setEvents(res.data);
+      })
+      .catch(err => {
+        console.error("Error fetching upcoming events", err);
+      });
+  }, []);
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString("de-DE", {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }) + ' Uhr';
+    } catch (e) {
+      return dateStr;
     }
-  ];
+  };
+
+  const kioskUrl = import.meta.env.VITE_IMMICH_KIOSK_URL || "https://kiosk.wild-rovers.de";
 
   return (
     <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', overflowX: 'hidden' }}>
@@ -240,15 +240,15 @@ export default function LandingPage() {
       <Box sx={{ bgcolor: 'rgba(255,255,255,0.01)', borderTop: '1px solid rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.03)', py: 10 }}>
         <Container maxWidth="lg">
           <Typography variant="h4" component="h2" align="center" sx={{ fontWeight: 'bold', mb: 1, color: 'primary.main' }}>
-            Aktivitäten & Einsätze
+            Anstehende Einsätze
           </Typography>
           <Typography variant="body1" align="center" color="text.secondary" sx={{ mb: 8, maxWidth: '600px', mx: 'auto' }}>
-            Hier triffst du die Wild Rovers im Einsatz.
+            Die nächsten 3 geplanten Operationen und Trainings der Wild Rovers.
           </Typography>
 
-          <Grid container spacing={3}>
-            {events.map((event, index) => (
-              <Grid item xs={12} md={6} key={index}>
+          <Grid container spacing={3} justifyContent="center">
+            {events.length > 0 ? events.map((event, index) => (
+              <Grid item xs={12} md={4} key={index}>
                 <Paper sx={{
                   p: 3,
                   height: '100%',
@@ -268,13 +268,10 @@ export default function LandingPage() {
                       <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
                         {event.title}
                       </Typography>
-                      <Chip label={event.date} color="primary" variant="outlined" size="small" />
                     </Stack>
-                    <Typography variant="subtitle2" color="secondary" sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <DoubleArrowIcon sx={{ fontSize: '0.9rem' }} /> {event.role}
-                    </Typography>
+                    <Chip label={formatDate(event.eventDate)} color="primary" variant="outlined" size="small" sx={{ mb: 2 }} />
                     <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
-                      {event.desc}
+                      {event.description}
                     </Typography>
                   </Box>
                   <Typography variant="caption" color="text.secondary" sx={{ mt: 3, display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -282,10 +279,44 @@ export default function LandingPage() {
                   </Typography>
                 </Paper>
               </Grid>
-            ))}
+            )) : (
+              <Grid item xs={12}>
+                <Typography align="center" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                  Aktuell keine Events geplant.
+                </Typography>
+              </Grid>
+            )}
           </Grid>
         </Container>
       </Box>
+
+      {/* Kiosk / Random Impressions */}
+      {kioskUrl && (
+        <Box sx={{ py: 10, bgcolor: 'background.paper', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+          <Container maxWidth="xl">
+            <Typography variant="h4" align="center" sx={{ fontWeight: 'bold', mb: 1, color: 'primary.main' }}>
+              Zufällige Impressionen
+            </Typography>
+            <Typography variant="body1" align="center" color="text.secondary" sx={{ mb: 6, maxWidth: '600px', mx: 'auto' }}>
+              Einblicke in unsere Einsätze und Trainings direkt aus unserem Immich-Archiv.
+            </Typography>
+            <Box sx={{
+              height: '60vh',
+              borderRadius: 3,
+              overflow: 'hidden',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+              bgcolor: 'rgba(0,0,0,0.2)'
+            }}>
+              <iframe
+                src={kioskUrl}
+                style={{ width: '100%', height: '100%', border: 'none' }}
+                title="Immich Kiosk Random Viewer"
+              />
+            </Box>
+          </Container>
+        </Box>
+      )}
 
       {/* Partners & Shops Section */}
       <Container maxWidth="lg" sx={{ py: 10 }}>
