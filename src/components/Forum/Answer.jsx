@@ -27,6 +27,10 @@ import { convertTimestamp } from '../../helper/converter';
 import useAuth from '../../context/useAuth';
 import { AlertsContext } from '../../components/utils/AlertsManager';
 
+const noModules = {
+  toolbar: false
+};
+
 export default function Answer(props) {
   const { auth } = useAuth();
   const alertsManagerRef = use(AlertsContext);
@@ -88,9 +92,7 @@ export default function Answer(props) {
     setIsEditing(false);
   };
 
-  const noModules = {
-    toolbar: false
-  };
+
 
   return (
     <Card sx={{ width: '100%', border: '1px solid rgba(255, 255, 255, 0.08)' }}>

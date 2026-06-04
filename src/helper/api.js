@@ -20,7 +20,7 @@ function onRefreshed(token) {
 api.interceptors.request.use(
   async (config) => {
     try {
-      const storedAuth = localStorage.getItem('auth');
+      const storedAuth = localStorage.getItem('auth:v1');
       if (storedAuth) {
         const auth = JSON.parse(storedAuth);
         if (auth && auth.JWT) {
@@ -44,7 +44,7 @@ api.interceptors.request.use(
                   expiresAt: tokens.expires_in ? (Date.now() + tokens.expires_in * 1000) : null,
                   user: username,
                 };
-                localStorage.setItem('auth', JSON.stringify(updatedAuth));
+                localStorage.setItem('auth:v1', JSON.stringify(updatedAuth));
                 window.dispatchEvent(new Event('auth-updated'));
                 isRefreshing = false;
                 onRefreshed(tokens.access_token);
@@ -52,7 +52,7 @@ api.interceptors.request.use(
                 isRefreshing = false;
                 console.error('Token refresh failed in interceptor', err);
                 // Clear auth to force relogin
-                localStorage.removeItem('auth');
+                localStorage.removeItem('auth:v1');
                 window.dispatchEvent(new Event('auth-updated'));
                 return config;
               }
@@ -86,7 +86,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Clear stale auth and redirect to login
-      localStorage.removeItem('auth');
+      localStorage.removeItem('auth:v1');
       window.dispatchEvent(new Event('auth-updated'));
       // Only redirect if not already on the login page
       if (!window.location.pathname.toLowerCase().includes('/login')) {

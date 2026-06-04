@@ -25,6 +25,29 @@ import DoubleArrowIcon from '@mui/icons-material/DoubleArrow';
 import SchriftImage from '../../images/Schrift.png';
 import LogoHellImage from '../../images/Logo_hell.png';
 
+const milestones = [
+  {
+    year: '2013',
+    title: 'Gründung des Teams',
+    description: 'Gegründet am 14. Dezember 2013 im Herzen Württembergs. Gestartet als eine kleine Gruppe begeisterter Softairspieler mit dem Ziel, den Sport legal und mit maximalem Spaß auszuüben.'
+  },
+  {
+    year: '2014',
+    title: 'Erstes Regelwerk',
+    description: 'Inkrafttreten des ersten offiziellen Regelwerks am 01. Januar 2014 zur Etablierung eines geordneten und sicheren Trainings- und Spielbetriebs.'
+  },
+  {
+    year: '2019',
+    title: 'Neuausrichtung & Name',
+    description: 'Am 23. Juli 2019 wurde das Regelwerk grundlegend überarbeitet und der offizielle Teamname auf "Wild Rovers Württemberg" festgelegt, um unsere regionale Verbundenheit auszudrücken.'
+  },
+  {
+    year: 'Heute',
+    title: 'Aktive Gemeinschaft',
+    description: 'Eine eingeschworene Truppe im Raum Stuttgart, Esslingen und Göppingen. Wir stehen für taktischen Anspruch, fairen Sportsgeist und starke freundschaftliche Kontakte in der deutschen Airsoft-Szene.'
+  }
+];
+
 export default function LandingPage() {
   const navigate = useNavigate();
 
@@ -32,28 +55,7 @@ export default function LandingPage() {
     navigate('/Forum');
   };
 
-  const milestones = [
-    {
-      year: '2013',
-      title: 'Gründung des Teams',
-      description: 'Gegründet am 14. Dezember 2013 im Herzen Württembergs. Gestartet als eine kleine Gruppe begeisterter Softairspieler mit dem Ziel, den Sport legal und mit maximalem Spaß auszuüben.'
-    },
-    {
-      year: '2014',
-      title: 'Erstes Regelwerk',
-      description: 'Inkrafttreten des ersten offiziellen Regelwerks am 01. Januar 2014 zur Etablierung eines geordneten und sicheren Trainings- und Spielbetriebs.'
-    },
-    {
-      year: '2019',
-      title: 'Neuausrichtung & Name',
-      description: 'Am 23. Juli 2019 wurde das Regelwerk grundlegend überarbeitet und der offizielle Teamname auf "Wild Rovers Württemberg" festgelegt, um unsere regionale Verbundenheit auszudrücken.'
-    },
-    {
-      year: 'Heute',
-      title: 'Aktive Gemeinschaft',
-      description: 'Eine eingeschworene Truppe im Raum Stuttgart, Esslingen und Göppingen. Wir stehen für taktischen Anspruch, fairen Sportsgeist und starke freundschaftliche Kontakte in der deutschen Airsoft-Szene.'
-    }
-  ];
+
 
   const [events, setEvents] = useState([]);
 
@@ -207,8 +209,8 @@ export default function LandingPage() {
         </Typography>
 
         <Grid container spacing={4}>
-          {milestones.map((item, index) => (
-            <Grid item xs={12} sm={6} md={3} key={index}>
+          {milestones.map((item) => (
+            <Grid item xs={12} sm={6} md={3} key={item.year}>
               <Card sx={{
                 height: '100%',
                 display: 'flex',
@@ -239,16 +241,13 @@ export default function LandingPage() {
       {/* Upcoming Events Section */}
       <Box sx={{ bgcolor: 'rgba(255,255,255,0.01)', borderTop: '1px solid rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.03)', py: 10 }}>
         <Container maxWidth="lg">
-          <Typography variant="h4" component="h2" align="center" sx={{ fontWeight: 'bold', mb: 1, color: 'primary.main' }}>
-            Anstehende Einsätze
-          </Typography>
-          <Typography variant="body1" align="center" color="text.secondary" sx={{ mb: 8, maxWidth: '600px', mx: 'auto' }}>
-            Die nächsten 3 geplanten Operationen und Trainings der Wild Rovers.
+          <Typography variant="h4" component="h2" align="center" sx={{ fontWeight: 'bold', mb: 5, color: 'primary.main' }}>
+            Anstehende Events
           </Typography>
 
           <Grid container spacing={3} justifyContent="center">
-            {events.length > 0 ? events.map((event, index) => (
-              <Grid item xs={12} md={4} key={index}>
+            {events.length > 0 ? events.map((event) => (
+              <Grid item xs={12} md={4} key={event.id}>
                 <Paper sx={{
                   p: 3,
                   height: '100%',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useReducer, useMemo, use } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import { alpha } from '@mui/material/styles';
@@ -38,6 +38,8 @@ import LastPageIcon from '@mui/icons-material/LastPage';
 import { visuallyHidden } from '@mui/utils';
 
 import { convertTimestamp, formatNumber } from '../../helper/converter';
+import api from '../../helper/api';
+import { AlertsContext } from '../utils/AlertsManager';
 
 function descendingComparator(a, b, orderBy) {
   if (b[orderBy] < a[orderBy]) {
@@ -266,37 +268,80 @@ function TablePaginationActions(props) {
   );
 }
 
+const initialTableState = {
+  order: 'desc',
+  orderBy: 'creationDate',
+  selected: [],
+  page: 0,
+  rowsPerPage: 10,
+};
+
+function tableReducer(state, action) {
+  switch (action.type) {
+    case 'SORT':
+      return {
+        ...state,
+        order: action.payload.order,
+        orderBy: action.payload.orderBy,
+      };
+    case 'SELECT':
+      return {
+        ...state,
+        selected: action.payload,
+      };
+    case 'CHANGE_PAGE':
+      return {
+        ...state,
+        page: action.payload,
+      };
+    case 'CHANGE_ROWS_PER_PAGE':
+      return {
+        ...state,
+        rowsPerPage: action.payload,
+        page: 0,
+      };
+    case 'RESET_SELECTION':
+      return {
+        ...state,
+        selected: [],
+      };
+    default:
+      return state;
+  }
+}
+
 export default function Posts(props) {
   const navigate = useNavigate();
-  const [order, setOrder] = useState('desc');
-  const [orderBy, setOrderBy] = useState('creationDate');
-  const [selected, setSelected] = useState([]);
-  const [page, setPage] = useState(0);
+  const [tableState, dispatchTable] = useReducer(tableReducer, initialTableState);
+  const { order, orderBy, selected, page, rowsPerPage } = tableState;
   const [dense, setDense] = useState(false);
   const [multi, setMulti] = useState(false);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [tableData, setTableData] = useState([]);
+  const [deletedPostIds, setDeletedPostIds] = useState([]);
 
-  // Sync state with incoming props
-  useEffect(() => {
-    if (props.posts) {
-      setTableData(props.posts);
-    }
-  }, [props.posts]);
+  const tableData = useMemo(() => {
+    return (props.posts || []).filter(post => !deletedPostIds.includes(post.id));
+  }, [props.posts, deletedPostIds]);
+
+  const alertsManagerRef = use(AlertsContext);
 
   const handleRequestSort = (event, property) => {
     const isAsc = orderBy === property && order === 'asc';
-    setOrder(isAsc ? 'desc' : 'asc');
-    setOrderBy(property);
+    dispatchTable({
+      type: 'SORT',
+      payload: {
+        order: isAsc ? 'desc' : 'asc',
+        orderBy: property,
+      }
+    });
   };
 
   const handleSelectAllClick = (event) => {
     if (event.target.checked) {
       const newSelected = tableData.map((n) => n.title);
-      setSelected(newSelected);
+      dispatchTable({ type: 'SELECT', payload: newSelected });
       return;
     }
-    setSelected([]);
+    dispatchTable({ type: 'RESET_SELECTION' });
   };
 
   const handleCheckboxClick = (event, title) => {
@@ -316,7 +361,7 @@ export default function Posts(props) {
         selected.slice(selectedIndex + 1),
       );
     }
-    setSelected(newSelected);
+    dispatchTable({ type: 'SELECT', payload: newSelected });
   };
 
   const handleRowClick = (id) => {
@@ -326,12 +371,11 @@ export default function Posts(props) {
   };
 
   const handleChangePage = (event, newPage) => {
-    setPage(newPage);
+    dispatchTable({ type: 'CHANGE_PAGE', payload: newPage });
   };
 
   const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
+    dispatchTable({ type: 'CHANGE_ROWS_PER_PAGE', payload: parseInt(event.target.value, 10) });
   };
 
   const handleAdd = () => {
@@ -344,9 +388,23 @@ export default function Posts(props) {
 
   const handleDelete = () => {
     // Delete selected items
-    const updatedData = tableData.filter(entry => !selected.includes(entry.title));
-    setTableData(updatedData);
-    setSelected([]);
+    const postsToDelete = tableData.filter(entry => selected.includes(entry.title));
+    const idsToDelete = postsToDelete.map(p => p.id);
+
+    setDeletedPostIds(prev => [...prev, ...idsToDelete]);
+    dispatchTable({ type: 'RESET_SELECTION' });
+
+    postsToDelete.forEach(post => {
+      api.delete('/forum/post', { data: { id: post.id } })
+        .then(() => {
+          alertsManagerRef.current.showAlert('success', `Beitrag "${post.title}" erfolgreich gelöscht`);
+        })
+        .catch(err => {
+          console.error("Failed to delete post", err);
+          alertsManagerRef.current.showAlert('error', `Fehler beim Löschen von "${post.title}"`);
+          setDeletedPostIds(prev => prev.filter(id => id !== post.id));
+        });
+    });
   };
 
   const isSelected = (title) => selected.indexOf(title) !== -1;

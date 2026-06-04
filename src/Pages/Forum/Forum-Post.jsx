@@ -1,4 +1,4 @@
-import React, { useEffect, useState, use, useCallback } from 'react';
+import React, { useEffect, useState, use, useCallback, useReducer } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../helper/api';
 
@@ -26,15 +26,46 @@ import PollWidget from '../../components/Forum/PollWidget';
 import { AlertsContext } from '../../components/utils/AlertsManager';
 import useAuth from '../../context/useAuth';
 
+const initialFetchState = {
+  post: null,
+  answers: [],
+  loading: true,
+};
+
+function fetchReducer(state, action) {
+  switch (action.type) {
+    case 'FETCH_START':
+      return {
+        ...state,
+        loading: true,
+        post: null,
+        answers: [],
+      };
+    case 'FETCH_SUCCESS':
+      return {
+        ...state,
+        loading: false,
+        post: action.payload.post,
+        answers: action.payload.answers,
+      };
+    case 'FETCH_FAILURE':
+      return {
+        ...state,
+        loading: false,
+      };
+    default:
+      return state;
+  }
+}
+
 export default function Forum_Post() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { auth } = useAuth();
   const alertsManagerRef = use(AlertsContext);
 
-  const [post, setPost] = useState(null);
-  const [answers, setAnswers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [state, dispatch] = useReducer(fetchReducer, initialFetchState);
+  const { post, answers, loading } = state;
   
   // Reply State
   const [replyContent, setReplyContent] = useState('');
@@ -42,26 +73,28 @@ export default function Forum_Post() {
 
   // Fetch post and answers — Promise.all ensures loading stays true until BOTH arrive
   const fetchData = useCallback(() => {
-    setLoading(true);
-    setPost(null);
-    setAnswers([]);
+    dispatch({ type: 'FETCH_START' });
 
     Promise.all([
       api.get("/forum/post", { params: { post: id } }),
       api.get("/forum/answer", { params: { post: id } }),
     ])
       .then(([postRes, answersRes]) => {
-        setPost(postRes.data?.[0] ?? null);
-        setAnswers(answersRes.data ?? []);
+        dispatch({
+          type: 'FETCH_SUCCESS',
+          payload: {
+            post: postRes.data?.[0] ?? null,
+            answers: answersRes.data ?? [],
+          },
+        });
       })
       .catch(error => {
         console.error("Error fetching post/answers", error);
         alertsManagerRef.current.showAlert('error', 'Fehler beim Laden des Posts');
-      })
-      .finally(() => {
-        setLoading(false);
+        dispatch({ type: 'FETCH_FAILURE' });
       });
   }, [id, alertsManagerRef]);
+
 
   useEffect(() => {
     fetchData();

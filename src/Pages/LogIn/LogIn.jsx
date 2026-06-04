@@ -1,4 +1,4 @@
-import React, { use, useState, useEffect } from 'react';
+import React, { use, useState, useEffect, useReducer } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 // Mui
@@ -49,11 +49,24 @@ function mapGroupsToRole(groups) {
   return "Besucher";
 }
 
+const initialLoginState = { loading: false, error: null };
+
+function loginReducer(state, action) {
+  switch (action.type) {
+    case 'LOGIN_START':   return { loading: true, error: null };
+    case 'LOGIN_SUCCESS': return { loading: false, error: null };
+    case 'LOGIN_ERROR':   return { loading: false, error: action.payload };
+    case 'VERIFYING':     return { loading: true, error: null };
+    case 'STOP_LOADING':  return { ...state, loading: false };
+    default: return state;
+  }
+}
+
 const SignIn = ({ ref, ...props }) => {
   const { setAuth } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [loginState, setLoginState] = useState({ loading: false, error: null });
+  const [loginState, dispatch] = useReducer(loginReducer, initialLoginState);
   const { loading, error } = loginState;
 
   const from = location.state?.from?.pathname || "/";
@@ -65,7 +78,7 @@ const SignIn = ({ ref, ...props }) => {
     const hasVerifier = localStorage.getItem("oidc_verifier");
 
     if (code && hasVerifier) {
-      setLoginState({ loading: true, error: null });
+      dispatch({ type: 'VERIFYING' });
       exchangeCodeForToken(code)
         .then((tokens) => {
           if (!tokens) return;
@@ -100,21 +113,21 @@ const SignIn = ({ ref, ...props }) => {
         })
         .catch((err) => {
           console.error("Token exchange error", err);
-          setLoginState({ loading: false, error: "Anmeldung fehlgeschlagen. Bitte versuche es erneut." });
+          dispatch({ type: 'LOGIN_ERROR', payload: "Anmeldung fehlgeschlagen. Bitte versuche es erneut." });
         })
         .finally(() => {
-          setLoginState(prev => ({ ...prev, loading: false }));
+          dispatch({ type: 'STOP_LOADING' });
         });
     }
   }, [location, setAuth, navigate, from]);
 
   const handleLoginClick = async () => {
     try {
-      setLoginState({ loading: true, error: null });
+      dispatch({ type: 'LOGIN_START' });
       await redirectToAuthentik();
     } catch (err) {
       console.error("Redirect to Authentik failed", err);
-      setLoginState({ loading: false, error: "Verbindung zum Authentik-Server fehlgeschlagen." });
+      dispatch({ type: 'LOGIN_ERROR', payload: "Verbindung zum Authentik-Server fehlgeschlagen." });
     }
   };
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useReducer, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../helper/api';
 import Container from '@mui/material/Container';
@@ -26,17 +26,27 @@ import AccordionDetails from '@mui/material/AccordionDetails';
 import Post from '../../components/Forum/Posts';
 import { convertTimestamp } from '../../helper/converter';
 
+const initialFetchState = { posts: [], topicData: null, loading: true };
+
+function fetchReducer(state, action) {
+  switch (action.type) {
+    case 'FETCH_START':   return { ...state, loading: true };
+    case 'FETCH_SUCCESS': return { posts: action.posts, topicData: action.topicData, loading: false };
+    case 'FETCH_ERROR':   return { ...state, loading: false };
+    default: return state;
+  }
+}
+
 export default function Forum_Topic() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [posts, setPosts] = useState([]);
-  const [topicData, setTopicData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [fetchState, dispatch] = useReducer(fetchReducer, initialFetchState);
+  const { posts, topicData, loading } = fetchState;
   const [sort, setSort] = useState({ field: 'creationDate', direction: 'asc' });
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
+    dispatch({ type: 'FETCH_START' });
 
     Promise.all([
       api.get('/forum/post', {
@@ -49,15 +59,16 @@ export default function Forum_Topic() {
       })
     ])
       .then(([postsRes, topicRes]) => {
-        setPosts(postsRes.data || []);
-        setTopicData(topicRes.data?.[0] || null);
+        dispatch({
+          type: 'FETCH_SUCCESS',
+          posts: postsRes.data || [],
+          topicData: topicRes.data?.[0] || null,
+        });
       })
       .catch(error => {
         if (error.code === 'ERR_CANCELED') return;
         console.error(error);
-      })
-      .finally(() => {
-        setLoading(false);
+        dispatch({ type: 'FETCH_ERROR' });
       });
 
     return () => {

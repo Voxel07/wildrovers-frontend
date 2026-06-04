@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useReducer } from 'react';
 import useAuth from '../../context/useAuth';
 import api from '../../helper/api';
 
@@ -8,7 +8,6 @@ import {
   Container,
   Typography,
   Button,
-  Grid,
   Card,
   CardContent,
   Dialog,
@@ -19,11 +18,53 @@ import {
   Stack,
   CardActions
 } from '@mui/material';
+
+import Grid from '@mui/material/Grid';
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import LaunchIcon from '@mui/icons-material/Launch';
 import LibraryAddIcon from '@mui/icons-material/LibraryAdd';
+
+const initialModalState = {
+  openModal: false,
+  formData: {
+    title: '',
+    url: '',
+    date: '',
+    location: ''
+  },
+  formError: '',
+};
+
+function modalReducer(state, action) {
+  switch (action.type) {
+    case 'OPEN':
+      return {
+        ...state,
+        openModal: true,
+        formData: { title: '', url: '', date: '', location: '' },
+        formError: '',
+      };
+    case 'CLOSE':
+      return {
+        ...state,
+        openModal: false,
+      };
+    case 'SET_FORM_DATA':
+      return {
+        ...state,
+        formData: action.payload,
+      };
+    case 'SET_FORM_ERROR':
+      return {
+        ...state,
+        formError: action.payload,
+      };
+    default:
+      return state;
+  }
+}
 
 export default function Gallery() {
   const { auth } = useAuth();
@@ -34,16 +75,8 @@ export default function Gallery() {
 
   const [showUpload, setShowUpload] = useState(false);
   const [dbAlbums, setDbAlbums] = useState([]);
-  const [openModal, setOpenModal] = useState(false);
-
-  // Form State
-  const [formData, setFormData] = useState({
-    title: '',
-    url: '',
-    date: '',
-    location: ''
-  });
-  const [formError, setFormError] = useState('');
+  const [modalState, dispatchModal] = useReducer(modalReducer, initialModalState);
+  const { openModal, formData, formError } = modalState;
 
   const fetchAlbums = () => {
     api.get('/gallery')
@@ -60,33 +93,34 @@ export default function Gallery() {
   }, []);
 
   const handleOpenModal = () => {
-    setFormData({ title: '', url: '', date: '', location: '' });
-    setFormError('');
-    setOpenModal(true);
+    dispatchModal({ type: 'OPEN' });
   };
 
   const handleCloseModal = () => {
-    setOpenModal(false);
+    dispatchModal({ type: 'CLOSE' });
   };
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    dispatchModal({
+      type: 'SET_FORM_DATA',
+      payload: { ...formData, [e.target.name]: e.target.value }
+    });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setFormError('');
+    dispatchModal({ type: 'SET_FORM_ERROR', payload: '' });
 
     // Client-side validations
     if (!formData.title || !formData.url || !formData.date || !formData.location) {
-      setFormError('Bitte alle Felder ausfüllen.');
+      dispatchModal({ type: 'SET_FORM_ERROR', payload: 'Bitte alle Felder ausfüllen.' });
       return;
     }
 
     try {
       new URL(formData.url);
     } catch (e) {
-      setFormError('Bitte eine gültige URL angeben.');
+      dispatchModal({ type: 'SET_FORM_ERROR', payload: 'Bitte eine gültige URL angeben.' });
       return;
     }
 
@@ -97,7 +131,10 @@ export default function Gallery() {
       })
       .catch(err => {
         console.error("Error adding gallery", err);
-        setFormError(err.response?.data || 'Fehler beim Hinzufügen der Galerie. Bitte Eingaben überprüfen.');
+        dispatchModal({
+          type: 'SET_FORM_ERROR',
+          payload: err.response?.data || 'Fehler beim Hinzufügen der Galerie. Bitte Eingaben überprüfen.'
+        });
       });
   };
 
@@ -115,7 +152,7 @@ export default function Gallery() {
     <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: { xs: 4, md: 8 } }}>
       <Container maxWidth="xl">
         <Typography variant="h3" color="primary" align="center" sx={{ fontWeight: 'bold', mb: 2 }}>
-          Einsatz-Galerie
+          Event-Galerie
         </Typography>
         <Typography variant="subtitle1" color="text.secondary" align="center" sx={{ mb: 6, maxWidth: 800, mx: 'auto' }}>
           Impressionen und Bilder unserer vergangenen Operationen in einer großen Sammlung.
@@ -176,7 +213,7 @@ export default function Gallery() {
         {dbAlbums.length > 0 && (
           <Box sx={{ mb: 8 }}>
             <Typography variant="h4" sx={{ borderBottom: '2px solid', borderColor: 'primary.main', pb: 1, mb: 4, fontWeight: 'bold' }}>
-              Einsatz-Timeline & Alben
+              Events-Timeline & Alben
             </Typography>
             <Grid container spacing={4}>
               {dbAlbums.map((album) => (

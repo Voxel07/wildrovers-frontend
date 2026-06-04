@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useRef } from "react";
+import { createContext, useState, useEffect, useRef, useCallback } from "react";
 import { refreshAccessToken, parseJwt } from "../helper/oidc";
 
 const AuthContext = createContext(null);
@@ -6,7 +6,7 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
     const [auth, setAuthState] = useState(() => {
         try {
-            const storedAuth = localStorage.getItem("auth");
+            const storedAuth = localStorage.getItem("auth:v1");
             return storedAuth ? JSON.parse(storedAuth) : {};
         } catch (e) {
             console.error("Error reading auth from localStorage", e);
@@ -16,21 +16,23 @@ export const AuthProvider = ({ children }) => {
 
     const refreshTimerRef = useRef(null);
 
-    const setAuth = (newAuth) => {
+    const setAuth = useCallback((newAuth) => {
         setAuthState((prev) => {
             const updated = typeof newAuth === 'function' ? newAuth(prev) : newAuth;
             try {
                 if (updated && updated.JWT) {
-                    localStorage.setItem("auth", JSON.stringify(updated));
+                    localStorage.setItem("auth:v1", JSON.stringify(updated));
                 } else {
-                    localStorage.removeItem("auth");
+                    localStorage.removeItem("auth:v1");
                 }
             } catch (e) {
                 console.error("Error writing auth to localStorage", e);
             }
             return updated;
         });
-    };
+    }, []);
+
+    const { JWT, refreshToken, expiresAt } = auth || {};
 
     // Proactive token refresh: schedule a refresh 60s before expiry
     useEffect(() => {
@@ -39,27 +41,26 @@ export const AuthProvider = ({ children }) => {
             refreshTimerRef.current = null;
         }
 
-        if (!auth || !auth.JWT || !auth.refreshToken || !auth.expiresAt) return;
+        if (!JWT || !refreshToken || !expiresAt) return;
 
-        const msUntilExpiry = auth.expiresAt - Date.now();
+        const msUntilExpiry = expiresAt - Date.now();
         // Refresh 60 seconds before expiry, or immediately if < 60s remain
         const msUntilRefresh = Math.max(0, msUntilExpiry - 60 * 1000);
 
         refreshTimerRef.current = setTimeout(async () => {
             try {
-                const tokens = await refreshAccessToken(auth.refreshToken);
+                const tokens = await refreshAccessToken(refreshToken);
                 const payload = parseJwt(tokens.access_token || tokens.id_token);
-                const updatedAuth = {
-                    ...auth,
+                setAuth((prev) => ({
+                    ...prev,
                     JWT: tokens.access_token,
-                    refreshToken: tokens.refresh_token || auth.refreshToken,
+                    refreshToken: tokens.refresh_token || prev.refreshToken,
                     expiresAt: tokens.expires_in
                         ? Date.now() + tokens.expires_in * 1000
                         : null,
-                    user: payload?.preferred_username || auth.user,
-                    roles: auth.roles,
-                };
-                setAuth(updatedAuth);
+                    user: payload?.preferred_username || prev.user,
+                    roles: prev.roles,
+                }));
                 window.dispatchEvent(new Event("auth-updated"));
             } catch (err) {
                 console.error("Proactive token refresh failed", err);
@@ -74,13 +75,13 @@ export const AuthProvider = ({ children }) => {
                 clearTimeout(refreshTimerRef.current);
             }
         };
-    }, [auth?.expiresAt, auth?.refreshToken]);
+    }, [JWT, refreshToken, expiresAt, setAuth]);
 
     // Sync auth state from other tabs
     useEffect(() => {
         const handleAuthUpdate = () => {
             try {
-                const storedAuth = localStorage.getItem("auth");
+                const storedAuth = localStorage.getItem("auth:v1");
                 setAuthState(storedAuth ? JSON.parse(storedAuth) : {});
             } catch (e) {
                 console.error("Error reading auth from localStorage in event", e);

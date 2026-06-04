@@ -25,28 +25,25 @@ import React, {useRef , useState, useEffect, use } from 'react';
  //Auth
  import useAuth from '../../context/useAuth';
 
+const style = {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: 400,
+    bgcolor: 'background.paper',
+    border: '2px solid #000',
+    boxShadow: 24,
+    p: 4,
+};
+
 const AddTopic = ({ ref, ...props }) => {
      const formikRef = useRef();
      const{ auth } = useAuth();
      const [state, setState] = useState({ resCode: null, resData: null });
-     const [topics, setTopics] = useState([]);
      const alertsManagerRef = use(AlertsContext);
 
- //------------Modal-------------------------------------
 
-     const style = {
-         position: 'absolute',
-         top: '50%',
-         left: '50%',
-         transform: 'translate(-50%, -50%)',
-         width: 400,
-         bgcolor: 'background.paper',
-         border: '2px solid #000',
-         boxShadow: 24,
-         p: 4,
-       };
-
- //------------Modal Ende-----Yump-----------------------
 
      const validationSchema = yup.object({
         Topic: yup.string().required().min(3, "Name muss min. 3 Zeichen haben").max(20,"Name darf max. 20 Zeichen haben"),
@@ -54,14 +51,7 @@ const AddTopic = ({ ref, ...props }) => {
 
  //----Functions-------------------------
 
-    useEffect(() => {
-        const topics = props.topics.map((element) => ({
-            label: element.topic,
-            id: element.id,
-        }));
 
-        setTopics(topics)
-    }, [props.topics])
 
 
     async function saveTopicToDB(vals){

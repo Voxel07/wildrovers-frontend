@@ -1,4 +1,4 @@
-import React, { useState, use } from 'react';
+import React, { useState, use, useReducer } from 'react';
 import PropTypes from 'prop-types';
 import api from '../../helper/api';
 
@@ -46,6 +46,46 @@ function PostStats({ answerCount, views }) {
     );
 }
 
+function votingReducer(state, action) {
+    switch (action.type) {
+        case 'VOTE_OPTIMISTIC': {
+            const type = action.payload;
+            if (state.voted === type) return state;
+            let newLikes = state.likes;
+            let newDislikes = state.dislikes;
+            if (type === 'like') {
+                newLikes += 1;
+                if (state.voted === 'dislike') newDislikes -= 1;
+            } else {
+                newDislikes += 1;
+                if (state.voted === 'like') newLikes -= 1;
+            }
+            return { likes: newLikes, dislikes: newDislikes, voted: type };
+        }
+        case 'VOTE_SUCCESS':
+            return {
+                ...state,
+                likes: action.payload.likes,
+                dislikes: action.payload.dislikes,
+            };
+        case 'VOTE_REVERT': {
+            const type = action.payload;
+            let newLikes = state.likes;
+            let newDislikes = state.dislikes;
+            if (type === 'like') {
+                newLikes -= 1;
+            } else {
+                newDislikes -= 1;
+            }
+            return { likes: newLikes, dislikes: newDislikes, voted: null };
+        }
+        default:
+            return state;
+    }
+}
+
+const noModules = { toolbar: false };
+
 export default function Post({ post, onUpdate }) {
     const { auth } = useAuth();
     const alertsManagerRef = use(AlertsContext);
@@ -54,10 +94,13 @@ export default function Post({ post, onUpdate }) {
     const [editContent, setEditContent] = useState(post?.content ?? '');
     const [saving, setSaving] = useState(false);
 
-    // Optimistic like/dislike state
-    const [likes, setLikes] = useState(post?.likes ?? 0);
-    const [dislikes, setDislikes] = useState(post?.dislikes ?? 0);
-    const [voted, setVoted] = useState(null); // 'like' | 'dislike' | null
+    // Optimistic like/dislike state using useReducer
+    const [votingState, dispatchVoting] = useReducer(votingReducer, {
+        likes: post?.likes ?? 0,
+        dislikes: post?.dislikes ?? 0,
+        voted: null,
+    });
+    const { likes, dislikes, voted } = votingState;
 
     if (!post) return null;
 
@@ -72,29 +115,25 @@ export default function Post({ post, onUpdate }) {
         if (voted === type) return; // already voted this type
 
         // Optimistic update
-        if (type === 'like') {
-            setLikes(prev => prev + 1);
-            if (voted === 'dislike') setDislikes(prev => prev - 1);
-        } else {
-            setDislikes(prev => prev + 1);
-            if (voted === 'like') setLikes(prev => prev - 1);
-        }
-        setVoted(type);
+        dispatchVoting({ type: 'VOTE_OPTIMISTIC', payload: type });
 
         api.post(`/forum/post/vote?post=${id}&type=${type}`)
             .then(res => {
                 // Sync with server truth
                 if (res.data) {
-                    setLikes(res.data.likes);
-                    setDislikes(res.data.dislikes);
+                    dispatchVoting({
+                        type: 'VOTE_SUCCESS',
+                        payload: {
+                            likes: res.data.likes,
+                            dislikes: res.data.dislikes,
+                        },
+                    });
                 }
             })
             .catch(err => {
                 console.error('Vote error', err);
                 // Revert optimistic on error
-                if (type === 'like') setLikes(prev => prev - 1);
-                else setDislikes(prev => prev - 1);
-                setVoted(null);
+                dispatchVoting({ type: 'VOTE_REVERT', payload: type });
             });
     };
 
@@ -118,7 +157,6 @@ export default function Post({ post, onUpdate }) {
             .finally(() => setSaving(false));
     };
 
-    const noModules = { toolbar: false };
 
     return (
         <Card sx={{ width: '100%', border: '1px solid rgba(255, 255, 255, 0.08)' }}>

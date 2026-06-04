@@ -46,9 +46,9 @@ export default function Topic(props) {
   function lastEntry() {
     if (!post) return null;
     return (
-      <Box 
-        onClick={redirectToPost} 
-        sx={{ 
+      <Box
+        onClick={redirectToPost}
+        sx={{
           cursor: 'pointer',
           textAlign: 'left',
           p: 1,
@@ -74,12 +74,14 @@ export default function Topic(props) {
   useEffect(() => {
     if (postCount > 0) {
       api.get("/forum/post/latest", { params: { topic: id } })
-      .then(response => {
-        setPost(response.data);
-      })
-      .catch(error => {
-        console.error("Error fetching latest post", error);
-      });
+        .then(response => {
+          setPost(response.data);
+        })
+        .catch(error => {
+          console.error("Error fetching latest post", error);
+        });
+    } else {
+      setPost(null);
     }
   }, [id, postCount]);
 
@@ -88,16 +90,16 @@ export default function Topic(props) {
     api.delete('/forum/topic', {
       data: { id: id }
     })
-    .then(response => {
-      alertsManagerRef.current.showAlert('success', 'Thema: ' + topic + ' erfolgreich gelöscht');
-      if (props.deleteCallback) props.deleteCallback(props.topic);
-    })
-    .catch(error => {
-      console.error(error);
-      const resCode = error.response?.status || 500;
-      const resData = error.response?.data || "Fehler beim Löschen";
-      alertsManagerRef.current.showAlert('error', `${resCode}: ${resData}`);
-    });
+      .then(response => {
+        alertsManagerRef.current.showAlert('success', 'Thema: ' + topic + ' erfolgreich gelöscht');
+        if (props.deleteCallback) props.deleteCallback(props.topic);
+      })
+      .catch(error => {
+        console.error(error);
+        const resCode = error.response?.status || 500;
+        const resData = error.response?.data || "Fehler beim Löschen";
+        alertsManagerRef.current.showAlert('error', `${resCode}: ${resData}`);
+      });
   }
 
   function handleEdit(e) {
@@ -109,13 +111,13 @@ export default function Topic(props) {
 
   return (
     <Box sx={{ width: '100%' }}>
-      <Grid 
-        container 
-        direction="row" 
-        alignItems="center" 
-        spacing={2} 
-        sx={{ 
-          px: 3, 
+      <Grid
+        container
+        direction="row"
+        alignItems="center"
+        spacing={2}
+        sx={{
+          px: 3,
           py: 1,
           minHeight: 70,
           '&:hover': {

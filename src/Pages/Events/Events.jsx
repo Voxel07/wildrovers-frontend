@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useReducer } from 'react';
 import useAuth from '../../context/useAuth';
 import api from '../../helper/api';
 
@@ -27,6 +27,59 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import AddBoxIcon from '@mui/icons-material/AddBox';
 
+const initialModalState = {
+  openModal: false,
+  editMode: false,
+  selectedEventId: null,
+  formData: {
+    title: '',
+    description: '',
+    eventDate: '',
+    location: ''
+  },
+  formError: '',
+};
+
+function modalReducer(state, action) {
+  switch (action.type) {
+    case 'OPEN_ADD':
+      return {
+        ...state,
+        openModal: true,
+        editMode: false,
+        selectedEventId: null,
+        formData: { title: '', description: '', eventDate: '', location: '' },
+        formError: '',
+      };
+    case 'OPEN_EDIT':
+      return {
+        ...state,
+        openModal: true,
+        editMode: true,
+        selectedEventId: action.payload.id,
+        formData: action.payload.formData,
+        formError: '',
+      };
+    case 'CLOSE':
+      return {
+        ...state,
+        openModal: false,
+      };
+    case 'SET_FORM_DATA':
+      return {
+        ...state,
+        formData: action.payload,
+      };
+    case 'SET_FORM_ERROR':
+      return {
+        ...state,
+        formError: action.payload,
+      };
+    default:
+      return state;
+  }
+}
+
 export default function Events() {
   const { auth } = useAuth();
   const isLoggedIn = !!auth?.JWT;
@@ -34,18 +87,8 @@ export default function Events() {
   const currentUsername = auth?.user;
 
   const [events, setEvents] = useState([]);
-  const [openModal, setOpenModal] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [selectedEventId, setSelectedEventId] = useState(null);
-
-  // Form State
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    eventDate: '',
-    location: ''
-  });
-  const [formError, setFormError] = useState('');
+  const [modalState, dispatchModal] = useReducer(modalReducer, initialModalState);
+  const { openModal, editMode, selectedEventId, formData, formError } = modalState;
 
   const fetchEvents = () => {
     api.get('/event')
@@ -62,11 +105,7 @@ export default function Events() {
   }, []);
 
   const handleOpenAdd = () => {
-    setFormData({ title: '', description: '', eventDate: '', location: '' });
-    setEditMode(false);
-    setSelectedEventId(null);
-    setFormError('');
-    setOpenModal(true);
+    dispatchModal({ type: 'OPEN_ADD' });
   };
 
   const handleOpenEdit = (event) => {
@@ -76,32 +115,37 @@ export default function Events() {
       formattedDate = event.eventDate.substring(0, 16);
     }
 
-    setFormData({
-      title: event.title,
-      description: event.description || '',
-      eventDate: formattedDate,
-      location: event.location
+    dispatchModal({
+      type: 'OPEN_EDIT',
+      payload: {
+        id: event.id,
+        formData: {
+          title: event.title,
+          description: event.description || '',
+          eventDate: formattedDate,
+          location: event.location
+        }
+      }
     });
-    setEditMode(true);
-    setSelectedEventId(event.id);
-    setFormError('');
-    setOpenModal(true);
   };
 
   const handleCloseModal = () => {
-    setOpenModal(false);
+    dispatchModal({ type: 'CLOSE' });
   };
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    dispatchModal({
+      type: 'SET_FORM_DATA',
+      payload: { ...formData, [e.target.name]: e.target.value }
+    });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setFormError('');
+    dispatchModal({ type: 'SET_FORM_ERROR', payload: '' });
 
     if (!formData.title || !formData.eventDate || !formData.location) {
-      setFormError('Bitte fülle alle Pflichtfelder (Titel, Datum, Ort) aus.');
+      dispatchModal({ type: 'SET_FORM_ERROR', payload: 'Bitte fülle alle Pflichtfelder (Titel, Datum, Ort) aus.' });
       return;
     }
 
@@ -123,7 +167,10 @@ export default function Events() {
       })
       .catch(err => {
         console.error("Error saving event", err);
-        setFormError(err.response?.data || 'Fehler beim Speichern des Events. Bitte Eingaben überprüfen.');
+        dispatchModal({
+          type: 'SET_FORM_ERROR',
+          payload: err.response?.data || 'Fehler beim Speichern des Events. Bitte Eingaben überprüfen.'
+        });
       });
   };
 
@@ -170,7 +217,7 @@ export default function Events() {
     <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: { xs: 4, md: 8 } }}>
       <Container maxWidth="md">
         <Typography variant="h3" color="primary" align="center" sx={{ fontWeight: 'bold', mb: 2 }}>
-          Einsatz-Termine
+          Anstehende Events
         </Typography>
         <Typography variant="subtitle1" color="text.secondary" align="center" sx={{ mb: 6, maxWidth: 600, mx: 'auto' }}>
           Alle anstehenden und vergangenen Events der Wild Rovers auf einen Blick.

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useReducer, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../../helper/api';
 
@@ -11,27 +11,37 @@ import CircularProgress from '@mui/material/CircularProgress';
 // Eigene
 import Category from '../../components/Forum/Category';
 
+const initialState = { category: [], loading: true };
+
+function reducer(state, action) {
+    switch (action.type) {
+        case 'FETCH_START':  return { ...state, loading: true };
+        case 'FETCH_SUCCESS': return { category: action.payload, loading: false };
+        case 'FETCH_ERROR':  return { ...state, loading: false };
+        default: return state;
+    }
+}
+
 export default function Forum_Categories() {
     const { id } = useParams();
-    const [category, setCategory] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [state, dispatch] = useReducer(reducer, initialState);
+    const { category, loading } = state;
 
     useEffect(() => {
         const controller = new AbortController();
-        setLoading(true);
+        dispatch({ type: 'FETCH_START' });
 
         api.get('/forum/category', {
             params: { categoryId: id },
             signal: controller.signal,
         })
         .then(response => {
-            setCategory(response.data);
-            setLoading(false);
+            dispatch({ type: 'FETCH_SUCCESS', payload: response.data });
         })
         .catch(err => {
             if (err.code === 'ERR_CANCELED') return;
             console.error(err);
-            setLoading(false);
+            dispatch({ type: 'FETCH_ERROR' });
         });
 
         return () => controller.abort();

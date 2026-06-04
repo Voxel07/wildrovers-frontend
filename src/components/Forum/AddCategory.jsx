@@ -1,7 +1,7 @@
 /**
  * This is the Modal to add a ne Category
  */
-import React, { useRef, useState, useEffect, use } from 'react';
+import React, { useRef, useState, useEffect, use, useMemo } from 'react';
 import axios from 'axios';
 import { Formik, Field, Form } from 'formik';
 import * as yup from 'yup';
@@ -24,6 +24,19 @@ import { AlertsContext } from '../../components/utils/AlertsManager';
 
 //Auth
 import useAuth from '../../context/useAuth';
+
+const style = {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: 400,
+    bgcolor: 'background.paper',
+    border: '2px solid #000',
+    boxShadow: 24,
+    p: 4,
+};
+
 const AddCategory = ({ ref, ...props }) => {
 
     const formikRef = useRef();
@@ -31,24 +44,19 @@ const AddCategory = ({ ref, ...props }) => {
     const [state, setState] = useState({ resCode: null, resData: null });
     const alertsManagerRef = use(AlertsContext);
 
-    const [possibleCategories, setPossibleCategories] = useState('');
     const [selectedValuePos, setSelectedValuePos] = useState(null);
     const [selectedValueVis, setSelectedValueVis] = useState(null);
+
+    const possibleCategories = useMemo(() => {
+        return (props.aviableCategories || []).map((element) => ({
+            label: element.category,
+            id: element.id,
+        }));
+    }, [props.aviableCategories]);
 
 
     //------------Modal-------------------------------------
 
-    const style = {
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: 400,
-        bgcolor: 'background.paper',
-        border: '2px solid #000',
-        boxShadow: 24,
-        p: 4,
-    };
 
     //------------Modal Ende-----Yump-----------------------
 
@@ -62,14 +70,6 @@ const AddCategory = ({ ref, ...props }) => {
 
     //----Functions-------------------------
 
-
-    useEffect(() => {
-        const categories = props.aviableCategories.map((element) => ({
-            label: element.category,
-            id: element.id,
-        }));
-        setPossibleCategories(categories);
-    }, [props.aviableCategories]);
 
 
     async function saveCategoryToDB(vals) {

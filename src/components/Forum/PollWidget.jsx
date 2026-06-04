@@ -1,4 +1,4 @@
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, use, useReducer } from 'react';
 import PropTypes from 'prop-types';
 import api from '../../helper/api';
 
@@ -21,34 +21,80 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import useAuth from '../../context/useAuth';
 import { AlertsContext } from '../utils/AlertsManager';
 
+function pollReducer(state, action) {
+  switch (action.type) {
+    case 'FETCH_SUCCESS':
+      return {
+        ...state,
+        loading: false,
+        hasVoted: action.payload,
+      };
+    case 'FETCH_FAILURE':
+      return {
+        ...state,
+        loading: false,
+      };
+    case 'VOTE_START':
+      return {
+        ...state,
+        voting: true,
+      };
+    case 'VOTE_SUCCESS': {
+      const selectedOptionId = action.payload;
+      const updatedOptions = state.poll.options.map(opt => {
+        if (opt.id === Number(selectedOptionId)) {
+          return { ...opt, votes: opt.votes + 1 };
+        }
+        return opt;
+      });
+      return {
+        ...state,
+        voting: false,
+        hasVoted: true,
+        poll: { ...state.poll, options: updatedOptions },
+      };
+    }
+    case 'VOTE_FAILURE':
+      return {
+        ...state,
+        voting: false,
+      };
+    default:
+      return state;
+  }
+}
+
 export default function PollWidget(props) {
   const { pollData } = props;
   const { auth } = useAuth();
   const alertsManagerRef = use(AlertsContext);
 
-  const [hasVoted, setHasVoted] = useState(false);
+  const [state, dispatch] = useReducer(pollReducer, {
+    hasVoted: false,
+    loading: true,
+    poll: pollData,
+    voting: false,
+  });
+  const { hasVoted, loading, poll, voting } = state;
+
   const [selectedOption, setSelectedOption] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [poll, setPoll] = useState(pollData);
-  const [voting, setVoting] = useState(false);
+  const pollId = pollData?.id;
 
   // Check if current user has already voted
   useEffect(() => {
-    if (auth.user && poll) {
-      api.get('/forum/poll/hasVoted', { params: { poll: poll.id } })
+    if (auth.user && pollId) {
+      api.get('/forum/poll/hasVoted', { params: { poll: pollId } })
         .then(response => {
-          setHasVoted(response.data === true);
+          dispatch({ type: 'FETCH_SUCCESS', payload: response.data === true });
         })
         .catch(err => {
           console.error("Failed to check if user has voted", err);
-        })
-        .finally(() => {
-          setLoading(false);
+          dispatch({ type: 'FETCH_FAILURE' });
         });
     } else {
-      setLoading(false);
+      dispatch({ type: 'FETCH_FAILURE' });
     }
-  }, [poll, auth.user]);
+  }, [pollId, auth.user]);
 
   const handleVoteSubmit = () => {
     if (!selectedOption) {
@@ -56,7 +102,7 @@ export default function PollWidget(props) {
       return;
     }
 
-    setVoting(true);
+    dispatch({ type: 'VOTE_START' });
     api.post('/forum/poll/vote', null, {
       params: {
         poll: poll.id,
@@ -65,27 +111,14 @@ export default function PollWidget(props) {
     })
     .then(response => {
       alertsManagerRef.current.showAlert('success', 'Stimme erfolgreich abgegeben!');
-      setHasVoted(true);
-      
-      // Update local poll votes count dynamically
-      setPoll(prev => {
-        const updatedOptions = prev.options.map(opt => {
-          if (opt.id === Number(selectedOption)) {
-            return { ...opt, votes: opt.votes + 1 };
-          }
-          return opt;
-        });
-        return { ...prev, options: updatedOptions };
-      });
+      dispatch({ type: 'VOTE_SUCCESS', payload: selectedOption });
     })
     .catch(error => {
       console.error("Voting failed", error);
       const status = error.response?.status || 500;
       const data = error.response?.data || 'Fehler beim Abstimmen';
       alertsManagerRef.current.showAlert('error', `${status}: ${data}`);
-    })
-    .finally(() => {
-      setVoting(false);
+      dispatch({ type: 'VOTE_FAILURE' });
     });
   };
 

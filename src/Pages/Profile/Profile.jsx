@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useReducer } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../helper/api';
 import { convertTimestamp } from '../../helper/converter';
@@ -30,12 +30,62 @@ import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import GroupIcon from '@mui/icons-material/Group';
 
+const roleColors = {
+  "Admin": "error",
+  "Vorstand": "warning",
+  "Mitglied": "primary",
+  "Frischling": "secondary",
+  "Besucher": "default"
+};
+
+const initialProfileState = {
+  profile: null,
+  loading: true,
+  error: null,
+};
+
+function profileReducer(state, action) {
+  switch (action.type) {
+    case 'FETCH_START':
+      return {
+        ...state,
+        loading: true,
+        error: null,
+      };
+    case 'FETCH_SUCCESS':
+      return {
+        ...state,
+        loading: false,
+        profile: action.payload,
+        error: null,
+      };
+    case 'FETCH_FAILURE':
+      return {
+        ...state,
+        loading: false,
+        error: action.payload,
+        profile: null,
+      };
+    case 'UPDATE_PHOTO':
+      return {
+        ...state,
+        profile: { ...state.profile, photoUrl: action.payload }
+      };
+    case 'UPDATE_PROFILE_SUCCESS':
+      return {
+        ...state,
+        profile: action.payload,
+      };
+    default:
+      return state;
+  }
+}
+
 export default function Profile() {
   const { auth } = useAuth();
   const navigate = useNavigate();
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [state, dispatch] = useReducer(profileReducer, initialProfileState);
+  const { profile, loading, error } = state;
 
   // Edit Mode state
   const [editMode, setEditMode] = useState(false);
@@ -46,9 +96,10 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
 
   const fetchProfile = () => {
+    dispatch({ type: 'FETCH_START' });
     api.get('/user/me')
       .then(response => {
-        setProfile(response.data);
+        dispatch({ type: 'FETCH_SUCCESS', payload: response.data });
         setEditData({
           phrase: response.data.phrase || '',
           birthday: response.data.birthday || ''
@@ -56,10 +107,7 @@ export default function Profile() {
       })
       .catch(err => {
         console.error("Error fetching user profile", err);
-        setError("Fehler beim Laden des Profils. Bitte vergewissere dich, dass du eingeloggt bist.");
-      })
-      .finally(() => {
-        setLoading(false);
+        dispatch({ type: 'FETCH_FAILURE', payload: "Fehler beim Laden des Profils. Bitte vergewissere dich, dass du eingeloggt bist." });
       });
   };
 
@@ -119,7 +167,7 @@ export default function Profile() {
             headers: { 'Content-Type': 'multipart/form-data' }
           })
           .then(res => {
-            setProfile(prev => ({ ...prev, photoUrl: res.data.photoUrl }));
+            dispatch({ type: 'UPDATE_PHOTO', payload: res.data.photoUrl });
           })
           .catch(err => {
             console.error("Error uploading avatar", err);
@@ -140,7 +188,7 @@ export default function Profile() {
     setSaving(true);
     api.post('/user/me/profile', editData)
       .then(res => {
-        setProfile(res.data);
+        dispatch({ type: 'UPDATE_PROFILE_SUCCESS', payload: res.data });
         setEditMode(false);
       })
       .catch(err => {
@@ -173,13 +221,7 @@ export default function Profile() {
     );
   }
 
-  const roleColors = {
-    "Admin": "error",
-    "Vorstand": "warning",
-    "Mitglied": "primary",
-    "Frischling": "secondary",
-    "Besucher": "default"
-  };
+
 
   const initial = profile.userName ? profile.userName[0].toUpperCase() : 'U';
   const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8080';
@@ -457,8 +499,8 @@ export default function Profile() {
                               Mentoring (Frischlinge)
                             </Typography>
                             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
-                              {profile.mentorOf.map((fName, i) => (
-                                <Chip key={i} label={fName} size="small" variant="outlined" />
+                              {profile.mentorOf.map((fName) => (
+                                <Chip key={fName} label={fName} size="small" variant="outlined" />
                               ))}
                             </Box>
                           </Box>

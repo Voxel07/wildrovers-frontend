@@ -1,4 +1,4 @@
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, use, useReducer } from 'react';
 import api from '../../helper/api';
 import useAuth from '../../context/useAuth';
 
@@ -19,44 +19,67 @@ import AddCategory from '../../components/Forum/AddCategory';
 import Skeleton_Category from '../../components/Forum/Skeleton_Category';
 import { AlertsContext } from '../../components/utils/AlertsManager';
 
+const initialForumState = {
+  categories: [],
+  loading: false,
+  updateData: false,
+};
+
+function forumReducer(state, action) {
+  switch (action.type) {
+    case 'FETCH_START':
+      return { ...state, loading: true };
+    case 'FETCH_SUCCESS':
+      return { ...state, loading: false, categories: action.payload };
+    case 'FETCH_FAILURE':
+      return { ...state, loading: false };
+    case 'TRIGGER_UPDATE':
+      return { ...state, updateData: !state.updateData };
+    case 'DELETE_CATEGORY':
+      return {
+        ...state,
+        categories: state.categories.filter(c => c.id !== action.payload.id)
+      };
+    default:
+      return state;
+  }
+}
+
 const Forum = () => {
     const { auth } = useAuth();
     const alertsManagerRef = use(AlertsContext);
-    const [categories, setCategories] = useState([]);
-    const [loading, setloading] = useState(false);
+    const [state, dispatch] = useReducer(forumReducer, initialForumState);
+    const { categories, loading, updateData } = state;
+
     const [open, setOpen] = useState(false);
     const handleOpen = () => { setOpen(true); };
     const handleClose = () => { setOpen(false); };
-    const [updateData, setUpdateData] = useState(false);
     const [sort, setSort] = useState({ field: "position", direction: "asc" });
 
     const handleUpdate = () => {
-      setUpdateData(prev => !prev);
+      dispatch({ type: 'TRIGGER_UPDATE' });
     }
 
     // Get all categories
     useEffect(() => {
-        setloading(true);
+        dispatch({ type: 'FETCH_START' });
         api.get("/forum/category")
         .then(response => {
-            setCategories(response.data);
-            setloading(false);
+            dispatch({ type: 'FETCH_SUCCESS', payload: response.data });
         })
         .catch(err => {
             console.error(err);
-            setloading(false);
+            dispatch({ type: 'FETCH_FAILURE' });
         });
     }, [updateData]);
 
     const handleDelete = (deletedCategory) => {
-        setCategories((prevCategories) => 
-            prevCategories.filter(category => category.id !== deletedCategory.id)
-        );
+        dispatch({ type: 'DELETE_CATEGORY', payload: deletedCategory });
     }
 
     const handleEdit = (editedCategory) => {
         // Reload categories on edit success
-        setUpdateData(prev => !prev);
+        dispatch({ type: 'TRIGGER_UPDATE' });
     }
 
     const sortedCategories = [...categories].sort((a, b) => {

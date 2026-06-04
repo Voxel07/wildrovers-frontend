@@ -16,6 +16,12 @@ import {
   CircularProgress
 } from '@mui/material';
 
+const roles = {
+  vorstand: "Vorstand & Leitung",
+  mitglied: "Aktive Mitglieder",
+  frischling: "Frischlinge"
+};
+
 export default function Team() {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -64,11 +70,7 @@ export default function Team() {
     return `${diffYears} ${diffYears === 1 ? 'Jahr' : 'Jahre'} ${remainingMonths > 0 ? `und ${remainingMonths} ${remainingMonths === 1 ? 'Monat' : 'Monate'}` : ''} im Team`;
   };
 
-  const roles = {
-    vorstand: "Vorstand & Leitung",
-    mitglied: "Aktive Mitglieder",
-    frischling: "Frischlinge"
-  };
+
 
   const groupedMembers = {
     vorstand: members.filter(u => u.role === 'Vorstand' || u.role === 'Admin'),
@@ -242,8 +244,8 @@ export default function Team() {
                               <Box sx={{ mt: 2, p: 1.5, bgcolor: 'rgba(255, 152, 0, 0.05)', borderLeft: '3px solid', borderColor: 'secondary.main', textAlign: 'left', borderRadius: 1 }}>
                                 <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5, color: 'secondary.main' }}>Mentor von:</Typography>
                                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                  {member.mentorOf.map((fName, i) => (
-                                    <Chip key={i} label={fName} size="small" variant="filled" sx={{ fontSize: '0.7rem', height: 20, bgcolor: 'rgba(255,255,255,0.08)' }} />
+                                  {member.mentorOf.map((fName) => (
+                                    <Chip key={fName} label={fName} size="small" variant="filled" sx={{ fontSize: '0.7rem', height: 20, bgcolor: 'rgba(255,255,255,0.08)' }} />
                                   ))}
                                 </Box>
                               </Box>

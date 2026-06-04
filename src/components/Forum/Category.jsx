@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, use } from 'react';
+import React, { useMemo, useState, useEffect, use, useReducer } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../../helper/api';
 
@@ -33,25 +33,55 @@ import { AlertsContext } from '../../components/utils/AlertsManager';
 import { convertTimestamp, formatNumber, hasRequiredRole } from '../../helper/converter';
 import useAuth from '../../context/useAuth';
 
+function categoryReducer(state, action) {
+  switch (action.type) {
+    case 'FETCH_SUCCESS':
+      return {
+        ...state,
+        topics: action.payload.topics,
+        category: action.payload.category,
+      };
+    case 'SET_CATEGORY':
+      return {
+        ...state,
+        category: action.payload,
+      };
+    case 'INCREMENT_TOPIC_COUNT':
+      return {
+        ...state,
+        updateData: !state.updateData,
+        category: {
+          ...state.category,
+          topicCount: (state.category.topicCount ?? 0) + 1,
+        },
+      };
+    default:
+      return state;
+  }
+}
+
 export default function Category(props) {
   const { auth } = useAuth();
   const alertsManagerRef = use(AlertsContext);
 
   const [open, setOpen] = useState(false);
-  const [topics, setTopics] = useState([]);
   const handleOpen = () => { setOpen(true); };
   const handleClose = () => { setOpen(false); };
-  const [category, setCategory] = useState({ category: null, id: null, creator: null, creationDate: null, topicCount: null, visibility: null, position: null });
+
+  const [state, dispatch] = useReducer(categoryReducer, {
+    topics: [],
+    category: props.vals || { category: null, id: null, creator: null, creationDate: null, topicCount: null, visibility: null, position: null },
+    updateData: false,
+  });
+  const { topics, category, updateData } = state;
+
   const navigate = useNavigate();
   const location = useLocation();
   const [expandAccordion, setexpandAccordion] = useState(false);
-  const [updateData, setUpdateData] = useState(false);
   const [sort, setSort] = useState({ field: 'topic', direction: 'asc' });
 
   const handleUpdate = () => {
-    setUpdateData(prev => !prev);
-    // Optimistically increment the topic count so it's immediately visible
-    setCategory(prev => ({ ...prev, topicCount: (prev.topicCount ?? 0) + 1 }));
+    dispatch({ type: 'INCREMENT_TOPIC_COUNT' });
   };
 
   useEffect(() => {
@@ -68,18 +98,17 @@ export default function Category(props) {
   };
 
   useEffect(() => {
-    if (props.vals) {
-      api.get("/forum/topic", {
-        params: { category: props.vals.id }
-      })
+    if (!props.vals) return;
+    api.get("/forum/topic", {
+      params: { category: props.vals.id }
+    })
       .then(response => {
-        setTopics(response.data);
+        dispatch({ type: 'FETCH_SUCCESS', payload: { topics: response.data, category: props.vals } });
       })
       .catch(error => {
         console.error("Failed to fetch topics", error);
+        dispatch({ type: 'SET_CATEGORY', payload: props.vals });
       });
-      setCategory(props.vals);
-    }
   }, [props.vals, updateData]);
 
   function redirectToCategory(e) {
@@ -94,16 +123,16 @@ export default function Category(props) {
     api.delete('/forum/category', {
       data: { id: category.id }
     })
-    .then(response => {
-      alertsManagerRef.current.showAlert('success', 'Kategorie: ' + category.category + ' erfolgreich gelöscht');
-      props.deleteCallback(category);
-    })
-    .catch(error => {
-      console.error(error);
-      const resCode = error.response?.status || 500;
-      const resData = error.response?.data || "Serverfehler beim Löschen";
-      alertsManagerRef.current.showAlert('error', `${resCode}: ${resData}`);
-    });
+      .then(response => {
+        alertsManagerRef.current.showAlert('success', 'Kategorie: ' + category.category + ' erfolgreich gelöscht');
+        props.deleteCallback(category);
+      })
+      .catch(error => {
+        console.error(error);
+        const resCode = error.response?.status || 500;
+        const resData = error.response?.data || "Serverfehler beim Löschen";
+        alertsManagerRef.current.showAlert('error', `${resCode}: ${resData}`);
+      });
   }
 
   function handleEdit(e) {
@@ -155,7 +184,7 @@ export default function Category(props) {
           <Grid item xs={12} md={8}>
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ gap: 1 }}>
               <Tooltip title="Ersteller" placement="top">
-                <Chip icon={<PersonIcon />} label={category.creator || 'Unbekannt'} variant="outlined" size="small" />
+                <Chip icon={<PersonIcon />} label={category.creator || 'Unbekannt'} variant="outlined" size="medium" />
               </Tooltip>
               <Tooltip title="Erstellungsdatum" placement="top">
                 <Chip icon={<EventNoteIcon />} label={convertTimestamp(category.creationDate)} variant="outlined" size="small" />
@@ -168,7 +197,7 @@ export default function Category(props) {
               </Tooltip>
             </Stack>
           </Grid>
-          
+
           <Grid item xs={12} md={1} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
             {isCreatorOrAdmin && (
               <Stack direction="row" spacing={0.5}>
@@ -241,10 +270,10 @@ export default function Category(props) {
       <Divider />
       {hasRequiredRole(auth.roles, category.visibility) && (
         <Box sx={{ p: 1.5, display: 'flex', justifyContent: 'flex-start' }}>
-          <Button 
-            variant="outlined" 
-            size="small" 
-            startIcon={<AddCircleOutlineOutlinedIcon />} 
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<AddCircleOutlineOutlinedIcon />}
             onClick={handleOpen}
           >
             Thema hinzufügen
