@@ -1,25 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import { alpha } from '@mui/material/styles';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
-  TablePagination, 
-  TableRow, 
-  TableSortLabel, 
-  Box, 
-  IconButton, 
-  Toolbar, 
-  Typography, 
-  Checkbox, 
-  Tooltip, 
-  Stack, 
-  Chip, 
-  Switch, 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TablePagination,
+  TableRow,
+  TableSortLabel,
+  Box,
+  IconButton,
+  Toolbar,
+  Typography,
+  Checkbox,
+  Tooltip,
+  Stack,
+  Chip,
+  Switch,
   FormControlLabel,
   Paper,
   Button
@@ -39,12 +39,24 @@ import LastPageIcon from '@mui/icons-material/LastPage';
 import { visuallyHidden } from '@mui/utils';
 
 import { convertTimestamp, formatNumber } from '../../helper/converter';
+import ForumChips from './ForumChips';
+import { AlertsContext } from '../utils/AlertsManager';
 
 function descendingComparator(a, b, orderBy) {
-  if (b[orderBy] < a[orderBy]) {
+  let valA = a[orderBy];
+  let valB = b[orderBy];
+  if (orderBy === 'stats') {
+    valA = a.answerCount;
+    valB = b.answerCount;
+    if (valA === valB) {
+      valA = a.views;
+      valB = b.views;
+    }
+  }
+  if (valB < valA) {
     return -1;
   }
-  if (b[orderBy] > a[orderBy]) {
+  if (valB > valA) {
     return 1;
   }
   return 0;
@@ -70,22 +82,16 @@ const headCells = [
     label: 'Titel des Posts',
   },
   {
-    id: 'answerCount',
+    id: 'stats',
     numeric: true,
     disablePadding: false,
-    label: 'Antworten'
-  },
-  {
-    id: 'views',
-    numeric: true,
-    disablePadding: false,
-    label: 'Aufrufe',
+    label: 'Statistik'
   }
 ];
 
 function EnhancedTableHead(props) {
   const { onSelectAllClick, order, orderBy, numSelected, rowCount, onRequestSort, multi } = props;
-  
+
   const createSortHandler = (property) => (event) => {
     if (property === 'icon') return; // Icon is not sortable
     onRequestSort(event, property);
@@ -169,14 +175,7 @@ const EnhancedTableToolbar = (props) => {
           {numSelected} ausgewählt
         </Typography>
       ) : (
-        <Typography
-          sx={{ flex: '1 1 100%', fontWeight: 'bold', color: 'primary.main' }}
-          variant="h6"
-          id="tableTitle"
-          component="div"
-        >
-          {topicTitle || "Thema"}
-        </Typography>
+        <div></div>
       )}
 
       {numSelected > 0 ? (
@@ -193,13 +192,7 @@ const EnhancedTableToolbar = (props) => {
           </Tooltip>
         </Stack>
       ) : (
-        <Stack direction="row" alignItems="center" spacing={1}>
-          <Tooltip title="Neuen Beitrag erstellen">
-            <IconButton onClick={handleAdd} color="primary">
-              <AddIcon />
-            </IconButton>
-          </Tooltip>
-        </Stack>
+        <div></div>
       )}
     </Toolbar>
   );
@@ -269,6 +262,7 @@ function TablePaginationActions(props) {
 
 export default function Posts(props) {
   const navigate = useNavigate();
+  const alertsManagerRef = use(AlertsContext);
   const [order, setOrder] = useState('desc');
   const [orderBy, setOrderBy] = useState('creationDate');
   const [selected, setSelected] = useState([]);
@@ -356,12 +350,12 @@ export default function Posts(props) {
 
   return (
     <Paper sx={{ width: '100%', overflow: 'hidden', bgcolor: 'background.paper', borderRadius: 2 }}>
-      <EnhancedTableToolbar 
-        numSelected={selected.length} 
-        handleAdd={handleAdd} 
-        handleEdit={handleEdit} 
-        handleDelete={handleDelete} 
-        topicTitle={props.topic} 
+      <EnhancedTableToolbar
+        numSelected={selected.length}
+        handleAdd={handleAdd}
+        handleEdit={handleEdit}
+        handleDelete={handleDelete}
+        topicTitle={props.topic}
       />
       <TableContainer>
         <Table
@@ -396,7 +390,12 @@ export default function Posts(props) {
                     tabIndex={-1}
                     key={row.id || index}
                     selected={isItemSelected}
-                    sx={{ cursor: 'pointer' }}
+                    sx={{
+                      cursor: 'pointer',
+                      opacity: row.viewed ? 0.75 : 1,
+                      backgroundColor: row.viewed ? 'rgba(255, 255, 255, 0.01)' : 'inherit',
+                      transition: 'opacity 0.2s, background-color 0.2s',
+                    }}
                   >
                     {multi && (
                       <TableCell padding="checkbox">
@@ -409,11 +408,17 @@ export default function Posts(props) {
                       </TableCell>
                     )}
                     <TableCell align="center" padding="none" sx={{ width: 60 }}>
-                      <ForumIcon color="primary" fontSize="medium" />
+                      <ForumIcon color={row.viewed ? "disabled" : "primary"} fontSize="medium" />
                     </TableCell>
                     <TableCell align="left">
                       <Box>
-                        <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                        <Typography
+                          variant="body1"
+                          sx={{
+                            fontWeight: 'bold',
+                            color: row.viewed ? 'text.secondary' : 'text.primary'
+                          }}
+                        >
                           {row.title}
                         </Typography>
                         {!dense && (
@@ -423,18 +428,22 @@ export default function Posts(props) {
                         )}
                       </Box>
                     </TableCell>
-                    <TableCell align="right" sx={{ width: 100 }}>
-                      <Chip icon={<ForumIcon />} label={formatNumber(row.answerCount)} variant="outlined" size="small" />
-                    </TableCell>
-                    <TableCell align="right" sx={{ width: 100 }}>
-                      <Chip icon={<VisibilityIcon />} label={formatNumber(row.views)} variant="outlined" size="small" />
+                    <TableCell align="right" sx={{ width: 180 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <ForumChips
+                          items={[
+                            { tooltip: "Antworten", icon: <ForumIcon />, label: formatNumber(row.answerCount) },
+                            { tooltip: "Aufrufe", icon: <VisibilityIcon />, label: formatNumber(row.views) }
+                          ]}
+                        />
+                      </Box>
                     </TableCell>
                   </TableRow>
                 );
               })}
             {emptyRows > 0 && (
               <TableRow style={{ height: (dense ? 33 : 53) * emptyRows }}>
-                <TableCell colSpan={6} />
+                <TableCell colSpan={multi ? 4 : 3} />
               </TableRow>
             )}
           </TableBody>
@@ -463,10 +472,10 @@ export default function Posts(props) {
             label="Mehrfachauswahl"
           />
         </Stack>
-        <Button 
-          variant="contained" 
-          color="primary" 
-          startIcon={<AddIcon />} 
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon />}
           onClick={handleAdd}
         >
           Beitrag hinzufügen

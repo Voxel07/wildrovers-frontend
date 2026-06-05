@@ -78,11 +78,15 @@ const AddTopic = ({ ref, ...props }) => {
                 alertsManagerRef.current.showAlert('success', isEdit ? 'Thema erfolgreich aktualisiert' : 'Thema: '+ vals.Topic +' Erfolgreich erstellt');
 
                 props.callback();
-                props.onAddTopic();
+                if (isEdit) {
+                    props.onAddTopic();
+                } else if (props.onAddTopicSuccess) {
+                    props.onAddTopicSuccess(response.data);
+                }
             }
         )
     .catch(error=>{
-        let resCode = error.response.status;
+        let resCode = error.response ? error.response.status : 500;
         let resData;
 
         if (resCode === 401) {
@@ -94,6 +98,9 @@ const AddTopic = ({ ref, ...props }) => {
         }
 
         setState({ resCode, resData });
+        if (!isEdit && props.onAddTopicFailure) {
+            props.onAddTopicFailure();
+        }
     })
     }
     const {resCode, resData} = state;
@@ -109,6 +116,9 @@ const AddTopic = ({ ref, ...props }) => {
             validationSchema={validationSchema}
             onSubmit={async (data, { setSubmitting, resetForm }) => {
                 setSubmitting(true);
+                if (!props.topicToEdit && props.onOptimisticAdd) {
+                    props.onOptimisticAdd(data.Topic);
+                }
                 await saveTopicToDB(data);
                 resetForm(true);
                 setSubmitting(false);

@@ -57,6 +57,10 @@ const Forum = () => {
         );
     }
 
+    const handleCategoryUpdate = (updatedCategory) => {
+        setCategories(prev => prev.map(c => c.id === updatedCategory.id ? updatedCategory : c));
+    };
+
     const sortedCategories = [...categories].sort((a, b) => {
         const fieldA = a[sort.field] ?? 0;
         const fieldB = b[sort.field] ?? 0;
@@ -71,6 +75,7 @@ const Forum = () => {
           vals={category}
           editCallback={(cat) => setEditingCategory(cat)}
           deleteCallback={handleDelete}
+          onCategoryUpdate={handleCategoryUpdate}
         />
     ));
 

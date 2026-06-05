@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { refreshAccessToken, parseJwt } from './oidc';
+import { refreshTokens, parseJwt } from './oidc';
+import { getCookie, setCookie, deleteCookie } from './cookies';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080',
@@ -20,7 +21,7 @@ function onRefreshed(token) {
 api.interceptors.request.use(
   async (config) => {
     try {
-      const storedAuth = localStorage.getItem('auth:v1');
+      const storedAuth = getCookie('auth:v1');
       if (storedAuth) {
         const auth = JSON.parse(storedAuth);
         if (auth && auth.JWT) {
@@ -31,7 +32,7 @@ api.interceptors.request.use(
             if (!isRefreshing) {
               isRefreshing = true;
               try {
-                const tokens = await refreshAccessToken(auth.refreshToken);
+                const tokens = await refreshTokens(auth.refreshToken);
                 const payload = parseJwt(tokens.access_token || tokens.id_token);
                 let username = auth.user;
                 if (payload) {
@@ -44,7 +45,7 @@ api.interceptors.request.use(
                   expiresAt: tokens.expires_in ? (Date.now() + tokens.expires_in * 1000) : null,
                   user: username,
                 };
-                localStorage.setItem('auth:v1', JSON.stringify(updatedAuth));
+                setCookie('auth:v1', JSON.stringify(updatedAuth), 7);
                 window.dispatchEvent(new Event('auth-updated'));
                 isRefreshing = false;
                 onRefreshed(tokens.access_token);
@@ -52,7 +53,7 @@ api.interceptors.request.use(
                 isRefreshing = false;
                 console.error('Token refresh failed in interceptor', err);
                 // Clear auth to force relogin
-                localStorage.removeItem('auth:v1');
+                deleteCookie('auth:v1');
                 window.dispatchEvent(new Event('auth-updated'));
                 return config;
               }
@@ -88,14 +89,14 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
-        const storedAuth = localStorage.getItem('auth:v1');
+        const storedAuth = getCookie('auth:v1');
         if (storedAuth) {
           const auth = JSON.parse(storedAuth);
           if (auth && auth.refreshToken) {
             if (!isRefreshing) {
               isRefreshing = true;
               try {
-                const tokens = await refreshAccessToken(auth.refreshToken);
+                const tokens = await refreshTokens(auth.refreshToken);
                 const payload = parseJwt(tokens.access_token || tokens.id_token);
                 let username = auth.user;
                 if (payload) {
@@ -108,14 +109,14 @@ api.interceptors.response.use(
                   expiresAt: tokens.expires_in ? (Date.now() + tokens.expires_in * 1000) : null,
                   user: username,
                 };
-                localStorage.setItem('auth:v1', JSON.stringify(updatedAuth));
+                setCookie('auth:v1', JSON.stringify(updatedAuth), 7);
                 window.dispatchEvent(new Event('auth-updated'));
                 isRefreshing = false;
                 onRefreshed(tokens.access_token);
               } catch (err) {
                 isRefreshing = false;
                 console.error('Token refresh failed in response interceptor', err);
-                localStorage.removeItem('auth:v1');
+                deleteCookie('auth:v1');
                 window.dispatchEvent(new Event('auth-updated'));
                 if (!window.location.pathname.toLowerCase().includes('/login')) {
                   window.location.href = '/Login';
@@ -140,7 +141,7 @@ api.interceptors.response.use(
       }
 
       // If no stored auth or refresh token, clean up and redirect
-      localStorage.removeItem('auth:v1');
+      deleteCookie('auth:v1');
       window.dispatchEvent(new Event('auth-updated'));
       if (!window.location.pathname.toLowerCase().includes('/login')) {
         window.location.href = '/Login';

@@ -24,6 +24,7 @@ import IconButton from '@mui/material/IconButton';
 // Eigene
 import { convertTimestamp } from '../../helper/converter';
 import useAuth from '../../context/useAuth';
+import ForumChips from './ForumChips';
 import { AlertsContext } from '../../components/utils/AlertsManager';
 
 export default function Topic(props) {
@@ -109,6 +110,11 @@ export default function Topic(props) {
 
   const isCreatorOrAdmin = auth.user === creator || auth.roles === "Admin";
 
+  const topicChips = [
+    { tooltip: "Beiträge", icon: <TopicIcon />, label: postCount },
+    { tooltip: "Aufrufe", icon: <VisibilityIcon />, label: views }
+  ];
+
   return (
     <Box sx={{ width: '100%' }}>
       <Grid
@@ -140,35 +146,7 @@ export default function Topic(props) {
         </Grid>
 
         <Grid item xs={12} sm={3} md={3} lg={2}>
-          <Stack 
-            direction="row" 
-            spacing={0}
-            divider={<Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255, 255, 255, 0.08)', my: 0.75 }} />}
-            sx={{ 
-              border: '1px solid rgba(255, 255, 255, 0.08)', 
-              borderRadius: '20px', 
-              overflow: 'hidden', 
-              bgcolor: 'rgba(255, 255, 255, 0.01)',
-              width: 'fit-content'
-            }}
-          >
-            <Tooltip title="Beiträge">
-              <Chip 
-                icon={<TopicIcon />} 
-                label={postCount} 
-                variant="standard" 
-                sx={{ border: 'none', borderRadius: 0, bgcolor: 'transparent', height: 32 }} 
-              />
-            </Tooltip>
-            <Tooltip title="Aufrufe">
-              <Chip 
-                icon={<VisibilityIcon />} 
-                label={views} 
-                variant="standard" 
-                sx={{ border: 'none', borderRadius: 0, bgcolor: 'transparent', height: 32 }} 
-              />
-            </Tooltip>
-          </Stack>
+          <ForumChips items={topicChips} />
         </Grid>
 
         <Grid item xs={12} sm={3} md={3} lg={3}>

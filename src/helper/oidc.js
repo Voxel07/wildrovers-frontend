@@ -150,3 +150,22 @@ export async function refreshAccessToken(refreshToken) {
 
   return await response.json();
 }
+
+let refreshPromise = null;
+
+export async function refreshTokens(refreshToken) {
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+  refreshPromise = (async () => {
+    try {
+      const tokens = await refreshAccessToken(refreshToken);
+      refreshPromise = null;
+      return tokens;
+    } catch (err) {
+      refreshPromise = null;
+      throw err;
+    }
+  })();
+  return refreshPromise;
+}

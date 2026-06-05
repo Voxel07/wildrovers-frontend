@@ -89,6 +89,10 @@ export default function Events() {
   const [events, setEvents] = useState([]);
   const [modalState, dispatchModal] = useReducer(modalReducer, initialModalState);
   const { openModal, editMode, selectedEventId, formData, formError } = modalState;
+  
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState(null);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   const fetchEvents = () => {
     api.get('/event')
@@ -99,6 +103,17 @@ export default function Events() {
         console.error("Error fetching events", err);
       });
   };
+
+  useEffect(() => {
+    if (events.length > 0) {
+      const years = Array.from(
+        new Set(events.map(e => e.eventDate ? new Date(e.eventDate).getFullYear() : null).filter(Boolean))
+      ).sort((a, b) => b - a);
+      if (years.length > 0 && !years.includes(selectedYear)) {
+        setSelectedYear(years[0]);
+      }
+    }
+  }, [events]);
 
   useEffect(() => {
     fetchEvents();
@@ -174,17 +189,28 @@ export default function Events() {
       });
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm("Bist du sicher, dass du dieses Event löschen möchtest? Dies löscht auch den Google Kalender-Eintrag.")) {
-      api.delete(`/event/${id}`)
-        .then(() => {
-          fetchEvents();
-        })
-        .catch(err => {
-          console.error("Error deleting event", err);
-          alert(err.response?.data || "Löschen fehlgeschlagen.");
-        });
-    }
+  const handleOpenDelete = (event) => {
+    setEventToDelete(event);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!eventToDelete) return;
+    api.delete(`/event/${eventToDelete.id}`)
+      .then(() => {
+        setDeleteDialogOpen(false);
+        setEventToDelete(null);
+        fetchEvents();
+      })
+      .catch(err => {
+        console.error("Error deleting event", err);
+        alert(err.response?.data || "Löschen fehlgeschlagen.");
+      });
+  };
+
+  const handleCloseDelete = () => {
+    setDeleteDialogOpen(false);
+    setEventToDelete(null);
   };
 
   const handleAttendance = (eventId, status) => {
@@ -210,6 +236,26 @@ export default function Events() {
       }) + ' Uhr';
     } catch (e) {
       return dateStr;
+    }
+  };
+
+  const parseEventDate = (dateStr) => {
+    if (!dateStr) return { dateTextOnly: '', timeTextOnly: '' };
+    try {
+      const d = new Date(dateStr);
+      const dateTextOnly = d.toLocaleDateString("de-DE", {
+        day: '2-digit',
+        month: 'short'
+      });
+      const timeTextOnly = d.toLocaleDateString("de-DE", {
+        year: 'numeric'
+      }) + ', ' + d.toLocaleTimeString("de-DE", {
+        hour: '2-digit',
+        minute: '2-digit'
+      }) + ' Uhr';
+      return { dateTextOnly, timeTextOnly };
+    } catch (e) {
+      return { dateTextOnly: dateStr, timeTextOnly: '' };
     }
   };
 
@@ -243,180 +289,296 @@ export default function Events() {
           </Box>
         )}
 
+        {/* Year Filter Chips */}
+        {(() => {
+          const uniqueYears = Array.from(
+            new Set(events.map(e => e.eventDate ? new Date(e.eventDate).getFullYear() : null).filter(Boolean))
+          ).sort((a, b) => b - a);
+          if (uniqueYears.length <= 1) return null;
+          return (
+            <Stack direction="row" spacing={1.5} justifyContent="center" sx={{ mb: 6, flexWrap: 'wrap', gap: 1 }}>
+              {uniqueYears.map(year => (
+                <Chip
+                  key={year}
+                  label={year}
+                  clickable
+                  color={selectedYear === year ? "primary" : "default"}
+                  variant={selectedYear === year ? "filled" : "outlined"}
+                  onClick={() => setSelectedYear(year)}
+                  sx={{
+                    fontSize: '0.95rem',
+                    py: 2,
+                    px: 1.5,
+                    fontWeight: 'bold',
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      borderColor: 'primary.main',
+                      bgcolor: selectedYear === year ? 'primary.main' : 'rgba(255, 152, 0, 0.08)'
+                    }
+                  }}
+                />
+              ))}
+            </Stack>
+          );
+        })()}
+
         {/* Timeline representation */}
-        <Box sx={{
-          position: 'relative',
-          pl: { xs: 2, sm: 4 },
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            left: { xs: 7, sm: 15 },
-            top: 10,
-            bottom: 10,
-            width: '2px',
-            bgcolor: 'rgba(255, 152, 0, 0.25)',
-          }
-        }}>
-          {events.length > 0 ? events.map((event, index) => {
-            const isCreator = event.creatorName === currentUsername;
-            const canModify = isLoggedIn && (isCreator || isAdmin);
-            const isFuture = new Date(event.eventDate) >= new Date();
-
+        {(() => {
+          const filteredEvents = events.filter(e => e.eventDate && new Date(e.eventDate).getFullYear() === selectedYear);
+          const sortedEvents = [...filteredEvents].sort((a, b) => new Date(a.eventDate) - new Date(b.eventDate));
+          
+          if (sortedEvents.length === 0) {
             return (
-              <Box key={event.id} sx={{ position: 'relative', mb: 6 }}>
-                {/* Timeline node icon indicator */}
-                <Box sx={{
-                  position: 'absolute',
-                  left: { xs: -14, sm: -30 },
-                  top: 20,
-                  width: { xs: 12, sm: 16 },
-                  height: { xs: 12, sm: 16 },
-                  borderRadius: '50%',
-                  bgcolor: isFuture ? 'primary.main' : 'rgba(255,255,255,0.2)',
-                  border: '3px solid',
-                  borderColor: 'background.default',
-                  boxShadow: isFuture ? '0 0 10px rgba(255, 152, 0, 0.5)' : 'none',
-                  zIndex: 2
-                }} />
+              <Typography align="center" color="text.secondary" sx={{ fontStyle: 'italic', py: 4 }}>
+                Aktuell sind keine Termine für das Jahr {selectedYear} eingetragen.
+              </Typography>
+            );
+          }
 
-                <Card sx={{
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  bgcolor: isFuture ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.005)',
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    borderColor: isFuture ? 'primary.main' : 'rgba(255,255,255,0.15)',
-                    transform: 'translateX(4px)'
-                  }
-                }}>
-                  <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                      <Box>
-                        <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1.5, color: isFuture ? 'text.primary' : 'text.secondary' }}>
-                          {event.title}
-                        </Typography>
-                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
-                          <Stack direction="row" spacing={0.5} alignItems="center" color="primary.main">
-                            <CalendarMonthIcon sx={{ fontSize: '1.1rem' }} />
-                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                              {formatDate(event.eventDate)}
-                            </Typography>
-                          </Stack>
-                          <Stack direction="row" spacing={0.5} alignItems="center" color="text.secondary">
-                            <LocationOnIcon sx={{ fontSize: '1.1rem' }} />
-                            <Typography variant="subtitle2">
-                              {event.location}
-                            </Typography>
-                          </Stack>
-                        </Stack>
-                      </Box>
-                      {canModify && (
-                        <Stack direction="row" spacing={0.5}>
-                          <Tooltip title="Bearbeiten">
-                            <IconButton color="primary" onClick={() => handleOpenEdit(event)} size="small">
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Löschen">
-                            <IconButton color="error" onClick={() => handleDelete(event.id)} size="small">
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </Stack>
-                      )}
-                    </Stack>
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
+          // Find the next upcoming event
+          const upcomingEvents = sortedEvents.filter(e => new Date(e.eventDate) >= today);
+          const nextEvent = upcomingEvents.length > 0 ? upcomingEvents[0] : null;
 
-                    <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-                      {event.description}
-                    </Typography>
+          return (
+            <Box sx={{ position: 'relative' }}>
+              {sortedEvents.map((event, index) => {
+                const isCreator = event.creatorName === currentUsername;
+                const canModify = isLoggedIn && (isCreator || isAdmin);
+                const isFuture = new Date(event.eventDate) >= today;
+                const isNextEvent = nextEvent && nextEvent.id === event.id;
+                const daysToNext = isNextEvent ? Math.ceil((new Date(event.eventDate) - today) / (1000 * 60 * 60 * 24)) : 0;
+                const { dateTextOnly, timeTextOnly } = parseEventDate(event.eventDate);
 
-                    {/* Attendance / RSVP Options */}
-                    {isLoggedIn && (
-                      <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-                        <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 'bold' }}>Deine Teilnahme:</Typography>
-                        <Stack direction="row" spacing={1}>
-                          <Button
+                return (
+                  <Box key={event.id}>
+                    {/* Days counter between adjacent events */}
+                    {index > 0 && (
+                      <Grid container spacing={2} sx={{ position: 'relative', my: 1.5 }}>
+                        <Grid item xs={3.5} sm={2.5} />
+                        <Grid item xs={1} sm={1} sx={{ display: 'flex', justifyContent: 'center', position: 'relative', height: 40 }}>
+                          <Box sx={{
+                            width: '2px',
+                            bgcolor: 'rgba(255, 152, 0, 0.25)',
+                            position: 'absolute',
+                            top: 0,
+                            bottom: 0,
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            zIndex: 1
+                          }} />
+                          <Chip
+                            label={`${Math.round((new Date(event.eventDate) - new Date(sortedEvents[index - 1].eventDate)) / (1000 * 60 * 60 * 24))} T.`}
+                            title={`${Math.round((new Date(event.eventDate) - new Date(sortedEvents[index - 1].eventDate)) / (1000 * 60 * 60 * 24))} Tage zwischen den Terminen`}
                             size="small"
-                            variant={event.attendances?.find(a => a.userName === currentUsername)?.status === 'YES' ? 'contained' : 'outlined'}
-                            color="success"
-                            onClick={() => handleAttendance(event.id, 'YES')}
-                          >
-                            Ja
-                          </Button>
-                          <Button
-                            size="small"
-                            variant={event.attendances?.find(a => a.userName === currentUsername)?.status === 'NO' ? 'contained' : 'outlined'}
-                            color="error"
-                            onClick={() => handleAttendance(event.id, 'NO')}
-                          >
-                            Nein
-                          </Button>
-                          <Button
-                            size="small"
-                            variant={event.attendances?.find(a => a.userName === currentUsername)?.status === 'MAYBE' ? 'contained' : 'outlined'}
-                            color="warning"
-                            onClick={() => handleAttendance(event.id, 'MAYBE')}
-                          >
-                            Vielleicht
-                          </Button>
-                        </Stack>
-                      </Box>
+                            sx={{
+                              zIndex: 2,
+                              height: 20,
+                              fontSize: '0.65rem',
+                              bgcolor: 'background.default',
+                              color: 'text.secondary',
+                              border: '1px solid rgba(255, 152, 0, 0.3)',
+                              px: 0.5,
+                              alignSelf: 'center'
+                            }}
+                          />
+                        </Grid>
+                        <Grid item xs={7.5} sm={8.5} />
+                      </Grid>
                     )}
 
-                    {/* RSVP Summary counts */}
-                    <Box sx={{ mt: 2.5, display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
-                      <Tooltip title={event.attendances?.filter(a => a.status === 'YES').map(a => a.userName).join(', ') || 'Niemand'}>
-                        <Chip
-                          label={`Zusagen: ${event.attendances?.filter(a => a.status === 'YES').length || 0}`}
-                          color="success"
-                          size="small"
-                          variant="outlined"
-                          sx={{ cursor: 'help' }}
-                        />
-                      </Tooltip>
-                      <Tooltip title={event.attendances?.filter(a => a.status === 'NO').map(a => a.userName).join(', ') || 'Niemand'}>
-                        <Chip
-                          label={`Absagen: ${event.attendances?.filter(a => a.status === 'NO').length || 0}`}
-                          color="error"
-                          size="small"
-                          variant="outlined"
-                          sx={{ cursor: 'help' }}
-                        />
-                      </Tooltip>
-                      <Tooltip title={event.attendances?.filter(a => a.status === 'MAYBE').map(a => a.userName).join(', ') || 'Niemand'}>
-                        <Chip
-                          label={`Vielleicht: ${event.attendances?.filter(a => a.status === 'MAYBE').length || 0}`}
-                          color="warning"
-                          size="small"
-                          variant="outlined"
-                          sx={{ cursor: 'help' }}
-                        />
-                      </Tooltip>
+                    {/* Main Event Row */}
+                    <Grid container spacing={2} alignItems="stretch">
+                      {/* Left Column: Date & Time */}
+                      <Grid item xs={3.5} sm={2.5} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', pr: { xs: 1, sm: 2 } }}>
+                        <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'primary.main', textAlign: 'right', fontSize: { xs: '0.85rem', sm: '1rem' } }}>
+                          {dateTextOnly}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'right', fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
+                          {timeTextOnly}
+                        </Typography>
+                        {isNextEvent && (
+                          <Chip
+                            label={daysToNext === 0 ? "Heute!" : `In ${daysToNext} T.`}
+                            title={daysToNext === 0 ? "Heute!" : `In ${daysToNext} Tagen`}
+                            color="primary"
+                            size="small"
+                            sx={{
+                              mt: 0.8,
+                              fontWeight: 'bold',
+                              fontSize: '0.65rem',
+                              height: 18,
+                              boxShadow: '0 0 8px rgba(255, 152, 0, 0.4)'
+                            }}
+                          />
+                        )}
+                      </Grid>
 
-                      {/* Forum Link */}
-                      {event.forumPostUrl && (
-                        <Button
-                          variant="text"
-                          color="secondary"
-                          size="small"
-                          href={event.forumPostUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          sx={{ ml: 'auto', textTransform: 'none', fontWeight: 'bold' }}
-                        >
-                          💬 Diskussion im Forum
-                        </Button>
-                      )}
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Box>
-            );
-          }) : (
-            <Typography align="center" color="text.secondary" sx={{ fontStyle: 'italic', py: 4 }}>
-              Aktuell sind keine Termine eingetragen.
-            </Typography>
-          )}
-        </Box>
+                      {/* Middle Column: Line Segment and Circle Node */}
+                      <Grid item xs={1} sm={1} sx={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
+                        <Box sx={{
+                          width: '2px',
+                          bgcolor: 'rgba(255, 152, 0, 0.25)',
+                          position: 'absolute',
+                          top: index === 0 ? '50%' : 0,
+                          bottom: index === sortedEvents.length - 1 ? '50%' : 0,
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          zIndex: 1
+                        }} />
+                        <Box sx={{
+                          width: { xs: 12, sm: 16 },
+                          height: { xs: 12, sm: 16 },
+                          borderRadius: '50%',
+                          bgcolor: isFuture ? 'primary.main' : 'rgba(255,255,255,0.2)',
+                          border: '3px solid',
+                          borderColor: 'background.default',
+                          boxShadow: isFuture ? '0 0 10px rgba(255, 152, 0, 0.5)' : 'none',
+                          position: 'absolute',
+                          top: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          left: '50%',
+                          zIndex: 2
+                        }} />
+                      </Grid>
+
+                      {/* Right Column: Card */}
+                      <Grid item xs={7.5} sm={8.5} sx={{ display: 'flex' }}>
+                        <Card sx={{
+                          border: '1px solid rgba(255, 255, 255, 0.08)',
+                          bgcolor: isFuture ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.005)',
+                          transition: 'all 0.3s ease',
+                          width: '100%',
+                          '&:hover': {
+                            borderColor: isFuture ? 'primary.main' : 'rgba(255,255,255,0.15)',
+                            transform: 'translateX(4px)'
+                          }
+                        }}>
+                          <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
+                            <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                              <Box sx={{ width: '100%' }}>
+                                <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1.5, color: isFuture ? 'text.primary' : 'text.secondary', fontSize: { xs: '1.15rem', sm: '1.4rem' } }}>
+                                  {event.title}
+                                </Typography>
+                                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
+                                  <Stack direction="row" spacing={0.5} alignItems="center" color="text.secondary">
+                                    <LocationOnIcon sx={{ fontSize: '1.1rem' }} />
+                                    <Typography variant="subtitle2">
+                                      {event.location}
+                                    </Typography>
+                                  </Stack>
+                                </Stack>
+                              </Box>
+                              {canModify && (
+                                <Stack direction="row" spacing={0.5}>
+                                  <Tooltip title="Bearbeiten">
+                                    <IconButton color="primary" onClick={() => handleOpenEdit(event)} size="small">
+                                      <EditIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                  <Tooltip title="Löschen">
+                                    <IconButton color="error" onClick={() => handleOpenDelete(event)} size="small">
+                                      <DeleteIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                </Stack>
+                              )}
+                            </Stack>
+
+                            <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.7, whiteSpace: 'pre-wrap', mb: 2 }}>
+                              {event.description}
+                            </Typography>
+
+                            {/* Attendance / RSVP Options */}
+                            {isLoggedIn && (
+                              <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                                <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 'bold' }}>Deine Teilnahme:</Typography>
+                                <Stack direction="row" spacing={1}>
+                                  <Button
+                                    size="small"
+                                    variant={event.attendances?.find(a => a.userName === currentUsername)?.status === 'YES' ? 'contained' : 'outlined'}
+                                    color="success"
+                                    onClick={() => handleAttendance(event.id, 'YES')}
+                                  >
+                                    Ja
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    variant={event.attendances?.find(a => a.userName === currentUsername)?.status === 'NO' ? 'contained' : 'outlined'}
+                                    color="error"
+                                    onClick={() => handleAttendance(event.id, 'NO')}
+                                  >
+                                    Nein
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    variant={event.attendances?.find(a => a.userName === currentUsername)?.status === 'MAYBE' ? 'contained' : 'outlined'}
+                                    color="warning"
+                                    onClick={() => handleAttendance(event.id, 'MAYBE')}
+                                  >
+                                    Vielleicht
+                                  </Button>
+                                </Stack>
+                              </Box>
+                            )}
+
+                            {/* RSVP Summary counts */}
+                            <Box sx={{ mt: 2.5, display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
+                              <Tooltip title={event.attendances?.filter(a => a.status === 'YES').map(a => a.userName).join(', ') || 'Niemand'}>
+                                <Chip
+                                  label={`Zusagen: ${event.attendances?.filter(a => a.status === 'YES').length || 0}`}
+                                  color="success"
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{ cursor: 'help' }}
+                                />
+                              </Tooltip>
+                              <Tooltip title={event.attendances?.filter(a => a.status === 'NO').map(a => a.userName).join(', ') || 'Niemand'}>
+                                <Chip
+                                  label={`Absagen: ${event.attendances?.filter(a => a.status === 'NO').length || 0}`}
+                                  color="error"
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{ cursor: 'help' }}
+                                />
+                              </Tooltip>
+                              <Tooltip title={event.attendances?.filter(a => a.status === 'MAYBE').map(a => a.userName).join(', ') || 'Niemand'}>
+                                <Chip
+                                  label={`Vielleicht: ${event.attendances?.filter(a => a.status === 'MAYBE').length || 0}`}
+                                  color="warning"
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{ cursor: 'help' }}
+                                />
+                              </Tooltip>
+
+                              {/* Forum Link */}
+                              {event.forumPostUrl && (
+                                <Button
+                                  variant="text"
+                                  color="secondary"
+                                  size="small"
+                                  href={event.forumPostUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  sx={{ ml: 'auto', textTransform: 'none', fontWeight: 'bold' }}
+                                >
+                                  💬 Diskussion im Forum
+                                </Button>
+                              )}
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    </Grid>
+                  </Box>
+                );
+              })}
+            </Box>
+          );
+        })()}
       </Container>
 
       {/* Dialog for adding/editing event */}
@@ -483,6 +645,29 @@ export default function Events() {
             </Button>
           </DialogActions>
         </form>
+      </Dialog>
+
+      {/* Custom dialog for deleting event */}
+      <Dialog open={deleteDialogOpen} onClose={handleCloseDelete} fullWidth maxWidth="xs">
+        <DialogTitle sx={{ fontWeight: 'bold', borderBottom: '1px solid rgba(255,255,255,0.08)', color: 'error.main', display: 'flex', alignItems: 'center', gap: 1 }}>
+          ⚠️ Termin löschen?
+        </DialogTitle>
+        <DialogContent sx={{ p: 3, mt: 1 }}>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            Bist du sicher, dass du das Event <strong>{eventToDelete?.title}</strong> löschen möchtest?
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Dies löscht auch den zugehörigen Google Kalender-Eintrag unwiderruflich aus dem System.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <Button onClick={handleCloseDelete} color="inherit">
+            Abbrechen
+          </Button>
+          <Button onClick={handleConfirmDelete} variant="contained" color="error">
+            Löschen
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );

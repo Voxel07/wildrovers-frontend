@@ -159,128 +159,113 @@ export default function Post({ post, onUpdate }) {
 
 
     return (
-        <Card sx={{ width: '100%', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-            <CardContent sx={{ p: { xs: 2, md: 3 } }}>
-                <Grid container direction="column" spacing={2}>
-                    <Grid item>
-                        <Stack
-                            direction={{ xs: 'column', sm: 'row' }}
-                            spacing={2}
-                            alignItems={{ xs: 'flex-start', sm: 'center' }}
-                            justifyContent="space-between"
-                        >
-                            <Typography variant="h4" component="h2" sx={{ fontWeight: 'bold' }}>
-                                {title}
-                            </Typography>
+        <Box sx={{ width: '100%', p: { xs: 2, md: 3 } }}>
+            <Grid container direction="column" spacing={2}>
+                <Grid item>
+                    <Stack
+                        direction="row"
+                        spacing={2}
+                        alignItems="center"
+                        justifyContent="space-between"
+                    >
+                        <Stack direction="row" spacing={1.5} alignItems="center">
+                            <Avatar
+                                alt={creator ? creator[0].toUpperCase() : 'U'}
+                                sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', fontWeight: 'bold' }}
+                            />
+                            <Box>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                                    von {creator}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                    erstellt am {convertTimestamp(creationDate)}
+                                </Typography>
+                            </Box>
+                        </Stack>
 
-                            {/* Edit controls (creator / admin only) */}
-                            {isCreatorOrAdmin && !saving && (
-                                <Stack direction="row" spacing={0.5}>
-                                    {isEditing ? (
-                                        <>
-                                            <Tooltip title="Speichern">
-                                                <IconButton size="small" color="primary" onClick={handleSaveEdit}>
-                                                    <SaveIcon fontSize="small" />
-                                                </IconButton>
-                                            </Tooltip>
-                                            <Tooltip title="Abbrechen">
-                                                <IconButton size="small" color="error" onClick={() => { setIsEditing(false); setEditContent(post.content); }}>
-                                                    <CancelIcon fontSize="small" />
-                                                </IconButton>
-                                            </Tooltip>
-                                        </>
-                                    ) : (
-                                        <Tooltip title="Beitrag bearbeiten">
-                                            <IconButton size="small" color="primary" onClick={() => setIsEditing(true)}>
-                                                <EditIcon fontSize="small" />
+                        {/* Edit controls (creator / admin only) */}
+                        {isCreatorOrAdmin && !saving && (
+                            <Stack direction="row" spacing={0.5}>
+                                {isEditing ? (
+                                    <>
+                                        <Tooltip title="Speichern">
+                                            <IconButton size="small" color="primary" onClick={handleSaveEdit}>
+                                                <SaveIcon fontSize="small" />
                                             </IconButton>
                                         </Tooltip>
-                                    )}
-                                </Stack>
-                            )}
-                        </Stack>
-
-                        <Stack
-                            direction={{ xs: 'column', sm: 'row' }}
-                            spacing={2}
-                            alignItems={{ xs: 'flex-start', sm: 'center' }}
-                            justifyContent="space-between"
-                            sx={{ mt: 1 }}
-                        >
-                            <Stack direction="row" spacing={1.5} alignItems="center">
-                                <Avatar
-                                    alt={creator ? creator[0].toUpperCase() : 'U'}
-                                    sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', fontWeight: 'bold' }}
-                                />
-                                <Box>
-                                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                                        von {creator}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                        erstellt am {convertTimestamp(creationDate)}
-                                    </Typography>
-                                </Box>
+                                        <Tooltip title="Abbrechen">
+                                            <IconButton size="small" color="error" onClick={() => { setIsEditing(false); setEditContent(post.content); }}>
+                                                <CancelIcon fontSize="small" />
+                                            </IconButton>
+                                        </Tooltip>
+                                    </>
+                                ) : (
+                                    <Tooltip title="Beitrag bearbeiten">
+                                        <IconButton size="small" color="primary" onClick={() => setIsEditing(true)}>
+                                            <EditIcon fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
+                                )}
                             </Stack>
-                            <PostStats answerCount={answerCount} views={views} />
-                        </Stack>
-                    </Grid>
-
-                    <Divider sx={{ my: 1.5 }} />
-
-                    {/* Content — edit mode shows Quill, view mode shows read-only */}
-                    <Grid item xs={12}>
-                        {isEditing ? (
-                            <Box sx={{ mb: 1 }}>
-                                <ReactQuill
-                                    theme="snow"
-                                    value={editContent}
-                                    onChange={setEditContent}
-                                    style={{ height: 300, marginBottom: 50 }}
-                                />
-                            </Box>
-                        ) : (
-                            <Box className="post-body-content" sx={{ mt: 1 }}>
-                                <ReactQuill
-                                    theme="snow"
-                                    modules={noModules}
-                                    value={post.content}
-                                    readOnly
-                                />
-                            </Box>
                         )}
-                    </Grid>
-
-                    <Divider sx={{ mt: 1 }} />
-
-                    {/* Like / Dislike bar */}
-                    <Grid item>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                            <Tooltip title="Gefällt mir">
-                                <IconButton
-                                    size="small"
-                                    color={voted === 'like' ? 'primary' : 'default'}
-                                    onClick={() => handleVote('like')}
-                                >
-                                    {voted === 'like' ? <ThumbUpIcon /> : <ThumbUpOutlinedIcon />}
-                                </IconButton>
-                            </Tooltip>
-                            <Typography variant="body2" sx={{ minWidth: 20 }}>{formatNumber(likes)}</Typography>
-
-                            <Tooltip title="Gefällt mir nicht">
-                                <IconButton
-                                    size="small"
-                                    color={voted === 'dislike' ? 'error' : 'default'}
-                                    onClick={() => handleVote('dislike')}
-                                >
-                                    {voted === 'dislike' ? <ThumbDownIcon /> : <ThumbDownOutlinedIcon />}
-                                </IconButton>
-                            </Tooltip>
-                            <Typography variant="body2" sx={{ minWidth: 20 }}>{formatNumber(dislikes)}</Typography>
-                        </Stack>
-                    </Grid>
+                    </Stack>
                 </Grid>
-            </CardContent>
-        </Card>
+
+                <Divider sx={{ my: 1.5 }} />
+
+                {/* Content — edit mode shows Quill, view mode shows read-only */}
+                <Grid item xs={12}>
+                    {isEditing ? (
+                        <Box sx={{ mb: 1 }}>
+                            <ReactQuill
+                                theme="snow"
+                                value={editContent}
+                                onChange={setEditContent}
+                                style={{ height: 300, marginBottom: 50 }}
+                            />
+                        </Box>
+                    ) : (
+                        <Box className="post-body-content" sx={{ mt: 1 }}>
+                            <ReactQuill
+                                theme="snow"
+                                modules={noModules}
+                                value={post.content}
+                                readOnly
+                            />
+                        </Box>
+                    )}
+                </Grid>
+
+                <Divider sx={{ mt: 1 }} />
+
+                {/* Like / Dislike bar */}
+                <Grid item>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                        <Tooltip title="Gefällt mir">
+                            <IconButton
+                                size="small"
+                                color={voted === 'like' ? 'primary' : 'default'}
+                                onClick={() => handleVote('like')}
+                            >
+                                {voted === 'like' ? <ThumbUpIcon /> : <ThumbUpOutlinedIcon />}
+                            </IconButton>
+                        </Tooltip>
+                        <Typography variant="body2" sx={{ minWidth: 20 }}>{formatNumber(likes)}</Typography>
+
+                        <Tooltip title="Gefällt mir nicht">
+                            <IconButton
+                                size="small"
+                                color={voted === 'dislike' ? 'error' : 'default'}
+                                onClick={() => handleVote('dislike')}
+                            >
+                                {voted === 'dislike' ? <ThumbDownIcon /> : <ThumbDownOutlinedIcon />}
+                            </IconButton>
+                        </Tooltip>
+                        <Typography variant="body2" sx={{ minWidth: 20 }}>{formatNumber(dislikes)}</Typography>
+                    </Stack>
+                </Grid>
+            </Grid>
+        </Box>
     );
 }
 

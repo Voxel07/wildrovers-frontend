@@ -26,6 +26,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import Chip from '@mui/material/Chip';
+import Tooltip from '@mui/material/Tooltip';
 
 export default function UserManagement() {
   const { auth } = useAuth();
@@ -33,6 +34,7 @@ export default function UserManagement() {
   const alertsManagerRef = use(AlertsContext);
 
   const [users, setUsers] = useState([]);
+  const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState(null);
 
@@ -40,12 +42,16 @@ export default function UserManagement() {
 
   const fetchUsers = () => {
     setLoading(true);
-    api.get('/user')
-      .then(response => {
-        setUsers(response.data);
+    Promise.all([
+      api.get('/user'),
+      api.get('/event')
+    ])
+      .then(([usersRes, eventsRes]) => {
+        setUsers(usersRes.data);
+        setEvents(eventsRes.data);
       })
       .catch(err => {
-        console.error("Error fetching users", err);
+        console.error("Error fetching users and events", err);
         alertsManagerRef.current.showAlert('error', 'Fehler beim Laden der Benutzerliste.');
       })
       .finally(() => {
@@ -70,7 +76,7 @@ export default function UserManagement() {
   };
 
   const handleToggleActive = (userId, currentVal) => {
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, active: !currentVal } : u));
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, active: !currentVal, isActive: !currentVal } : u));
   };
 
   const handleToggleFeePaid = (userId, currentVal) => {
@@ -79,6 +85,7 @@ export default function UserManagement() {
 
   const handleSaveUser = (user) => {
     setSavingId(user.id);
+    const activeVal = user.isActive !== undefined ? user.isActive : user.active;
     // Construct database entity properties correctly
     const payload = {
       id: user.id,
@@ -88,7 +95,7 @@ export default function UserManagement() {
       lastName: user.lastName,
       password: user.password, // Keep current password representation
       role: user.role,
-      isActive: user.active, // Map local boolean back to entity isActive property
+      isActive: activeVal, // Map local boolean back to entity isActive property
       yearlyFeePaid: user.yearlyFeePaid
     };
 
@@ -106,6 +113,26 @@ export default function UserManagement() {
       .finally(() => {
         setSavingId(null);
       });
+  };
+
+  const getUserEventsCurrentYear = (userName) => {
+    const currentYear = new Date().getFullYear();
+    return events.filter(event => {
+      const isCurrentYear = event.eventDate && new Date(event.eventDate).getFullYear() === currentYear;
+      const hasAttended = event.attendances?.some(a => a.userName === userName && a.status === 'YES');
+      return isCurrentYear && hasAttended;
+    }).length;
+  };
+
+  const getUserEventsCurrentYearList = (userName) => {
+    const currentYear = new Date().getFullYear();
+    return events
+      .filter(event => {
+        const isCurrentYear = event.eventDate && new Date(event.eventDate).getFullYear() === currentYear;
+        const hasAttended = event.attendances?.some(a => a.userName === userName && a.status === 'YES');
+        return isCurrentYear && hasAttended;
+      })
+      .map(e => e.title);
   };
 
   if (!isAuthorized) {
@@ -182,8 +209,8 @@ export default function UserManagement() {
                       </TableCell>
                       <TableCell align="center">
                         <Switch
-                          checked={user.active === true || user.active === undefined}
-                          onChange={() => handleToggleActive(user.id, user.active !== false)}
+                          checked={user.isActive !== undefined ? user.isActive : (user.active !== undefined ? user.active : true)}
+                          onChange={() => handleToggleActive(user.id, user.isActive !== undefined ? user.isActive : (user.active !== undefined ? user.active : true))}
                           color="success"
                         />
                       </TableCell>
@@ -195,12 +222,15 @@ export default function UserManagement() {
                         />
                       </TableCell>
                       <TableCell align="center">
-                        <Chip 
-                          label={`${user.eventsAttended ?? 0} Einsätze`} 
-                          size="small" 
-                          variant="outlined" 
-                          color="secondary"
-                        />
+                        <Tooltip title={getUserEventsCurrentYearList(user.userName).join(', ') || 'Keine Einsätze in diesem Jahr'}>
+                          <Chip 
+                            label={`${getUserEventsCurrentYear(user.userName)} Einsätze`} 
+                            size="small" 
+                            variant="outlined" 
+                            color="secondary"
+                            sx={{ cursor: 'help' }}
+                          />
+                        </Tooltip>
                       </TableCell>
                       <TableCell align="center">
                         <Button

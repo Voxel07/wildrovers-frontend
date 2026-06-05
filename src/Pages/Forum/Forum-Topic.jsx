@@ -25,14 +25,16 @@ import AccordionDetails from '@mui/material/AccordionDetails';
 // Eigene
 import Post from '../../components/Forum/Posts';
 import { convertTimestamp } from '../../helper/converter';
+import ForumBreadcrumbs from '../../components/Forum/ForumBreadcrumbs';
+import ForumChips from '../../components/Forum/ForumChips';
 
 const initialFetchState = { posts: [], topicData: null, loading: true };
 
 function fetchReducer(state, action) {
   switch (action.type) {
-    case 'FETCH_START':   return { ...state, loading: true };
+    case 'FETCH_START': return { ...state, loading: true };
     case 'FETCH_SUCCESS': return { posts: action.posts, topicData: action.topicData, loading: false };
-    case 'FETCH_ERROR':   return { ...state, loading: false };
+    case 'FETCH_ERROR': return { ...state, loading: false };
     default: return state;
   }
 }
@@ -113,8 +115,20 @@ export default function Forum_Topic() {
 
   const { topic, postCount, creationDate, creator } = topicData;
 
+  const topicChips = [
+    { tooltip: "Ersteller", icon: <PersonOutlineIcon />, label: creator || 'Unbekannt' },
+    { tooltip: "Erstellungsdatum", icon: <EventNoteIcon />, label: convertTimestamp(creationDate) },
+    { tooltip: "Beiträge", icon: <ForumIcon />, label: postCount }
+  ];
+
   return (
     <Container maxWidth="xl" sx={{ px: { xs: 1, md: 3 }, py: 3 }}>
+      <ForumBreadcrumbs
+        categoryId={topicData.categoryId}
+        categoryName={topicData.categoryName}
+        topicId={id}
+        topicName={topic}
+      />
 
       {/* Topic header */}
       <Accordion expanded sx={{ mb: 2, border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -130,17 +144,7 @@ export default function Forum_Topic() {
               </Typography>
             </Grid>
             <Grid item xs={12} md={8}>
-              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ gap: 1 }}>
-                <Tooltip title="Ersteller" placement="top">
-                  <Chip icon={<PersonOutlineIcon />} label={creator} variant="outlined" size="small" />
-                </Tooltip>
-                <Tooltip title="Erstellungsdatum" placement="top">
-                  <Chip icon={<EventNoteIcon />} label={convertTimestamp(creationDate)} variant="outlined" size="small" />
-                </Tooltip>
-                <Tooltip title="Beiträge" placement="top">
-                  <Chip icon={<ForumIcon />} label={postCount} variant="outlined" size="small" />
-                </Tooltip>
-              </Stack>
+              <ForumChips items={topicChips} />
             </Grid>
           </Grid>
         </AccordionSummary>

@@ -32,6 +32,12 @@ const ResponsiveAppBar = () => {
   const { auth } = useAuth();
   const navigate = useNavigate();
 
+  const isAdminOrVorstand = auth?.JWT && (auth.roles === 'Admin' || auth.roles === 'Vorstand');
+  const visiblePages = [...pages];
+  if (isAdminOrVorstand) {
+    visiblePages.push({ key: 6, name: "Benutzerverwaltung", path: "/Admin/UserManagement" });
+  }
+
   const handleOpenNavMenu = (event) => {
     setAnchorElNav(event.currentTarget);
   };
@@ -99,7 +105,7 @@ const ResponsiveAppBar = () => {
               }}
               disableScrollLock
             >
-              {pages.map((page) => (
+              {visiblePages.map((page) => (
                 <MenuItem key={page.key} onClick={() => { handleCloseNavMenu(); navigate(page.path); }}>
                   <Typography textAlign="center" sx={{ fontFamily: '"Outfit", sans-serif' }}>
                     {page.name}
@@ -135,7 +141,7 @@ const ResponsiveAppBar = () => {
 
           {/* Desktop Navigation Links */}
           <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
-            {pages.map((page) => (
+            {visiblePages.map((page) => (
               <Button
                 key={page.key}
                 onClick={() => navigate(page.path)}

@@ -37,11 +37,11 @@ function TeamCard({ primaryText, secondaryText, image, alt, highlighted }) {
       display: 'flex',
       alignItems: 'center',
       p: 2,
-      background: highlighted 
+      background: highlighted
         ? 'linear-gradient(135deg, rgba(180, 195, 192, 0.08) 0%, rgba(180, 195, 192, 0.02) 100%)'
         : 'linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)',
-      border: highlighted 
-        ? '1px solid rgba(180, 195, 192, 0.2)' 
+      border: highlighted
+        ? '1px solid rgba(180, 195, 192, 0.2)'
         : '1px solid rgba(255, 255, 255, 0.08)',
       borderRadius: 3,
       transition: 'all 0.3s ease',
@@ -60,25 +60,25 @@ function TeamCard({ primaryText, secondaryText, image, alt, highlighted }) {
       }),
       '&:hover': {
         transform: 'translateY(-2px)',
-        boxShadow: highlighted 
+        boxShadow: highlighted
           ? '0 8px 24px rgba(180, 195, 192, 0.15)'
           : '0 8px 24px rgba(0, 0, 0, 0.4)',
         borderColor: 'primary.main',
       }
     }}>
       {image && (
-        <Box sx={{ 
-          width: 80, 
-          height: 80, 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          mr: 3, 
-          flexShrink: 0, 
+        <Box sx={{
+          width: 80,
+          height: 80,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          mr: 3,
+          flexShrink: 0,
           bgcolor: 'rgba(0,0,0,0.2)',
           borderRadius: 2,
           p: 0.5,
-          overflow: 'hidden' 
+          overflow: 'hidden'
         }}>
           <Box component="img" src={image} alt={alt || primaryText} sx={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
         </Box>
@@ -266,7 +266,7 @@ export default function LandingPage() {
                 Aktuelles
               </Typography>
               <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.8, mb: 2 }}>
-                Aktuell haben wir 12 Mitglieder und 1 Frischlinge (Anwärter). Wir kommen aus den unterschiedlichsten Ecken aus Deutschland. Der Hauptteil des Teams ist aber im Großraum Esslingen / Stuttgart zu finden. In den letzten Jahren haben wir viele neue junge Mitglieder dazugewonnen, dennoch ist von 18 bis 41 Jahren alles dabei.
+                Aktuell haben wir 12 Mitglieder und 1 Frischling (Anwärter). Wir kommen aus den unterschiedlichsten Ecken aus Deutschland. Der Hauptteil des Teams ist aber im Großraum Esslingen / Stuttgart zu finden. In den letzten Jahren haben wir viele neue junge Mitglieder dazugewonnen, dennoch ist von 18 bis 41 Jahren alles dabei.
               </Typography>
               <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.8, mb: 2 }}>
                 Solltet ihr ein Team suchen oder ihr wollt uns näher kennenlernen, findet ihr alle weiteren Informationen unter dem Reiter Infos/Regeln.
@@ -385,7 +385,7 @@ export default function LandingPage() {
               Zufällige Impressionen
             </Typography>
             <Typography variant="body1" align="center" color="text.secondary" sx={{ mb: 6, maxWidth: '600px', mx: 'auto' }}>
-              Einblicke in unsere Einsätze und Trainings direkt aus unserem Immich-Archiv.
+              Ein paar Impressionen von unseren Spielen und Events aus den letzten Jahren.
             </Typography>
             <Box sx={{
               height: '60vh',

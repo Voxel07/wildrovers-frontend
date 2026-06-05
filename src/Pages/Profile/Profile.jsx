@@ -88,6 +88,7 @@ export default function Profile() {
   const { profile, loading, error } = state;
 
   // Edit Mode state
+  const [events, setEvents] = useState([]);
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState({
     phrase: '',
@@ -123,7 +124,26 @@ export default function Profile() {
       return;
     }
     fetchProfile();
+    api.get('/event')
+      .then(res => {
+        setEvents(res.data);
+      })
+      .catch(err => {
+        console.error("Error fetching events for profile breakdown", err);
+      });
   }, [auth, navigate]);
+
+  const getVisitedEventsByYearBreakdown = () => {
+    const countsByYear = {};
+    events.forEach(event => {
+      const isAttended = event.attendances?.some(a => a.userName === profile?.userName && a.status === 'YES');
+      if (isAttended && event.eventDate) {
+        const year = new Date(event.eventDate).getFullYear();
+        countsByYear[year] = (countsByYear[year] || 0) + 1;
+      }
+    });
+    return countsByYear;
+  };
 
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
@@ -431,8 +451,8 @@ export default function Profile() {
                       <Typography variant="caption" color="text.secondary" display="block">
                         Kontostatus
                       </Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 'medium', color: profile.isActive ? 'success.main' : 'error.main' }}>
-                        {profile.isActive ? 'Aktiv' : 'Inaktiv'}
+                      <Typography variant="body1" sx={{ fontWeight: 'medium', color: (profile.isActive !== undefined ? profile.isActive : profile.active) ? 'success.main' : 'error.main' }}>
+                        {(profile.isActive !== undefined ? profile.isActive : profile.active) ? 'Aktiv' : 'Inaktiv'}
                       </Typography>
                     </Box>
                   </Stack>
@@ -463,9 +483,23 @@ export default function Profile() {
                       <Typography variant="caption" color="text.secondary" display="block">
                         Besuchte Events
                       </Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                      <Typography variant="body1" sx={{ fontWeight: 'medium', mb: 0.5 }}>
                         {profile.eventsAttended ?? 0} Events besucht
                       </Typography>
+                      {(() => {
+                        const breakdown = getVisitedEventsByYearBreakdown();
+                        const years = Object.keys(breakdown).map(Number).sort((a, b) => b - a);
+                        if (years.length === 0) return null;
+                        return (
+                          <Stack spacing={0.5} sx={{ mt: 1, pl: 0.5 }}>
+                            {years.map(y => (
+                              <Typography key={y} variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.78rem' }}>
+                                📅 {y}: <strong>{breakdown[y]}</strong> Event{breakdown[y] === 1 ? '' : 's'} besucht
+                              </Typography>
+                            ))}
+                          </Stack>
+                        );
+                      })()}
                     </Box>
                   </Stack>
                 </Box>

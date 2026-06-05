@@ -32,6 +32,7 @@ import AddTopic from './AddTopic';
 import { AlertsContext } from '../../components/utils/AlertsManager';
 import { convertTimestamp, formatNumber, hasRequiredRole } from '../../helper/converter';
 import useAuth from '../../context/useAuth';
+import ForumChips from './ForumChips';
 
 function categoryReducer(state, action) {
   switch (action.type) {
@@ -49,10 +50,41 @@ function categoryReducer(state, action) {
     case 'INCREMENT_TOPIC_COUNT':
       return {
         ...state,
-        updateData: !state.updateData,
         category: {
           ...state.category,
           topicCount: (state.category.topicCount ?? 0) + 1,
+        },
+      };
+    case 'DECREMENT_TOPIC_COUNT':
+      return {
+        ...state,
+        topics: state.topics.filter(t => t.id !== action.payload),
+        category: {
+          ...state.category,
+          topicCount: Math.max(0, (state.category.topicCount ?? 0) - 1),
+        },
+      };
+    case 'ADD_TOPIC_OPTIMISTIC':
+      return {
+        ...state,
+        topics: [...state.topics, action.payload],
+        category: {
+          ...state.category,
+          topicCount: (state.category.topicCount ?? 0) + 1,
+        },
+      };
+    case 'ADD_TOPIC_SUCCESS':
+      return {
+        ...state,
+        topics: state.topics.map(t => t.isOptimistic ? action.payload : t),
+      };
+    case 'ADD_TOPIC_FAILURE':
+      return {
+        ...state,
+        topics: state.topics.filter(t => !t.isOptimistic),
+        category: {
+          ...state.category,
+          topicCount: Math.max(0, (state.category.topicCount ?? 0) - 1),
         },
       };
     case 'TRIGGER_REFETCH':
@@ -86,8 +118,14 @@ export default function Category(props) {
     setEditingTopic(topicToEdit);
   };
 
-  const handleDeleteTopic = () => {
-    dispatch({ type: 'TRIGGER_REFETCH' });
+  const handleDeleteTopic = (deletedTopic) => {
+    dispatch({ type: 'DECREMENT_TOPIC_COUNT', payload: deletedTopic.id });
+    if (props.onCategoryUpdate) {
+      props.onCategoryUpdate({
+        ...category,
+        topicCount: Math.max(0, (category.topicCount ?? 0) - 1)
+      });
+    }
   };
 
   const navigate = useNavigate();
@@ -97,6 +135,12 @@ export default function Category(props) {
 
   const handleUpdate = () => {
     dispatch({ type: 'INCREMENT_TOPIC_COUNT' });
+    if (props.onCategoryUpdate) {
+      props.onCategoryUpdate({
+        ...category,
+        topicCount: (category.topicCount ?? 0) + 1
+      });
+    }
   };
 
   useEffect(() => {
@@ -113,6 +157,12 @@ export default function Category(props) {
   };
 
   useEffect(() => {
+    if (props.vals) {
+      dispatch({ type: 'SET_CATEGORY', payload: props.vals });
+    }
+  }, [props.vals]);
+
+  useEffect(() => {
     if (!props.vals) return;
     api.get("/forum/topic", {
       params: { category: props.vals.id }
@@ -124,7 +174,7 @@ export default function Category(props) {
         console.error("Failed to fetch topics", error);
         dispatch({ type: 'SET_CATEGORY', payload: props.vals });
       });
-  }, [props.vals, updateData]);
+  }, [props.vals.id, updateData]);
 
   function redirectToCategory(e) {
     e.stopPropagation();
@@ -173,6 +223,13 @@ export default function Category(props) {
 
   const isCreatorOrAdmin = auth.user === category.creator || auth.roles === "Admin";
 
+  const categoryChips = [
+    { tooltip: "Ersteller", icon: <PersonIcon />, label: category.creator || 'Unbekannt' },
+    { tooltip: "Erstellungsdatum", icon: <EventNoteIcon />, label: convertTimestamp(category.creationDate) },
+    { tooltip: "Themen", icon: <TopicIcon />, label: formatNumber(category.topicCount) },
+    { tooltip: "Sichtbarkeit", icon: <GroupIcon />, label: category.visibility, color: "error" }
+  ];
+
   return (
     <Accordion expanded={expandAccordion} sx={{ border: '1px solid rgba(255, 255, 255, 0.08)' }}>
       <AccordionSummary
@@ -197,52 +254,7 @@ export default function Category(props) {
             </Typography>
           </Grid>
           <Grid item xs={12} md={8}>
-            <Stack
-              direction="row"
-              spacing={0}
-              divider={<Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255, 255, 255, 0.08)', my: 0.75 }} />}
-              sx={{
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: '20px',
-                overflow: 'hidden',
-                bgcolor: 'rgba(255, 255, 255, 0.01)',
-                width: 'fit-content'
-              }}
-            >
-              <Tooltip title="Ersteller" placement="top">
-                <Chip
-                  icon={<PersonIcon />}
-                  label={category.creator || 'Unbekannt'}
-                  variant="standard"
-                  sx={{ border: 'none', borderRadius: 0, bgcolor: 'transparent', height: 32 }}
-                />
-              </Tooltip>
-              <Tooltip title="Erstellungsdatum" placement="top">
-                <Chip
-                  icon={<EventNoteIcon />}
-                  label={convertTimestamp(category.creationDate)}
-                  variant="standard"
-                  sx={{ border: 'none', borderRadius: 0, bgcolor: 'transparent', height: 32 }}
-                />
-              </Tooltip>
-              <Tooltip title="Themen" placement="top">
-                <Chip
-                  icon={<TopicIcon />}
-                  label={formatNumber(category.topicCount)}
-                  variant="standard"
-                  sx={{ border: 'none', borderRadius: 0, bgcolor: 'transparent', height: 32 }}
-                />
-              </Tooltip>
-              <Tooltip title="Sichtbarkeit" placement="top">
-                <Chip
-                  icon={<GroupIcon />}
-                  label={category.visibility}
-                  variant="standard"
-                  color="error"
-                  sx={{ border: 'none', borderRadius: 0, bgcolor: 'transparent', height: 32 }}
-                />
-              </Tooltip>
-            </Stack>
+            <ForumChips items={categoryChips} />
           </Grid>
 
           <Grid item xs={12} md={1} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -341,7 +353,36 @@ export default function Category(props) {
         onClose={handleClose}
       >
         <Box>
-          <AddTopic onAddTopic={handleUpdate} callback={handleClose} topics={topics} category={{ id: category.id, name: category.category }} />
+          <AddTopic 
+            onOptimisticAdd={(topicName) => {
+              const tempTopic = {
+                id: 'temp-' + Date.now(),
+                topic: topicName,
+                creator: auth.user,
+                creationDate: Date.now(),
+                views: 0,
+                postCount: 0,
+                isOptimistic: true
+              };
+              dispatch({ type: 'ADD_TOPIC_OPTIMISTIC', payload: tempTopic });
+            }}
+            onAddTopicSuccess={(realTopic) => {
+              dispatch({ type: 'ADD_TOPIC_SUCCESS', payload: realTopic });
+              if (props.onCategoryUpdate) {
+                props.onCategoryUpdate({
+                  ...category,
+                  topicCount: (category.topicCount ?? 0) + 1
+                });
+              }
+            }}
+            onAddTopicFailure={() => {
+              dispatch({ type: 'ADD_TOPIC_FAILURE' });
+            }}
+            onAddTopic={handleUpdate} 
+            callback={handleClose} 
+            topics={topics} 
+            category={{ id: category.id, name: category.category }} 
+          />
         </Box>
       </Modal>
 

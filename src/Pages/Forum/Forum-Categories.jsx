@@ -10,6 +10,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 // Eigene
 import Category from '../../components/Forum/Category';
+import ForumBreadcrumbs from '../../components/Forum/ForumBreadcrumbs';
 
 const initialState = { category: [], loading: true };
 
@@ -18,6 +19,11 @@ function reducer(state, action) {
         case 'FETCH_START':  return { ...state, loading: true };
         case 'FETCH_SUCCESS': return { category: action.payload, loading: false };
         case 'FETCH_ERROR':  return { ...state, loading: false };
+        case 'UPDATE_CATEGORY':
+            return {
+                ...state,
+                category: state.category.map(c => c.id === action.payload.id ? action.payload : c)
+            };
         default: return state;
     }
 }
@@ -55,8 +61,15 @@ export default function Forum_Categories() {
         );
     }
 
+    const handleCategoryUpdate = (updatedCategory) => {
+        dispatch({ type: 'UPDATE_CATEGORY', payload: updatedCategory });
+    };
+
     return (
         <Container maxWidth="xl" sx={{ px: { xs: 1, md: 3 }, py: 2 }}>
+            {category.length > 0 && (
+                <ForumBreadcrumbs categoryName={category[0].category} />
+            )}
             {category.length
                 ? category.map((cat, index) => (
                     <Category
@@ -65,6 +78,7 @@ export default function Forum_Categories() {
                         vals={cat}
                         editCallback={() => {}}
                         deleteCallback={() => {}}
+                        onCategoryUpdate={handleCategoryUpdate}
                     />
                 ))
                 : (

@@ -15,6 +15,18 @@ import CircularProgress from '@mui/material/CircularProgress';
 import SendIcon from '@mui/icons-material/Send';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
+import Accordion from '@mui/material/Accordion';
+import AccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import Chip from '@mui/material/Chip';
+import Stack from '@mui/material/Stack';
+import Tooltip from '@mui/material/Tooltip';
+
+import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
+import ForumIcon from '@mui/icons-material/Forum';
+import EventNoteIcon from '@mui/icons-material/EventNote';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+
 // Quill for Reply Editor
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
@@ -25,6 +37,9 @@ import Answer from '../../components/Forum/Answer';
 import PollWidget from '../../components/Forum/PollWidget';
 import { AlertsContext } from '../../components/utils/AlertsManager';
 import useAuth from '../../context/useAuth';
+import { convertTimestamp } from '../../helper/converter';
+import ForumBreadcrumbs from '../../components/Forum/ForumBreadcrumbs';
+import ForumChips from '../../components/Forum/ForumChips';
 
 const initialFetchState = {
   post: null,
@@ -66,7 +81,7 @@ export default function Forum_Post() {
 
   const [state, dispatch] = useReducer(fetchReducer, initialFetchState);
   const { post, answers, loading } = state;
-  
+
   // Reply State
   const [replyContent, setReplyContent] = useState('');
   const [submittingReply, setSubmittingReply] = useState(false);
@@ -110,20 +125,20 @@ export default function Forum_Post() {
     api.put(`/forum/answer?post=${id}`, {
       content: replyContent
     })
-    .then(response => {
-      alertsManagerRef.current.showAlert('success', 'Antwort erfolgreich hinzugefügt');
-      setReplyContent('');
-      fetchData(); // Reload post & answers
-    })
-    .catch(error => {
-      console.error(error);
-      const status = error.response?.status || 500;
-      const data = error.response?.data || 'Fehler beim Senden';
-      alertsManagerRef.current.showAlert('error', `${status}: ${data}`);
-    })
-    .finally(() => {
-      setSubmittingReply(false);
-    });
+      .then(response => {
+        alertsManagerRef.current.showAlert('success', 'Antwort erfolgreich hinzugefügt');
+        setReplyContent('');
+        fetchData(); // Reload post & answers
+      })
+      .catch(error => {
+        console.error(error);
+        const status = error.response?.status || 500;
+        const data = error.response?.data || 'Fehler beim Senden';
+        alertsManagerRef.current.showAlert('error', `${status}: ${data}`);
+      })
+      .finally(() => {
+        setSubmittingReply(false);
+      });
   };
 
   if (loading) {
@@ -145,21 +160,55 @@ export default function Forum_Post() {
     );
   }
 
+  const postChips = [
+    { tooltip: "Ersteller", icon: <PersonOutlineIcon />, label: post.creator || 'Unbekannt' },
+    { tooltip: "Erstellungsdatum", icon: <EventNoteIcon />, label: convertTimestamp(post.creationDate) },
+    { tooltip: "Antworten", icon: <ForumIcon />, label: post.answerCount },
+    { tooltip: "Aufrufe", icon: <VisibilityIcon />, label: post.views }
+  ];
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 6, px: { xs: 1, md: 3 } }}>
-      <Button 
-        startIcon={<ArrowBackIcon />} 
-        onClick={() => navigate(-1)} 
+      <ForumBreadcrumbs
+        categoryId={post.categoryId}
+        categoryName={post.categoryName}
+        topicId={post.topicId}
+        topicName={post.topicName}
+        postTitle={post.title}
+      />
+
+      <Button
+        startIcon={<ArrowBackIcon />}
+        onClick={() => navigate(-1)}
         sx={{ mb: 3 }}
         variant="text"
       >
         Zurück
       </Button>
 
-      {/* Post content */}
-      <Box sx={{ mb: 4 }}>
-        <Post post={post} onUpdate={fetchData} />
-      </Box>
+      {/* Post content styled as Accordion (same as topics) */}
+      <Accordion expanded sx={{ mb: 4, border: '1px solid rgba(255,255,255,0.08)' }}>
+        <AccordionSummary
+          aria-controls="post-header-content"
+          id="post-header"
+          sx={{ cursor: 'default', '&:hover': { backgroundColor: 'rgba(255,255,255,0.02)' } }}
+        >
+          <Grid container direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
+            <Grid item xs={12} md={6}>
+              <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                {post.title}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+              <ForumChips items={postChips} />
+            </Grid>
+          </Grid>
+        </AccordionSummary>
+        <Divider />
+        <AccordionDetails sx={{ p: 0 }}>
+          <Post post={post} onUpdate={fetchData} />
+        </AccordionDetails>
+      </Accordion>
 
       {/* Render Poll if exists in the post data */}
       {post.poll && (
@@ -197,7 +246,7 @@ export default function Forum_Post() {
                   Antwort verfassen
                 </Typography>
                 <Box sx={{ mb: 2 }}>
-                  <ReactQuill 
+                  <ReactQuill
                     theme="snow"
                     value={replyContent}
                     onChange={setReplyContent}

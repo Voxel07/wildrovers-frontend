@@ -1,15 +1,16 @@
 import { createContext, useState, useEffect, useRef, useCallback } from "react";
-import { refreshAccessToken, parseJwt } from "../helper/oidc";
+import { refreshTokens, parseJwt } from "../helper/oidc";
+import { getCookie, setCookie, deleteCookie } from "../helper/cookies";
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
     const [auth, setAuthState] = useState(() => {
         try {
-            const storedAuth = localStorage.getItem("auth:v1");
+            const storedAuth = getCookie("auth:v1");
             return storedAuth ? JSON.parse(storedAuth) : {};
         } catch (e) {
-            console.error("Error reading auth from localStorage", e);
+            console.error("Error reading auth from cookie", e);
             return {};
         }
     });
@@ -21,12 +22,12 @@ export const AuthProvider = ({ children }) => {
             const updated = typeof newAuth === 'function' ? newAuth(prev) : newAuth;
             try {
                 if (updated && updated.JWT) {
-                    localStorage.setItem("auth:v1", JSON.stringify(updated));
+                    setCookie("auth:v1", JSON.stringify(updated), 7);
                 } else {
-                    localStorage.removeItem("auth:v1");
+                    deleteCookie("auth:v1");
                 }
             } catch (e) {
-                console.error("Error writing auth to localStorage", e);
+                console.error("Error writing auth to cookie", e);
             }
             return updated;
         });
@@ -49,7 +50,7 @@ export const AuthProvider = ({ children }) => {
 
         refreshTimerRef.current = setTimeout(async () => {
             try {
-                const tokens = await refreshAccessToken(refreshToken);
+                const tokens = await refreshTokens(refreshToken);
                 const payload = parseJwt(tokens.access_token || tokens.id_token);
                 setAuth((prev) => ({
                     ...prev,
@@ -81,17 +82,15 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         const handleAuthUpdate = () => {
             try {
-                const storedAuth = localStorage.getItem("auth:v1");
+                const storedAuth = getCookie("auth:v1");
                 setAuthState(storedAuth ? JSON.parse(storedAuth) : {});
             } catch (e) {
-                console.error("Error reading auth from localStorage in event", e);
+                console.error("Error reading auth from cookie in event", e);
             }
         };
         window.addEventListener("auth-updated", handleAuthUpdate);
-        window.addEventListener("storage", handleAuthUpdate);
         return () => {
             window.removeEventListener("auth-updated", handleAuthUpdate);
-            window.removeEventListener("storage", handleAuthUpdate);
         };
     }, []);
 
