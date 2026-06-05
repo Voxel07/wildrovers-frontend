@@ -31,7 +31,7 @@ const NavBarLogoMenue = ({ onLogout }) => {
   return(
     <Paper  sx={{ width: 120, margin: 0, padding: 0 }}>
       <Link to={"/Profil"} key={"Profil"}><MenuItem onClick={handleCloseNavMenu}>
-                  <Typography textAlign="center">{"Profil"}</Typography>
+                  <Typography align="center">{"Profil"}</Typography>
                 </MenuItem></Link>
         <MenuItem>
           <ListItemText onClick={onLogout}>LogOut</ListItemText >

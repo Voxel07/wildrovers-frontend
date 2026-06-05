@@ -31,6 +31,7 @@ export default function Topic(props) {
   const { auth } = useAuth();
   const navigate = useNavigate();
   const [post, setPost] = useState(null);
+  const [allPostsViewed, setAllPostsViewed] = useState(true);
   const { topic, id, postCount, views, creationDate, creator } = props.topic;
   const alertsManagerRef = use(AlertsContext);
 
@@ -86,6 +87,22 @@ export default function Topic(props) {
     }
   }, [id, postCount]);
 
+  useEffect(() => {
+    if (postCount > 0) {
+      api.get("/forum/post", { params: { topic: id } })
+        .then(response => {
+          const posts = response.data || [];
+          const allViewed = posts.every(p => p.viewed);
+          setAllPostsViewed(allViewed);
+        })
+        .catch(error => {
+          console.error("Error fetching posts for topic viewed status", error);
+        });
+    } else {
+      setAllPostsViewed(true);
+    }
+  }, [id, postCount]);
+
   function handleDelete(e) {
     e.stopPropagation();
     api.delete('/forum/topic', {
@@ -120,9 +137,9 @@ export default function Topic(props) {
       <Grid
         container
         direction="row"
-        alignItems="center"
         spacing={2}
         sx={{
+          alignItems: 'center',
           px: 3,
           py: 1,
           minHeight: 70,
@@ -131,9 +148,13 @@ export default function Topic(props) {
           }
         }}
       >
-        <Grid item xs={12} sm={6} md={5} lg={6} onClick={redirectToTopic} sx={{ cursor: 'pointer' }}>
-          <Stack direction="row" spacing={2} alignItems="center">
-            <LibraryBooksIcon color="primary" fontSize="medium" />
+        <Grid size={{ xs: 12, sm: 6, md: 5, lg: 6 }} onClick={redirectToTopic} sx={{ cursor: 'pointer' }}>
+          <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+            <LibraryBooksIcon
+              color={allPostsViewed ? "disabled" : "primary"}
+              fontSize="medium"
+              sx={{ opacity: allPostsViewed ? 0.5 : 1 }}
+            />
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
                 {topic}
@@ -145,11 +166,11 @@ export default function Topic(props) {
           </Stack>
         </Grid>
 
-        <Grid item xs={12} sm={3} md={3} lg={2}>
+        <Grid size={{ xs: 12, sm: 3, md: 3, lg: 2 }}>
           <ForumChips items={topicChips} />
         </Grid>
 
-        <Grid item xs={12} sm={3} md={3} lg={3}>
+        <Grid size={{ xs: 12, sm: 3, md: 3, lg: 3 }}>
           {postCount > 0 && post ? lastEntry() : (
             <Typography variant="caption" color="text.secondary">
               Keine Beiträge
@@ -157,7 +178,7 @@ export default function Topic(props) {
           )}
         </Grid>
 
-        <Grid item xs={12} sm={12} md={1} lg={1} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Grid size={{ xs: 12, sm: 12, md: 1, lg: 1 }} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
           {isCreatorOrAdmin && (
             <Stack direction="row" spacing={0.5}>
               <Tooltip title="Thema editieren">

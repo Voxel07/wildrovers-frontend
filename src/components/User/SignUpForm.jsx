@@ -1,142 +1,145 @@
-import React, { useState } from 'react'
-// import './SignUp.csks';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-//Form
-import { Formik, Field, Form } from 'formik';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import axios from 'axios'
+import axios from 'axios';
 
-
-//MUI
-import Button from '@mui/material/Button'
+// MUI
+import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import Grid from '@mui/material/Grid';
 
-//Eigene
-
-
-//Feedback
+// Feedback
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
-import { differenceInYears } from 'date-fns';
-
-
-
 
 function SignUpForm() {
-
     const [state, setState] = useState({ resCode: null, resData: null });
     const navigate = useNavigate();
 
-    const handleSubmit = async(formData) =>{
-
-        await axios.put('http://localhost:8080/user',
-        {
+    const handleSubmit = async (formData) => {
+        await axios.put('http://localhost:8080/user', {
             firstName: formData.firstName,
             lastName: formData.lastName,
             email: formData.email,
             userName: formData.userName,
             password: formData.password
         })
-        .then(response => {//handels only status code 200-300?
-            console.log(JSON.stringify(response.data))
-            setState({resCode:response.status, resData:response.data})
-            navigate("/Regestrieren/Erfolgreich", {replace: true});
-
-
+        .then(response => {
+            console.log(JSON.stringify(response.data));
+            setState({ resCode: response.status, resData: response.data });
+            navigate("/Regestrieren/Erfolgreich", { replace: true });
         })
-        .catch(error => {//handle response codes over 400 here
-            console.log("fuck")
-            console.log(error.response)
-            setState({resCode:error.response.status, resData:error.response.data})
+        .catch(error => {
+            console.log("Error during registration:", error.response);
+            setState({ resCode: error.response.status, resData: error.response.data });
         });
-
-    }
+    };
 
     const validationSchema = yup.object({
-        firstName: yup.string().required().min(3).max(20, "Max Länge 20"),
-        lastName: yup.string().required().min(3,"Min. 3 Zeichen").max(20, "Max 20 Zeichen"),
-        userName: yup.string().required().max(20, "Max Länge 20"),
-        password: yup.string().required().min(8, "Passwort muss min. 8 Zeichen haben").max(256, "Password darf max. 256 Zeichen haben"),
-        passwordWdh: yup.string().required().oneOf([yup.ref('password'), null], 'Passwörter müssen übereinstimmen'),
-        email: yup.string().required().email(),
-        // birthday: yup.date().nullable()
-        // .test("dob", "Du musst min. 18 Jahre alt sein", function (value) {
-        //   return differenceInYears(new Date(), new Date(value)) >= 18;
-        // })
-    })
+        firstName: yup.string().required("Vorname ist erforderlich").min(3, "Mindestens 3 Zeichen").max(20, "Max Länge 20"),
+        lastName: yup.string().required("Nachname ist erforderlich").min(3, "Mindestens 3 Zeichen").max(20, "Max 20 Zeichen"),
+        userName: yup.string().required("Benutzername ist erforderlich").max(20, "Max Länge 20"),
+        password: yup.string().required("Passwort ist erforderlich").min(8, "Passwort muss min. 8 Zeichen haben").max(256, "Password darf max. 256 Zeichen haben"),
+        passwordWdh: yup.string().required("Passwortwiederholung ist erforderlich").oneOf([yup.ref('password'), null], 'Passwörter müssen übereinstimmen'),
+        email: yup.string().required("E-Mail ist erforderlich").email("Muss eine gültige E-Mail-Adresse sein"),
+    });
 
-    const {resCode, resData} = state;
+    const { register, handleSubmit: handleFormSubmit, formState: { errors, isSubmitting } } = useForm({
+        resolver: yupResolver(validationSchema),
+        defaultValues: {
+            firstName: '',
+            lastName: '',
+            userName: '',
+            email: '',
+            password: '',
+            passwordWdh: ''
+        }
+    });
+
+    const onSubmit = async (data) => {
+        await handleSubmit(data);
+    };
+
+    const { resCode, resData } = state;
 
     return (
-    <Formik
-        validateOnChange={true}
-        initialValues={
-            {
-                firstName: '',
-                lastName: '',
-                userName:'',
-                email:'',
-                password:'',
-                passwordWdh:'',
-                // birthday:''
-            }
-        }
-        validationSchema={validationSchema}
-        onSubmit={async(data, { setSubmitting, resetForm }) => {
-                setSubmitting(true);
-                //Post From
-                await handleSubmit(data); //async call
-                setSubmitting(false);
-                // resetForm(true);
-
-            }
-        }
-
-    >
-        {
-            ({ values, errors, isSubmitting, touched }) => (
-                <Form className="Form-Container" >
-                    <Grid container direction="column" alignItems="center" spacing={2}>
-                        <Grid item>
-                            <Field variant="outlined" label="Vorname" name="firstName" type="input" error={!!errors.firstName && !!touched.firstName} helperText={!!touched.firstName && !!errors.firstName && String(errors.firstName)} as={TextField} />
-                        </Grid>
-                        <Grid item>
-                            <Field variant="outlined" label="Nachname" name="lastName" type="input" error={!!errors.lastName && !!touched.lastName} helperText={!!touched.lastName && !!errors.lastName && String(errors.lastName)} as={TextField} />
-                        </Grid>
-                        <Grid item>
-                            <Field variant="outlined" label="Benutzername" name="userName" type="input" error={!!errors.userName && !!touched.userName} helperText={!!touched.userName && !!errors.userName && String(errors.userName)} as={TextField} />
-                        </Grid>
-                        <Grid item>
-                            <Field variant="outlined" label="Email" name="email" type="email" error={!!errors.email && !!touched.email} helperText={!!touched.email && !!errors.email && String(errors.email)} as={TextField} />
-                        </Grid>
-                        <Grid item>
-                            <Field variant="outlined" label="Passwort" name="password" type="password" error={!!errors.password && !!touched.password} helperText={!!touched.password && !!errors.password && String(errors.password)} as={TextField}/>
-                        </Grid>
-                        <Grid item>
-                            <Field variant="outlined" label="Passwort wiederholen" name="passwordWdh" type="password" error={!!errors.passwordWdh && !!touched.passwordWdh} helperText={!!touched.passwordWdh && !!errors.passwordWdh && String(errors.passwordWdh)} as={TextField} />
-                        </Grid>
-                        <Grid item>
-                            {/* <Field variant="outlined"  name="geburtstag" type="date" error={!!errors.geburtstag && !!touched.geburtstag} helperText={!!touched.geburtstag && !!errors.geburtstag && String(errors.geburtstag)} as={TextField} /> */}
-                        </Grid>
-                        <Grid item>
-                            <Button variant="outlined" disabled={isSubmitting || !errors} type='submit'> Jetzt Regestrieren </Button>
-                        </Grid>
-                        <Grid item>
-                        <Stack  spacing={2} marginTop={2}>
-                        {
-                            !!resData && resCode > 200 ? <Alert severity="error">{resData}</Alert>:null
-                        }
-                        </Stack>
-                    </Grid>
-                    </Grid>
-                </Form>
-            )
-        }
-    </Formik>
-
+        <form onSubmit={handleFormSubmit(onSubmit)} className="Form-Container">
+            <Grid container direction="column" alignItems="center" spacing={2}>
+                <Grid item>
+                    <TextField
+                        variant="outlined"
+                        label="Vorname"
+                        type="text"
+                        error={!!errors.firstName}
+                        helperText={errors.firstName?.message}
+                        {...register("firstName")}
+                    />
+                </Grid>
+                <Grid item>
+                    <TextField
+                        variant="outlined"
+                        label="Nachname"
+                        type="text"
+                        error={!!errors.lastName}
+                        helperText={errors.lastName?.message}
+                        {...register("lastName")}
+                    />
+                </Grid>
+                <Grid item>
+                    <TextField
+                        variant="outlined"
+                        label="Benutzername"
+                        type="text"
+                        error={!!errors.userName}
+                        helperText={errors.userName?.message}
+                        {...register("userName")}
+                    />
+                </Grid>
+                <Grid item>
+                    <TextField
+                        variant="outlined"
+                        label="Email"
+                        type="email"
+                        error={!!errors.email}
+                        helperText={errors.email?.message}
+                        {...register("email")}
+                    />
+                </Grid>
+                <Grid item>
+                    <TextField
+                        variant="outlined"
+                        label="Passwort"
+                        type="password"
+                        error={!!errors.password}
+                        helperText={errors.password?.message}
+                        {...register("password")}
+                    />
+                </Grid>
+                <Grid item>
+                    <TextField
+                        variant="outlined"
+                        label="Passwort wiederholen"
+                        type="password"
+                        error={!!errors.passwordWdh}
+                        helperText={errors.passwordWdh?.message}
+                        {...register("passwordWdh")}
+                    />
+                </Grid>
+                <Grid item>
+                    <Button variant="outlined" disabled={isSubmitting} type="submit">
+                        Jetzt Regestrieren
+                    </Button>
+                </Grid>
+                <Grid item>
+                    <Stack spacing={2} marginTop={2}>
+                        {!!resData && resCode > 200 ? <Alert severity="error">{resData}</Alert> : null}
+                    </Stack>
+                </Grid>
+            </Grid>
+        </form>
     );
 }
 
-export default SignUpForm
+export default SignUpForm;

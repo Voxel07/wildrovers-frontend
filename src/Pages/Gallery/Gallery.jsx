@@ -159,7 +159,7 @@ export default function Gallery() {
         </Typography>
 
         {/* Buttons & Actions */}
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center" alignItems="center" sx={{ mb: 6 }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'center', alignItems: 'center', mb: 6 }}>
           {isLoggedIn ? (
             <>
               <Button
@@ -217,7 +217,7 @@ export default function Gallery() {
             </Typography>
             <Grid container spacing={4}>
               {dbAlbums.map((album) => (
-                <Grid item xs={12} sm={6} md={4} key={album.id} sx={{ display: 'flex' }}>
+                <Grid xs={12} sm={6} md={4} key={album.id} sx={{ display: 'flex' }}>
                   <Card sx={{
                     width: '100%',
                     display: 'flex',

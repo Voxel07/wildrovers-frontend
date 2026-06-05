@@ -105,7 +105,7 @@ export default function PollWidget(props) {
   return (
     <Card sx={{ border: '1px solid rgba(255, 152, 0, 0.25)', bgcolor: 'background.paper', mb: 3 }}>
       <CardContent sx={{ p: 3 }}>
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 2 }}>
           <BarChartIcon color="primary" />
           <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
             Umfrage: {poll.question}
@@ -167,7 +167,7 @@ export default function PollWidget(props) {
               return (
                 <Box key={option.id} sx={{ mb: 2 }}>
                   <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
-                    <Stack direction="row" spacing={1} alignItems="center">
+                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                       <Typography variant="body2" sx={{ fontWeight: isUserChoice ? 'bold' : 'normal' }}>
                         {option.optionText}
                       </Typography>

@@ -242,22 +242,26 @@ export default function Category(props) {
         id={`panel-${category.id}-header`}
         sx={{
           py: 1,
+          '& .MuiAccordionSummary-content': {
+            width: '100%',
+            margin: 0,
+          },
           '&:hover': {
             backgroundColor: 'rgba(255, 255, 255, 0.02)'
           }
         }}
       >
-        <Grid container direction="row" alignItems="center" spacing={2}>
-          <Grid item xs={12} md={3} onClick={redirectToCategory} sx={{ cursor: 'pointer' }}>
+        <Grid container direction="row" sx={{ alignItems: 'center', width: '100%' }} spacing={2}>
+          <Grid size={{ xs: 12, md: 3 }} onClick={redirectToCategory} sx={{ cursor: 'pointer' }}>
             <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'primary.main', display: 'inline-block' }}>
               {category.category}
             </Typography>
           </Grid>
-          <Grid item xs={12} md={8}>
+          <Grid size={{ xs: 12, md: 8 }}>
             <ForumChips items={categoryChips} />
           </Grid>
 
-          <Grid item xs={12} md={1} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <Grid size={{ xs: 12, md: 1 }} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
             {isCreatorOrAdmin && (
               <Stack direction="row" spacing={0.5}>
                 <Tooltip title="Kategorie editieren">
@@ -277,47 +281,7 @@ export default function Category(props) {
       </AccordionSummary>
       <Divider />
       <AccordionDetails sx={{ bgcolor: 'rgba(0, 0, 0, 0.1)', p: 0 }}>
-        {/* Sort toolbar */}
-        {topics.length > 0 && (
-          <Box sx={{
-            px: 3,
-            py: 1,
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: { xs: 'none', sm: 'flex' },
-            alignItems: 'center',
-            gap: 3,
-          }}>
-            <Typography variant="caption" color="text.secondary">Sortieren:</Typography>
-            <TableSortLabel
-              active={sort.field === 'topic'}
-              direction={sort.field === 'topic' ? sort.direction : 'asc'}
-              onClick={() => handleSort('topic')}
-            >
-              <Typography variant="caption" sx={{ fontWeight: 'bold' }}>Name</Typography>
-            </TableSortLabel>
-            <TableSortLabel
-              active={sort.field === 'postCount'}
-              direction={sort.field === 'postCount' ? sort.direction : 'asc'}
-              onClick={() => handleSort('postCount')}
-            >
-              <Typography variant="caption" sx={{ fontWeight: 'bold' }}>Beiträge</Typography>
-            </TableSortLabel>
-            <TableSortLabel
-              active={sort.field === 'creationDate'}
-              direction={sort.field === 'creationDate' ? sort.direction : 'asc'}
-              onClick={() => handleSort('creationDate')}
-            >
-              <Typography variant="caption" sx={{ fontWeight: 'bold' }}>Datum</Typography>
-            </TableSortLabel>
-            <TableSortLabel
-              active={sort.field === 'views'}
-              direction={sort.field === 'views' ? sort.direction : 'asc'}
-              onClick={() => handleSort('views')}
-            >
-              <Typography variant="caption" sx={{ fontWeight: 'bold' }}>Aufrufe</Typography>
-            </TableSortLabel>
-          </Box>
-        )}
+
         {sortedTopics.length ? (
           sortedTopics.map(topic => (
             <Topic

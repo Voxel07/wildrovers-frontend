@@ -165,10 +165,9 @@ export default function Post({ post, onUpdate }) {
                     <Stack
                         direction="row"
                         spacing={2}
-                        alignItems="center"
-                        justifyContent="space-between"
+                        sx={{ alignItems: 'center', justifyContent: 'space-between' }}
                     >
-                        <Stack direction="row" spacing={1.5} alignItems="center">
+                        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
                             <Avatar
                                 alt={creator ? creator[0].toUpperCase() : 'U'}
                                 sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', fontWeight: 'bold' }}
@@ -240,7 +239,7 @@ export default function Post({ post, onUpdate }) {
 
                 {/* Like / Dislike bar */}
                 <Grid item>
-                    <Stack direction="row" spacing={1} alignItems="center">
+                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                         <Tooltip title="Gefällt mir">
                             <IconButton
                                 size="small"

@@ -99,8 +99,8 @@ export default function Answer(props) {
       <CardContent sx={{ p: 2 }}>
         <Grid container spacing={2}>
           <Grid item xs={12}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center">
-              <Stack direction="row" spacing={1.5} alignItems="center">
+            <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
                 <Avatar 
                   alt={answer.creator ? answer.creator[0].toUpperCase() : 'U'} 
                   sx={{ bgcolor: 'secondary.main', color: 'secondary.contrastText', width: 32, height: 32, fontWeight: 'bold', fontSize: '0.9rem' }}

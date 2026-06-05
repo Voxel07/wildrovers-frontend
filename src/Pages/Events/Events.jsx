@@ -296,7 +296,7 @@ export default function Events() {
           ).sort((a, b) => b - a);
           if (uniqueYears.length <= 1) return null;
           return (
-            <Stack direction="row" spacing={1.5} justifyContent="center" sx={{ mb: 6, flexWrap: 'wrap', gap: 1 }}>
+            <Stack direction="row" spacing={1.5} sx={{ justifyContent: 'center', mb: 6, flexWrap: 'wrap', gap: 1 }}>
               {uniqueYears.map(year => (
                 <Chip
                   key={year}
@@ -357,8 +357,8 @@ export default function Events() {
                     {/* Days counter between adjacent events */}
                     {index > 0 && (
                       <Grid container spacing={2} sx={{ position: 'relative', my: 1.5 }}>
-                        <Grid item xs={3.5} sm={2.5} />
-                        <Grid item xs={1} sm={1} sx={{ display: 'flex', justifyContent: 'center', position: 'relative', height: 40 }}>
+                        <Grid xs={3.5} sm={2.5} />
+                        <Grid xs={1} sm={1} sx={{ display: 'flex', justifyContent: 'center', position: 'relative', height: 40 }}>
                           <Box sx={{
                             width: '2px',
                             bgcolor: 'rgba(255, 152, 0, 0.25)',
@@ -385,14 +385,14 @@ export default function Events() {
                             }}
                           />
                         </Grid>
-                        <Grid item xs={7.5} sm={8.5} />
+                        <Grid xs={7.5} sm={8.5} />
                       </Grid>
                     )}
 
                     {/* Main Event Row */}
-                    <Grid container spacing={2} alignItems="stretch">
+                    <Grid container spacing={2} sx={{ alignItems: 'stretch' }}>
                       {/* Left Column: Date & Time */}
-                      <Grid item xs={3.5} sm={2.5} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', pr: { xs: 1, sm: 2 } }}>
+                      <Grid xs={3.5} sm={2.5} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', pr: { xs: 1, sm: 2 } }}>
                         <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'primary.main', textAlign: 'right', fontSize: { xs: '0.85rem', sm: '1rem' } }}>
                           {dateTextOnly}
                         </Typography>
@@ -417,7 +417,7 @@ export default function Events() {
                       </Grid>
 
                       {/* Middle Column: Line Segment and Circle Node */}
-                      <Grid item xs={1} sm={1} sx={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
+                      <Grid xs={1} sm={1} sx={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
                         <Box sx={{
                           width: '2px',
                           bgcolor: 'rgba(255, 152, 0, 0.25)',
@@ -445,7 +445,7 @@ export default function Events() {
                       </Grid>
 
                       {/* Right Column: Card */}
-                      <Grid item xs={7.5} sm={8.5} sx={{ display: 'flex' }}>
+                      <Grid xs={7.5} sm={8.5} sx={{ display: 'flex' }}>
                         <Card sx={{
                           border: '1px solid rgba(255, 255, 255, 0.08)',
                           bgcolor: isFuture ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.005)',
@@ -457,13 +457,13 @@ export default function Events() {
                           }
                         }}>
                           <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
-                            <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                            <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
                               <Box sx={{ width: '100%' }}>
                                 <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1.5, color: isFuture ? 'text.primary' : 'text.secondary', fontSize: { xs: '1.15rem', sm: '1.4rem' } }}>
                                   {event.title}
                                 </Typography>
                                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
-                                  <Stack direction="row" spacing={0.5} alignItems="center" color="text.secondary">
+                                  <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }} color="text.secondary">
                                     <LocationOnIcon sx={{ fontSize: '1.1rem' }} />
                                     <Typography variant="subtitle2">
                                       {event.location}

@@ -44,13 +44,13 @@ const bylaws = [
     section: '§2 Zweck, Aufgabe',
     content: (
       <Box component="div">
-        <Typography variant="body2" paragraph>
+        <Typography variant="body2" sx={{ mb: 2 }}>
           Das Team bezweckt das Ausüben des Softairsports in Deutschland auf gesichertem Gelände / Gebiet und/oder anderen Ländern.
         </Typography>
-        <Typography variant="body2" paragraph>
+        <Typography variant="body2" sx={{ mb: 2 }}>
           Der Zweck wird insbesondere verwirklicht durch die Errichtung eines Geländes zur Ausübung des taktischen Sports für Übungen und taktische Wettkämpfe. Das Team gibt allen deutschen und ausländischen Softairspielern die Möglichkeit, sich zu treffen und den Softairsport legal auszuüben.
         </Typography>
-        <Typography variant="body2" paragraph>
+        <Typography variant="body2" sx={{ mb: 2 }}>
           Das Team ist selbstlos tätig; es verfolgt nicht in erster Linie eigenwirtschaftliche Zwecke. Mittel des Teams dürfen nur für satzungsmäßige Zwecke verwendet werden.
         </Typography>
       </Box>
@@ -129,7 +129,7 @@ export default function Rules() {
     <Container maxWidth="md" sx={{ mt: 5, mb: 8, px: { xs: 1, md: 3 } }}>
 
       {/* Header Info */}
-      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 3 }}>
+      <Stack direction="row" sx={{ spacing: 1.5, alignItems: "center", mb: 3 }}>
         <LibraryBooksIcon color="primary" sx={{ fontSize: '2.5rem' }} />
         <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
           Regeln & Satzung
@@ -146,7 +146,7 @@ export default function Rules() {
       </Typography>
       <Grid container spacing={3} sx={{ mb: 6 }}>
         {generalRules.map((rule) => (
-          <Grid item xs={12} sm={6} key={rule.title}>
+          <Grid xs={12} sm={6} key={rule.title}>
             <Card sx={{ height: '100%', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
               <CardContent>
                 <Typography variant="subtitle1" color="primary.main" sx={{ fontWeight: 'bold', mb: 1 }}>
@@ -162,7 +162,7 @@ export default function Rules() {
       </Grid>
 
       {/* Detailed Bylaws (Accordions) */}
-      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 3 }}>
+      <Stack direction="row" sx={{ spacing: 1.5, alignItems: "center", mb: 3 }}>
         <GavelIcon color="primary" />
         <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
           Das Regelwerk
@@ -171,7 +171,38 @@ export default function Rules() {
 
       <Box sx={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden' }}>
         {bylaws.map((item, idx) => (
-          <Accordion key={item.section} disableGutters sx={{ border: 'none', borderBottom: idx < bylaws.length - 1 ? '1px solid rgba(255,255,255,0.08)' : 'none' }}>
+          <Accordion
+            key={item.section}
+            disableGutters
+            sx={{
+              boxShadow: 'none',
+              '&:before': {
+                display: 'none',
+              },
+              border: 'none',
+              borderBottom: idx < bylaws.length - 1 ? '1px solid rgba(255,255,255,0.08)' : 'none',
+              borderRadius: 0,
+              '&.Mui-expanded': {
+                margin: 0,
+              },
+              ...(idx === 0 && {
+                borderTopLeftRadius: '8px',
+                borderTopRightRadius: '8px',
+                '&.Mui-expanded': {
+                  borderTopLeftRadius: '8px',
+                  borderTopRightRadius: '8px',
+                },
+              }),
+              ...(idx === bylaws.length - 1 && {
+                borderBottomLeftRadius: '8px',
+                borderBottomRightRadius: '8px',
+                '&.Mui-expanded': {
+                  borderBottomLeftRadius: '8px',
+                  borderBottomRightRadius: '8px',
+                },
+              }),
+            }}
+          >
             <AccordionSummary
               expandIcon={<ExpandMoreIcon />}
               aria-controls={`rules-panel-${idx}-content`}

@@ -24,8 +24,8 @@ import AddIcon from '@mui/icons-material/Add';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 
 // Eigene assets
-import SchriftImage from '../../images/Schrift.png';
-import LogoHellImage from '../../images/Logo_hell.png';
+import SchriftImage from '../../images/Schrift.webp';
+import LogoHellImage from '../../images/Logo_hell_small.webp';
 import TsatLogo from '../../images/TSAT_small.webp';
 import LegionLogo from '../../images/Legion1_small.webp';
 import RoversLogo from '../../images/WRW_small.webp';
@@ -158,7 +158,7 @@ export default function LandingPage() {
         }
       }}>
         <Container maxWidth="md">
-          <Stack spacing={4} alignItems="center">
+          <Stack spacing={4} sx={{ alignItems: 'center' }}>
             {/* Logo image if exists, fallback to typography */}
             <Box sx={{
               width: { xs: 150, md: 220 },
@@ -249,8 +249,8 @@ export default function LandingPage() {
 
       {/* History (Chronik) Section */}
       <Container id="chronik" maxWidth="lg" sx={{ py: 10 }}>
-        <Grid container spacing={6} alignItems="flex-start">
-          <Grid item xs={12} md={7}>
+        <Grid container spacing={6} sx={{ alignItems: 'flex-start' }}>
+          <Grid size={{ xs: 12, md: 7 }}>
             <Box sx={{ textAlign: 'left' }}>
               <Typography variant="h4" color="primary" gutterBottom sx={{ borderBottom: '1px solid', borderColor: 'divider', pb: 1, textTransform: 'uppercase', fontWeight: 700 }}>
                 Die Geschichte
@@ -274,7 +274,7 @@ export default function LandingPage() {
             </Box>
           </Grid>
 
-          <Grid item xs={12} md={5}>
+          <Grid size={{ xs: 12, md: 5 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, mt: { xs: 4, md: 0 } }}>
               <Typography variant="h5" color="primary.main" sx={{ fontWeight: 700, mb: 2, textTransform: 'uppercase', letterSpacing: '1px', alignSelf: 'flex-start' }}>
                 Die Fusion der Teams
@@ -333,9 +333,9 @@ export default function LandingPage() {
             Anstehende Events
           </Typography>
 
-          <Grid container spacing={3} justifyContent="center">
+          <Grid container spacing={3} sx={{ justifyContent: 'center' }}>
             {events.length > 0 ? events.map((event) => (
-              <Grid item xs={12} md={4} key={event.id}>
+              <Grid xs={12} md={4} key={event.id}>
                 <Paper sx={{
                   p: 3,
                   height: '100%',
@@ -351,7 +351,7 @@ export default function LandingPage() {
                   }
                 }}>
                   <Box>
-                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
+                    <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                       <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
                         {event.title}
                       </Typography>
@@ -367,7 +367,7 @@ export default function LandingPage() {
                 </Paper>
               </Grid>
             )) : (
-              <Grid item xs={12}>
+              <Grid xs={12}>
                 <Typography align="center" color="text.secondary" sx={{ fontStyle: 'italic' }}>
                   Aktuell keine Events geplant.
                 </Typography>
@@ -407,8 +407,8 @@ export default function LandingPage() {
 
       {/* Partners & Shops Section */}
       <Container maxWidth="lg" sx={{ py: 10 }}>
-        <Grid container spacing={4} alignItems="center">
-          <Grid item xs={12} md={6}>
+        <Grid container spacing={4} sx={{ alignItems: 'center' }}>
+          <Grid xs={12} md={6}>
             <Typography variant="h4" component="h2" sx={{ fontWeight: 'bold', mb: 3 }}>
               Partner & Shops
             </Typography>
@@ -438,9 +438,9 @@ export default function LandingPage() {
             </Button>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid xs={12} md={6}>
             <Grid container spacing={2}>
-              <Grid item xs={6}>
+              <Grid xs={6}>
                 <Card sx={{
                   p: 3,
                   textAlign: 'center',
@@ -458,7 +458,7 @@ export default function LandingPage() {
                   </Typography>
                 </Card>
               </Grid>
-              <Grid item xs={6}>
+              <Grid xs={6}>
                 <Card sx={{
                   p: 3,
                   textAlign: 'center',

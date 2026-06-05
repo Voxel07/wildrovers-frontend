@@ -111,8 +111,8 @@ const Forum = () => {
                 borderBottom: '2px solid rgba(255, 255, 255, 0.08)',
                 display: { xs: 'none', md: 'block' }
             }}>
-                <Grid container direction="row" alignItems="center">
-                    <Grid item xs={3}>
+                <Grid container direction="row" sx={{ alignItems: 'center' }}>
+                    <Grid size={{ xs: 3 }}>
                         <Stack direction="row" spacing={2}>
                             <TableSortLabel
                               active={sort.field === "position"}
@@ -130,9 +130,9 @@ const Forum = () => {
                             </TableSortLabel>
                         </Stack>
                     </Grid>
-                    <Grid item xs={9}>
+                    <Grid size={{ xs: 9 }}>
                         <Grid container direction="row" spacing={4} sx={{ pl: 2 }}>
-                            <Grid item xs={3}>
+                            <Grid size={{ xs: 3 }}>
                                 <TableSortLabel
                                   active={sort.field === "creator"}
                                   direction={sort.direction}
@@ -141,7 +141,7 @@ const Forum = () => {
                                   <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>Ersteller</Typography>
                                 </TableSortLabel>
                             </Grid>
-                            <Grid item xs={3}>
+                            <Grid size={{ xs: 3 }}>
                                 <TableSortLabel
                                   active={sort.field === "creationDate"}
                                   direction={sort.direction}
@@ -150,7 +150,7 @@ const Forum = () => {
                                   <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>Erstellungsdatum</Typography>
                                 </TableSortLabel>
                             </Grid>
-                            <Grid item xs={3}>
+                            <Grid size={{ xs: 3 }}>
                                 <TableSortLabel
                                   active={sort.field === "topicCount"}
                                   direction={sort.direction}
@@ -159,7 +159,7 @@ const Forum = () => {
                                   <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>Themen</Typography>
                                 </TableSortLabel>
                             </Grid>
-                            <Grid item xs={3}>
+                            <Grid size={{ xs: 3 }}>
                                 <TableSortLabel
                                   active={sort.field === "visibility"}
                                   direction={sort.direction}

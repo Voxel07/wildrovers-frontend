@@ -1,12 +1,13 @@
 /**
- * This is the Modal to add a ne Category
+ * This is the Modal to add a new Category
  */
-import React, { useRef, useState, useEffect, use, useMemo } from 'react';
+import React, { useState, useEffect, use, useMemo } from 'react';
 import axios from 'axios';
-import { Formik, Field, Form } from 'formik';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 
-//Feedback
+// Feedback
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Grid from '@mui/material/Grid';
@@ -14,15 +15,14 @@ import Grid from '@mui/material/Grid';
 // Category name
 import TextField from '@mui/material/TextField';
 
-//Button
+// Button
 import Button from '@mui/material/Button';
 import { Container, Typography } from '@mui/material';
-// import Autocomplete from '@mui/material/Autocomplete';
-import Autocomplete from '@mui/material/Autocomplete'; // native MUI Autocomplete, no formik-mui needed
+import Autocomplete from '@mui/material/Autocomplete';
 import { red } from '@mui/material/colors';
 import { AlertsContext } from '../../components/utils/AlertsManager';
 
-//Auth
+// Auth
 import useAuth from '../../context/useAuth';
 
 const style = {
@@ -38,8 +38,6 @@ const style = {
 };
 
 const AddCategory = ({ ref, ...props }) => {
-
-    const formikRef = useRef();
     const { auth } = useAuth();
     const [state, setState] = useState({ resCode: null, resData: null });
     const alertsManagerRef = use(AlertsContext);
@@ -50,6 +48,7 @@ const AddCategory = ({ ref, ...props }) => {
         }
         return null;
     });
+    
     const [selectedValueVis, setSelectedValueVis] = useState(() => {
         if (props.categoryToEdit && props.categoryToEdit.visibility) {
             return posibleRanks.find(r => r.label === props.categoryToEdit.visibility) || null;
@@ -64,12 +63,6 @@ const AddCategory = ({ ref, ...props }) => {
         }));
     }, [props.aviableCategories]);
 
-
-    //------------Modal-------------------------------------
-
-
-    //------------Modal Ende-----Yump-----------------------
-
     const validationSchema = yup.object({
         Name: yup
             .string()
@@ -78,9 +71,29 @@ const AddCategory = ({ ref, ...props }) => {
             .max(20, "Name darf max. 20 Zeichen haben"),
     });
 
-    //----Functions-------------------------
+    const { register, handleSubmit: handleFormSubmit, reset, formState: { errors, isSubmitting } } = useForm({
+        resolver: yupResolver(validationSchema),
+        defaultValues: {
+            Name: props.categoryToEdit ? props.categoryToEdit.category : '',
+        }
+    });
 
-
+    // Reset name if categoryToEdit changes
+    useEffect(() => {
+        reset({
+            Name: props.categoryToEdit ? props.categoryToEdit.category : '',
+        });
+        if (props.categoryToEdit && props.categoryToEdit.position != null) {
+            setSelectedValuePos({ label: String(props.categoryToEdit.position), id: props.categoryToEdit.position });
+        } else {
+            setSelectedValuePos(null);
+        }
+        if (props.categoryToEdit && props.categoryToEdit.visibility) {
+            setSelectedValueVis(posibleRanks.find(r => r.label === props.categoryToEdit.visibility) || null);
+        } else {
+            setSelectedValueVis(null);
+        }
+    }, [props.categoryToEdit, reset]);
 
     async function saveCategoryToDB(vals) {
         const isEdit = !!props.categoryToEdit;
@@ -95,141 +108,127 @@ const AddCategory = ({ ref, ...props }) => {
         };
         const method = isEdit ? 'post' : 'put';
 
-        axios({
-            method,
-            url,
-            data,
-            headers: { Authorization: `Bearer ${auth.JWT}` }
-        }).then(
-            response => {
-                setState({ resCode: response.status, resData: "" });
-                alertsManagerRef.current.showAlert('success', isEdit ? 'Kategorie erfolgreich aktualisiert' : 'Kategorie: ' + vals.Name + ' Erfolgreich erstellt');
+        try {
+            const response = await axios({
+                method,
+                url,
+                data,
+                headers: { Authorization: `Bearer ${auth.JWT}` }
+            });
 
-                props.callback();
-                props.onAddCategory();
+            setState({ resCode: response.status, resData: "" });
+            alertsManagerRef.current.showAlert('success', isEdit ? 'Kategorie erfolgreich aktualisiert' : 'Kategorie: ' + vals.Name + ' Erfolgreich erstellt');
+
+            props.callback();
+            props.onAddCategory();
+            reset({ Name: '' });
+            setSelectedValuePos(null);
+            setSelectedValueVis(null);
+        } catch (error) {
+            console.log(error.response?.data);
+            let resCode = error.response ? error.response.status : 500;
+            let resData;
+
+            if (resCode === 401) {
+                resData = "Nicht angemeldet!";
+            } else if (resCode === 403 || resCode === 406) {
+                resData = error.response.data || "Du bist für diese Aktion nicht berechtigt!";
+            } else {
+                resData = error.response.data || "Ein Fehler ist aufgetreten.";
             }
-        )
-            .catch(error => {
-                console.log(error.response.data)
-                let resCode = error.response.status;
-                let resData;
 
-                if (resCode === 401) {
-                    resData = "Nicht angemeldet!";
-                } else if (resCode === 403 || resCode === 406) {
-                    resData = error.response.data || "Du bist für diese Aktion nicht berechtigt!";
-                } else {
-                    resData = error.response.data || "Ein Fehler ist aufgetreten.";
-                }
-
-                setState({ resCode, resData });
-            })
+            setState({ resCode, resData });
+        }
     }
+
+    const onSubmit = async (data) => {
+        await saveCategoryToDB(data);
+    };
+
     const { resCode, resData } = state;
 
     return (
-        <React.Fragment >
-            <Formik
-                innerRef={formikRef}
-                validateOnChange={true}
-                initialValues={{
-                    Name: props.categoryToEdit ? props.categoryToEdit.category : '',
-                    Position: '',
-                    Visibility: ''
-                }}
-                validationSchema={validationSchema}
-                onSubmit={async (data, { setSubmitting }) => {
-                    setSubmitting(true);
-                    await saveCategoryToDB(data, () => formikRef.current?.resetForm(true));
-                    setSubmitting(false);
-                }
-                }
-            >
-                {
-                    ({ values, errors, isSubmitting, touched }) => (
-                        <div ref={ref} tabIndex={-1}>
-                            <Container className="Form-Container" sx={{ ...style, width: 0.33 }} >
-                                <Typography sx={{ marginBottom: 5 }}>
-                                    {props.categoryToEdit ? 'Kategorie editieren' : 'Neue Kategorie hinzufügen'}
-                                </Typography>
-                                <Form className="Form">
-                                    <Field variant="outlined" label="Name der Kategorie" name="Name" type="input" error={!!errors.Name} helperText={errors.Name} as={TextField} />
-                                    {possibleCategories.length ?
-                                        <Autocomplete
-                                            name="Position"
-                                            options={possibleCategories}
-                                            getOptionLabel={(option) => (option ? option.label : "")}
-                                            isOptionEqualToValue={(option, value) => option.label === value.label}
-                                            onChange={(event, newValue) => setSelectedValuePos(newValue)}
-                                            value={selectedValuePos || null}
-                                            renderInput={(params) => (
-                                                <TextField
-                                                    {...params}
-                                                    name="Position"
-                                                    error={!!touched['Position'] && !!errors['Position']}
-                                                    helperText={!!touched['Position'] && errors['Position'] && String(errors.Position)}
-                                                    sx={{
-                                                        color: red,
-                                                        marginTop: 3
-                                                    }}
-                                                    label="Reihenfolge"
-                                                    variant="outlined"
-                                                />
-                                            )}
-                                        /> : null
-                                    }
+        <div ref={ref} tabIndex={-1}>
+            <Container className="Form-Container" sx={{ ...style, width: 0.33 }}>
+                <Typography sx={{ marginBottom: 5 }}>
+                    {props.categoryToEdit ? 'Kategorie editieren' : 'Neue Kategorie hinzufügen'}
+                </Typography>
+                <form onSubmit={handleFormSubmit(onSubmit)} className="Form">
+                    <TextField
+                        variant="outlined"
+                        label="Name der Kategorie"
+                        error={!!errors.Name}
+                        helperText={errors.Name?.message}
+                        {...register("Name")}
+                        sx={{ mb: 3, width: '100%' }}
+                    />
+                    
+                    {possibleCategories.length ? (
+                        <Autocomplete
+                            name="Position"
+                            options={possibleCategories}
+                            getOptionLabel={(option) => (option ? option.label : "")}
+                            isOptionEqualToValue={(option, value) => option.label === value.label}
+                            onChange={(event, newValue) => setSelectedValuePos(newValue)}
+                            value={selectedValuePos || null}
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    name="Position"
+                                    sx={{
+                                        color: red,
+                                        marginTop: 3,
+                                        mb: 3
+                                    }}
+                                    label="Reihenfolge"
+                                    variant="outlined"
+                                />
+                            )}
+                        />
+                    ) : null}
 
-                                    <Autocomplete
-                                        name="Visibility"
-                                        options={posibleRanks}
-                                        getOptionLabel={(option) => option.label}
-                                        isOptionEqualToValue={(option, value) => option.label === value.label}
-                                        onChange={(event, newValue) => setSelectedValueVis(newValue)}
-                                        value={selectedValueVis || null}
-                                        renderInput={(params) => (
-                                            <TextField
-                                                {...params}
-                                                name="Visibility"
-                                                error={!!touched['Visibility'] && !!errors['Visibility']}
-                                                helperText={!!touched['Visibility'] && !!errors['Visibility'] && String(errors.Visibility)}
-                                                sx={{
-                                                    color: red,
-                                                    marginTop: 3
-                                                }}
-                                                label="Sichtbarkeit"
-                                                variant="outlined"
-                                            />
-                                        )}
-                                    />
+                    <Autocomplete
+                        name="Visibility"
+                        options={posibleRanks}
+                        getOptionLabel={(option) => option.label}
+                        isOptionEqualToValue={(option, value) => option.label === value.label}
+                        onChange={(event, newValue) => setSelectedValueVis(newValue)}
+                        value={selectedValueVis || null}
+                        renderInput={(params) => (
+                            <TextField
+                                {...params}
+                                name="Visibility"
+                                sx={{
+                                    color: red,
+                                    marginTop: 3,
+                                    mb: 3
+                                }}
+                                label="Sichtbarkeit"
+                                variant="outlined"
+                            />
+                        )}
+                    />
 
-                                    <Grid container direction="row" justifyContent="space-between">
-                                        <Button variant='outlined' onClick={props.callback} color="error" sx={{ marginTop: 2 }}> Abbrechen </Button>
-                                        <Button variant='outlined' disabled={isSubmitting || !errors} type='submit' sx={{ marginTop: 2 }}>
-                                            {props.categoryToEdit ? 'Speichern' : 'Hinzufügen'}
-                                        </Button>
-                                    </Grid>
-                                    {/* <pre> {JSON.stringify(values, null, 2)} </pre> */}
-                                </Form>
-                                <Grid container alignItems="center" justifyContent="start">
-                                    <Grid item>
-                                        <Stack spacing={2} marginTop={2}>
-                                            {
-                                                !!resData && resCode > 200 ? <Alert severity="error" style={{ whiteSpace: "pre-wrap" }}>{resData}</Alert> : null
-                                            }
-                                        </Stack>
-                                    </Grid>
-                                </Grid >
-                            </Container>
-
-                        </div>
-                    )
-                }
-            </Formik>
-
-        </React.Fragment>
+                    <Grid container direction="row" sx={{ justifyContent: 'space-between' }}>
+                        <Button variant="outlined" onClick={props.callback} color="error" sx={{ marginTop: 2 }}>
+                            Abbrechen
+                        </Button>
+                        <Button variant="outlined" disabled={isSubmitting} type="submit" sx={{ marginTop: 2 }}>
+                            {props.categoryToEdit ? 'Speichern' : 'Hinzufügen'}
+                        </Button>
+                    </Grid>
+                </form>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', mt: 2 }}>
+                    <Stack spacing={2}>
+                        {!!resData && resCode > 200 ? (
+                            <Alert severity="error" style={{ whiteSpace: "pre-wrap" }}>{resData}</Alert>
+                        ) : null}
+                    </Stack>
+                </Box>
+            </Container>
+        </div>
     );
 };
-
 
 const posibleRanks = [
     { label: 'Besucher', id: 1 },

@@ -1,29 +1,27 @@
 /**
- * This is the Modal to add a ne Category
+ * This is the Modal to add a new Topic
  */
-import React, {useRef , useState, useEffect, use } from 'react';
+import React, { useState, useEffect, use } from 'react';
+import axios from 'axios';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
 
- import axios from 'axios';
- import { Formik, Field, Form } from 'formik';
- import * as yup from 'yup';
+// Feedback
+import Alert from '@mui/material/Alert';
+import Stack from '@mui/material/Stack';
+import Grid from '@mui/material/Grid';
 
- //Feedback
- import Alert from '@mui/material/Alert';
- import Stack from '@mui/material/Stack';
- import Grid from '@mui/material/Grid';
+// Category name
+import TextField from '@mui/material/TextField';
 
- // Category name
- import TextField from '@mui/material/TextField';
+// Button
+import Button from '@mui/material/Button';
+import { Container, Typography } from '@mui/material';
+import { AlertsContext } from '../../components/utils/AlertsManager';
 
- //Button
- import Button from '@mui/material/Button';
- import { Container, Typography } from '@mui/material';
- // Autocomplete handled via native MUI if needed
- import { red } from '@mui/material/colors';
- import { AlertsContext } from '../../components/utils/AlertsManager';
-
- //Auth
- import useAuth from '../../context/useAuth';
+// Auth
+import useAuth from '../../context/useAuth';
 
 const style = {
     position: 'absolute',
@@ -38,23 +36,29 @@ const style = {
 };
 
 const AddTopic = ({ ref, ...props }) => {
-     const formikRef = useRef();
-     const{ auth } = useAuth();
-     const [state, setState] = useState({ resCode: null, resData: null });
-     const alertsManagerRef = use(AlertsContext);
+    const { auth } = useAuth();
+    const [state, setState] = useState({ resCode: null, resData: null });
+    const alertsManagerRef = use(AlertsContext);
 
+    const validationSchema = yup.object({
+        Topic: yup.string().required("Name des Themas ist erforderlich").min(3, "Name muss min. 3 Zeichen haben").max(20, "Name darf max. 20 Zeichen haben"),
+    });
 
+    const { register, handleSubmit: handleFormSubmit, reset, formState: { errors, isSubmitting } } = useForm({
+        resolver: yupResolver(validationSchema),
+        defaultValues: {
+            Topic: props.topicToEdit ? props.topicToEdit.topic : '',
+        }
+    });
 
-     const validationSchema = yup.object({
-        Topic: yup.string().required().min(3, "Name muss min. 3 Zeichen haben").max(20,"Name darf max. 20 Zeichen haben"),
-     })
+    // Reset form values if topicToEdit changes
+    useEffect(() => {
+        reset({
+            Topic: props.topicToEdit ? props.topicToEdit.topic : '',
+        });
+    }, [props.topicToEdit, reset]);
 
- //----Functions-------------------------
-
-
-
-
-    async function saveTopicToDB(vals){
+    async function saveTopicToDB(vals) {
         const isEdit = !!props.topicToEdit;
         const url = 'http://localhost:8080/forum/topic';
         const data = isEdit ? {
@@ -66,116 +70,85 @@ const AddTopic = ({ ref, ...props }) => {
         const method = isEdit ? 'post' : 'put';
         const params = isEdit ? {} : { category: props.category.id };
 
-        axios({
-            method,
-            url,
-            data,
-            params,
-            headers: { Authorization: `Bearer ${auth.JWT}` }
-        }).then(
-            response =>{
-                setState({resCode: response.status, resData: ""});
-                alertsManagerRef.current.showAlert('success', isEdit ? 'Thema erfolgreich aktualisiert' : 'Thema: '+ vals.Topic +' Erfolgreich erstellt');
+        try {
+            const response = await axios({
+                method,
+                url,
+                data,
+                params,
+                headers: { Authorization: `Bearer ${auth.JWT}` }
+            });
+            
+            setState({ resCode: response.status, resData: "" });
+            alertsManagerRef.current.showAlert('success', isEdit ? 'Thema erfolgreich aktualisiert' : 'Thema: ' + vals.Topic + ' Erfolgreich erstellt');
 
-                props.callback();
-                if (isEdit) {
-                    props.onAddTopic();
-                } else if (props.onAddTopicSuccess) {
-                    props.onAddTopicSuccess(response.data);
-                }
+            props.callback();
+            if (isEdit) {
+                props.onAddTopic();
+            } else if (props.onAddTopicSuccess) {
+                props.onAddTopicSuccess(response.data);
             }
-        )
-    .catch(error=>{
-        let resCode = error.response ? error.response.status : 500;
-        let resData;
+            reset({ Topic: '' });
+        } catch (error) {
+            let resCode = error.response ? error.response.status : 500;
+            let resData;
 
-        if (resCode === 401) {
-            resData = "Nicht angemeldet!";
-        } else if (resCode === 403 || resCode === 406) {
-            resData = error.response.data || "Du bist für diese Aktion nicht berechtigt!";
-        } else {
-            resData = error.response.data || "Ein Fehler ist aufgetreten.";
-        }
+            if (resCode === 401) {
+                resData = "Nicht angemeldet!";
+            } else if (resCode === 403 || resCode === 406) {
+                resData = error.response.data || "Du bist für diese Aktion nicht berechtigt!";
+            } else {
+                resData = error.response.data || "Ein Fehler ist aufgetreten.";
+            }
 
-        setState({ resCode, resData });
-        if (!isEdit && props.onAddTopicFailure) {
-            props.onAddTopicFailure();
+            setState({ resCode, resData });
+            if (!isEdit && props.onAddTopicFailure) {
+                props.onAddTopicFailure();
+            }
         }
-    })
     }
-    const {resCode, resData} = state;
 
-   return (
-    <React.Fragment >
-        <Formik
-            innerRef={formikRef}
-            validateOnChange={true}
-            initialValues={{
-                Topic: props.topicToEdit ? props.topicToEdit.topic : '',
-            }}
-            validationSchema={validationSchema}
-            onSubmit={async (data, { setSubmitting, resetForm }) => {
-                setSubmitting(true);
-                if (!props.topicToEdit && props.onOptimisticAdd) {
-                    props.onOptimisticAdd(data.Topic);
-                }
-                await saveTopicToDB(data);
-                resetForm(true);
-                setSubmitting(false);
-                }
-            }
-        >
-            {
-            ({ values, errors, isSubmitting , touched}) => (
-            <div ref={ref} tabIndex={-1}>
-                <Container className="Form-Container" sx={{...style, width:0.33}} >
-                    <Typography sx={{marginBottom:5}}>
-                        {props.topicToEdit ? 'Thema editieren' : `Neues Thema zu ${props.category.name} hinzufügen`}
-                    </Typography>
-                    <Form className="Form">
-                    <Field variant="outlined" label="Name des Themas" name="Topic" type="input" error={!!errors.Name} helperText={errors.Name} as={TextField} />
-                    {/* <Field  component={Autocomplete} name="Position" options={possibleTopics} getOptionLabel={(option)=>(option ? option.lable : "")} renderInput={(params) => (
-                        <TextField
-                        {...params}
-                        // We have to manually set the corresponding fields on the input component
-                        name="Position"
-                        error={!!touched['Position'] && !!errors['Position']}
-                        helperText={!!touched['Position'] && errors['Position'] && String(errors.Position)}
-                        sx={{
-                            color:red,
-                            marginTop: 3
-                        }}
-                        label="Reihenfolge"
+    const onSubmit = async (data) => {
+        if (!props.topicToEdit && props.onOptimisticAdd) {
+            props.onOptimisticAdd(data.Topic);
+        }
+        await saveTopicToDB(data);
+    };
+
+    const { resCode, resData } = state;
+
+    return (
+        <div ref={ref} tabIndex={-1}>
+            <Container className="Form-Container" sx={{ ...style, width: 0.33 }}>
+                <Typography sx={{ marginBottom: 5 }}>
+                    {props.topicToEdit ? 'Thema editieren' : `Neues Thema zu ${props.category.name} hinzufügen`}
+                </Typography>
+                <form onSubmit={handleFormSubmit(onSubmit)} className="Form">
+                    <TextField
                         variant="outlined"
-                        />
-                    )}
-                    /> */}
-                    <Grid container direction="row" justifyContent="space-between">
-                        <Button disabled={isSubmitting || !errors} type='submit'>
+                        label="Name des Themas"
+                        error={!!errors.Topic}
+                        helperText={errors.Topic?.message}
+                        {...register("Topic")}
+                        sx={{ mb: 3, width: '100%' }}
+                    />
+                    <Grid container direction="row" sx={{ justifyContent: 'space-between' }}>
+                        <Button disabled={isSubmitting} type="submit">
                             {props.topicToEdit ? 'Speichern' : 'Hinzufügen'}
                         </Button>
                         <Button onClick={props.callback} color="error"> Abbrechen </Button>
                     </Grid>
-                        {/* <pre> {JSON.stringify(values, null, 2)} </pre> */}
-                    </Form>
-                <Grid container alignItems="center" justifyContent="start">
-                <Grid item>
-                        <Stack  spacing={2} marginTop={2}>
-                        {
-                            !!resData && resCode > 200 ? <Alert severity="error" style={{ whiteSpace: "pre-wrap" }}>{resData}</Alert>:null
-
-                        }
-                        </Stack>
-                    </Grid>
-                </Grid >
-                </Container>
-
-            </div>
-            )
-            }
-        </Formik>
-    </React.Fragment>
-   );
+                </form>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', mt: 2 }}>
+                    <Stack spacing={2}>
+                        {!!resData && resCode > 200 ? (
+                            <Alert severity="error" style={{ whiteSpace: "pre-wrap" }}>{resData}</Alert>
+                        ) : null}
+                    </Stack>
+                </Box>
+            </Container>
+        </div>
+    );
 };
 
 export default AddTopic;

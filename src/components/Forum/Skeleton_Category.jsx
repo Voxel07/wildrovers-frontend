@@ -7,9 +7,9 @@ import Grid from '@mui/material/Grid';
 
 export default function Skeleton_Category() {
   return (
-    <Grid container direction="column" alignItems="center" rowSpacing={12}>
-        <Grid item >
-            <Stack spacing={1} alignItems="center">
+    <Grid container direction="column" sx={{ alignItems: 'center' }} rowSpacing={12}>
+        <Grid>
+            <Stack spacing={1} sx={{ alignItems: 'center' }}>
                 {/* For variant="text", adjust the height via font-size */}
                 <Skeleton variant="rectangular" width="100vh" height={80}  sx={{ bgcolor: 'grey.400', borderRadius:2 }}/>
 

@@ -107,7 +107,7 @@ const ResponsiveAppBar = () => {
             >
               {visiblePages.map((page) => (
                 <MenuItem key={page.key} onClick={() => { handleCloseNavMenu(); navigate(page.path); }}>
-                  <Typography textAlign="center" sx={{ fontFamily: '"Outfit", sans-serif' }}>
+                  <Typography align="center" sx={{ fontFamily: '"Outfit", sans-serif' }}>
                     {page.name}
                   </Typography>
                 </MenuItem>

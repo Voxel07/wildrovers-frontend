@@ -22,7 +22,8 @@ import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Tooltip from '@mui/material/Tooltip';
 
-import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
+import PersonOutlineIcon from '@mui/icons-material/PersonOutlined';
+
 import ForumIcon from '@mui/icons-material/Forum';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -191,15 +192,22 @@ export default function Forum_Post() {
         <AccordionSummary
           aria-controls="post-header-content"
           id="post-header"
-          sx={{ cursor: 'default', '&:hover': { backgroundColor: 'rgba(255,255,255,0.02)' } }}
+          sx={{
+            cursor: 'default',
+            '& .MuiAccordionSummary-content': {
+              width: '100%',
+              margin: 0,
+            },
+            '&:hover': { backgroundColor: 'rgba(255,255,255,0.02)' }
+          }}
         >
-          <Grid container direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
-            <Grid item xs={12} md={6}>
+          <Grid container direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', width: '100%' }} spacing={2}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
                 {post.title}
               </Typography>
             </Grid>
-            <Grid item xs={12} md={6} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+            <Grid size={{ xs: 12, md: 6 }} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
               <ForumChips items={postChips} />
             </Grid>
           </Grid>
@@ -225,12 +233,12 @@ export default function Forum_Post() {
       <Grid container direction="column" spacing={3}>
         {answers.length ? (
           answers.map(answer => (
-            <Grid item key={answer.id}>
+            <Grid key={answer.id}>
               <Answer answer={answer} onUpdate={fetchData} />
             </Grid>
           ))
         ) : (
-          <Grid item>
+          <Grid>
             <Card sx={{ p: 4, textAlign: 'center' }}>
               <Typography color="text.secondary">Noch keine Antworten. Schreibe die erste Antwort!</Typography>
             </Card>
@@ -239,7 +247,7 @@ export default function Forum_Post() {
 
         {/* Reply Editor Form */}
         {auth.user ? (
-          <Grid item sx={{ mt: 4 }}>
+          <Grid sx={{ mt: 4 }}>
             <Card sx={{ border: '1px solid rgba(255, 255, 255, 0.08)' }}>
               <CardContent>
                 <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
@@ -267,7 +275,7 @@ export default function Forum_Post() {
             </Card>
           </Grid>
         ) : (
-          <Grid item sx={{ mt: 4 }}>
+          <Grid sx={{ mt: 4 }}>
             <Card sx={{ p: 3, textAlign: 'center', border: '1px dashed rgba(255,255,255,0.1)' }}>
               <Typography color="text.secondary">
                 Bitte logge dich ein, um eine Antwort zu verfassen.

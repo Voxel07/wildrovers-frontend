@@ -12,7 +12,7 @@ import TableSortLabel from '@mui/material/TableSortLabel';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 
-import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
+import PersonOutlineIcon from '@mui/icons-material/PersonOutlined';
 import ForumIcon from '@mui/icons-material/Forum';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import Tooltip from '@mui/material/Tooltip';
@@ -135,15 +135,22 @@ export default function Forum_Topic() {
         <AccordionSummary
           aria-controls="topic-header-content"
           id="topic-header"
-          sx={{ cursor: 'default', '&:hover': { backgroundColor: 'rgba(255,255,255,0.02)' } }}
+          sx={{
+            cursor: 'default',
+            '& .MuiAccordionSummary-content': {
+              width: '100%',
+              margin: 0,
+            },
+            '&:hover': { backgroundColor: 'rgba(255,255,255,0.02)' }
+          }}
         >
-          <Grid container direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
-            <Grid item xs={12} md={4}>
+          <Grid container direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', width: '100%' }} spacing={2}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
                 {topic}
               </Typography>
             </Grid>
-            <Grid item xs={12} md={8}>
+            <Grid size={{ xs: 12, md: 8 }}>
               <ForumChips items={topicChips} />
             </Grid>
           </Grid>
@@ -151,48 +158,6 @@ export default function Forum_Topic() {
 
         <Divider />
 
-        {/* Sort toolbar */}
-        <Box sx={{
-          px: 3,
-          py: 1.5,
-          backgroundColor: 'background.paper',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
-          display: { xs: 'none', md: 'block' },
-        }}>
-          <Stack direction="row" spacing={3} alignItems="center">
-            <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>
-              Sortieren:
-            </Typography>
-            <TableSortLabel
-              active={sort.field === 'creationDate'}
-              direction={sort.field === 'creationDate' ? sort.direction : 'asc'}
-              onClick={() => handleSort('creationDate')}
-            >
-              <Typography variant="caption" sx={{ fontWeight: 'bold' }}>Datum</Typography>
-            </TableSortLabel>
-            <TableSortLabel
-              active={sort.field === 'likes'}
-              direction={sort.field === 'likes' ? sort.direction : 'asc'}
-              onClick={() => handleSort('likes')}
-            >
-              <Typography variant="caption" sx={{ fontWeight: 'bold' }}>Likes</Typography>
-            </TableSortLabel>
-            <TableSortLabel
-              active={sort.field === 'title'}
-              direction={sort.field === 'title' ? sort.direction : 'asc'}
-              onClick={() => handleSort('title')}
-            >
-              <Typography variant="caption" sx={{ fontWeight: 'bold' }}>Titel</Typography>
-            </TableSortLabel>
-            <TableSortLabel
-              active={sort.field === 'answerCount'}
-              direction={sort.field === 'answerCount' ? sort.direction : 'asc'}
-              onClick={() => handleSort('answerCount')}
-            >
-              <Typography variant="caption" sx={{ fontWeight: 'bold' }}>Antworten</Typography>
-            </TableSortLabel>
-          </Stack>
-        </Box>
 
         <AccordionDetails sx={{ p: 0 }}>
           <Post posts={sortedPosts} topicId={id} topic={topic} />
