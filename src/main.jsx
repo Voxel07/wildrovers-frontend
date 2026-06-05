@@ -9,6 +9,44 @@ import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import theme from './theme';
 
+import { openobserveRum } from '@openobserve/browser-rum';
+import { openobserveLogs } from '@openobserve/browser-logs';
+
+const ooSite = import.meta.env.VITE_OPENOBSERVE_SITE;
+const ooClientToken = import.meta.env.VITE_OPENOBSERVE_CLIENT_TOKEN;
+const ooAppId = import.meta.env.VITE_OPENOBSERVE_APP_ID || 'wildrovers-frontend';
+const ooOrg = import.meta.env.VITE_OPENOBSERVE_ORG || 'default';
+const ooInsecure = import.meta.env.VITE_OPENOBSERVE_INSECURE_HTTP === 'true';
+
+if (ooSite && ooClientToken) {
+  openobserveRum.init({
+    applicationId: ooAppId,
+    clientToken: ooClientToken,
+    site: ooSite,
+    organizationIdentifier: ooOrg,
+    service: 'wildrovers-frontend',
+    env: import.meta.env.MODE || 'production',
+    version: '1.0.0',
+    trackResources: true,
+    trackLongTasks: true,
+    trackUserInteractions: true,
+    apiVersion: 'v1',
+    insecureHTTP: ooInsecure,
+    defaultPrivacyLevel: 'allow'
+  });
+
+  openobserveLogs.init({
+    clientToken: ooClientToken,
+    site: ooSite,
+    organizationIdentifier: ooOrg,
+    service: 'wildrovers-frontend',
+    env: import.meta.env.MODE || 'production',
+    version: '1.0.0',
+    apiVersion: 'v1',
+    insecureHTTP: ooInsecure
+  });
+}
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ThemeProvider theme={theme}>
