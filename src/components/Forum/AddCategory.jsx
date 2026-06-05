@@ -17,7 +17,7 @@ import TextField from '@mui/material/TextField';
 
 // Button
 import Button from '@mui/material/Button';
-import { Container, Typography } from '@mui/material';
+import { Container, Typography, Box } from '@mui/material';
 import Autocomplete from '@mui/material/Autocomplete';
 import { red } from '@mui/material/colors';
 import { AlertsContext } from '../../components/utils/AlertsManager';
