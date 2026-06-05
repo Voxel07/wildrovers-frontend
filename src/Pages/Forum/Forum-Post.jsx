@@ -214,7 +214,7 @@ export default function Forum_Post() {
         </AccordionSummary>
         <Divider />
         <AccordionDetails sx={{ p: 0 }}>
-          <Post post={post} onUpdate={fetchData} />
+          <Post post={post} onUpdate={fetchData} onDelete={() => navigate("/Forum/Topic/" + post.topicId)} />
         </AccordionDetails>
       </Accordion>
 

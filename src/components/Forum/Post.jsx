@@ -21,6 +21,7 @@ import ThumbDownIcon from '@mui/icons-material/ThumbDown';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 
@@ -86,7 +87,7 @@ function votingReducer(state, action) {
 
 const noModules = { toolbar: false };
 
-export default function Post({ post, onUpdate }) {
+export default function Post({ post, onUpdate, onDelete }) {
     const { auth } = useAuth();
     const alertsManagerRef = use(AlertsContext);
 
@@ -157,6 +158,25 @@ export default function Post({ post, onUpdate }) {
             .finally(() => setSaving(false));
     };
 
+    const handleDeletePost = () => {
+        if (window.confirm("Möchtest du diesen Beitrag wirklich löschen?")) {
+            setSaving(true);
+            api.delete('/forum/post', {
+                data: { id }
+            })
+                .then(() => {
+                    alertsManagerRef.current.showAlert('success', 'Beitrag erfolgreich gelöscht');
+                    if (onDelete) onDelete();
+                })
+                .catch(err => {
+                    const status = err.response?.status || 500;
+                    const msg = err.response?.data || 'Fehler beim Löschen';
+                    alertsManagerRef.current.showAlert('error', `${status}: ${msg}`);
+                })
+                .finally(() => setSaving(false));
+        }
+    };
+
 
     return (
         <Box sx={{ width: '100%', p: { xs: 2, md: 3 } }}>
@@ -199,11 +219,18 @@ export default function Post({ post, onUpdate }) {
                                         </Tooltip>
                                     </>
                                 ) : (
-                                    <Tooltip title="Beitrag bearbeiten">
-                                        <IconButton size="small" color="primary" onClick={() => setIsEditing(true)}>
-                                            <EditIcon fontSize="small" />
-                                        </IconButton>
-                                    </Tooltip>
+                                    <>
+                                        <Tooltip title="Beitrag bearbeiten">
+                                            <IconButton size="small" color="primary" onClick={() => setIsEditing(true)}>
+                                                <EditIcon fontSize="small" />
+                                            </IconButton>
+                                        </Tooltip>
+                                        <Tooltip title="Beitrag löschen">
+                                            <IconButton size="small" color="error" onClick={handleDeletePost}>
+                                                <DeleteForeverIcon fontSize="small" />
+                                            </IconButton>
+                                        </Tooltip>
+                                    </>
                                 )}
                             </Stack>
                         )}
@@ -271,4 +298,5 @@ export default function Post({ post, onUpdate }) {
 Post.propTypes = {
     post: PropTypes.object,
     onUpdate: PropTypes.func,
+    onDelete: PropTypes.func,
 };
