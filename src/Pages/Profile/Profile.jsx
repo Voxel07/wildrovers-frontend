@@ -267,7 +267,7 @@ export default function Profile() {
         Zurück
       </Button>
 
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
+      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
           Mein Profil
         </Typography>
@@ -310,7 +310,7 @@ export default function Profile() {
 
       <Grid container spacing={4}>
         {/* Profile Card Left */}
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card sx={{ border: '1px solid rgba(255, 255, 255, 0.08)', textAlign: 'center', py: 4 }}>
             <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <Avatar 
@@ -356,7 +356,7 @@ export default function Profile() {
         </Grid>
 
         {/* Profile Details Right */}
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Card sx={{ border: '1px solid rgba(255, 255, 255, 0.08)', height: '100%' }}>
             <CardContent sx={{ p: 4 }}>
               <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 3 }}>
@@ -364,7 +364,7 @@ export default function Profile() {
               </Typography>
               <Stack spacing={3}>
                 <Box>
-                  <Stack direction="row" spacing={2} alignItems="center">
+                  <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
                     <PersonIcon color="action" />
                     <Box sx={{ width: '100%' }}>
                       <Typography variant="caption" color="text.secondary" display="block">
@@ -401,7 +401,7 @@ export default function Profile() {
                 <Divider />
 
                 <Box>
-                  <Stack direction="row" spacing={2} alignItems="center">
+                  <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
                     <EmailIcon color="action" />
                     <Box sx={{ width: '100%' }}>
                       <Typography variant="caption" color="text.secondary" display="block">
@@ -429,7 +429,7 @@ export default function Profile() {
                 <Divider />
 
                 <Box>
-                  <Stack direction="row" spacing={2} alignItems="center">
+                  <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
                     <CalendarMonthIcon color="action" />
                     <Box>
                       <Typography variant="caption" color="text.secondary" display="block">
@@ -445,7 +445,7 @@ export default function Profile() {
                 <Divider />
 
                 <Box>
-                  <Stack direction="row" spacing={2} alignItems="center">
+                  <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
                     <ShieldIcon color="action" />
                     <Box>
                       <Typography variant="caption" color="text.secondary" display="block">
@@ -461,7 +461,7 @@ export default function Profile() {
                 <Divider />
 
                 <Box>
-                  <Stack direction="row" spacing={2} alignItems="center">
+                  <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
                     <WorkspacePremiumIcon color={profile.yearlyFeePaid ? "success" : "action"} />
                     <Box>
                       <Typography variant="caption" color="text.secondary" display="block">
@@ -477,7 +477,7 @@ export default function Profile() {
                 <Divider />
 
                 <Box>
-                  <Stack direction="row" spacing={2} alignItems="center">
+                  <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
                     <WorkspacePremiumIcon color="action" />
                     <Box>
                       <Typography variant="caption" color="text.secondary" display="block">
@@ -508,7 +508,7 @@ export default function Profile() {
 
                 {/* Phrase (Motto) */}
                 <Box>
-                  <Stack direction="row" spacing={2} alignItems="center">
+                  <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
                     <AutoAwesomeIcon color="action" />
                     <Box sx={{ width: '100%' }}>
                       <Typography variant="caption" color="text.secondary" display="block">
@@ -537,7 +537,7 @@ export default function Profile() {
 
                 {/* Birthday */}
                 <Box>
-                  <Stack direction="row" spacing={2} alignItems="center">
+                  <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
                     <CalendarMonthIcon color="action" />
                     <Box sx={{ width: '100%' }}>
                       <Typography variant="caption" color="text.secondary" display="block">
@@ -574,7 +574,7 @@ export default function Profile() {
 
                     {profile.ribbon && (
                       <Box>
-                        <Stack direction="row" spacing={2} alignItems="center">
+                        <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
                           <WorkspacePremiumIcon color="action" />
                           <Box>
                             <Typography variant="caption" color="text.secondary" display="block">
@@ -590,7 +590,7 @@ export default function Profile() {
 
                     {profile.mentorName && (
                       <Box>
-                        <Stack direction="row" spacing={2} alignItems="center">
+                        <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
                           <PersonIcon color="action" />
                           <Box>
                             <Typography variant="caption" color="text.secondary" display="block">
@@ -606,7 +606,7 @@ export default function Profile() {
 
                     {profile.mentorOf && profile.mentorOf.length > 0 && (
                       <Box>
-                        <Stack direction="row" spacing={2} alignItems="center">
+                        <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
                           <GroupIcon color="action" />
                           <Box>
                             <Typography variant="caption" color="text.secondary" display="block">
@@ -624,7 +624,7 @@ export default function Profile() {
 
                     {profile.visitedOps > 0 && (
                       <Box>
-                        <Stack direction="row" spacing={2} alignItems="center">
+                        <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
                           <WorkspacePremiumIcon color="action" />
                           <Box>
                             <Typography variant="caption" color="text.secondary" display="block">

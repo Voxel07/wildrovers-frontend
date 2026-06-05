@@ -141,8 +141,8 @@ export default function UserManagement() {
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 6, px: { xs: 1, md: 3 } }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
-        <Stack direction="row" spacing={2} alignItems="center">
+      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+        <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
           <Button 
             startIcon={<ArrowBackIcon />} 
             onClick={() => navigate(-1)} 

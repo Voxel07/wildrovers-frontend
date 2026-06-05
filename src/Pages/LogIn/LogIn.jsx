@@ -88,10 +88,14 @@ const SignIn = ({ ref, ...props }) => {
             const groups = payload.groups || [];
             const role = mapGroupsToRole(groups);
 
+            const computedExpiresAt = payload.exp
+              ? payload.exp * 1000
+              : (tokens.expires_in ? (Date.now() + tokens.expires_in * 1000) : null);
+
             const authData = {
               JWT: tokens.access_token,
               refreshToken: tokens.refresh_token,
-              expiresAt: tokens.expires_in ? (Date.now() + tokens.expires_in * 1000) : null,
+              expiresAt: computedExpiresAt,
               user: username,
               roles: role
             };

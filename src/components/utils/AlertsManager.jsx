@@ -71,7 +71,7 @@ const AlertsManager = ({ ref, ...props }) => {
             <LinearProgress
               variant="determinate"
               color={alert.severity}
-              value={100 - ((alert.remainingTime - 340)/ 3000) * 100}
+              value={Math.max(0, Math.min(100, 100 - ((alert.remainingTime - 340)/ 3000) * 100))}
               style={{
                 position: 'absolute',
                 bottom: 8,

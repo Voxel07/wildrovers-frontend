@@ -52,13 +52,15 @@ export const AuthProvider = ({ children }) => {
             try {
                 const tokens = await refreshTokens(refreshToken);
                 const payload = parseJwt(tokens.access_token || tokens.id_token);
+                const computedExpiresAt = payload?.exp
+                    ? payload.exp * 1000
+                    : (tokens.expires_in ? Date.now() + tokens.expires_in * 1000 : null);
+
                 setAuth((prev) => ({
                     ...prev,
                     JWT: tokens.access_token,
                     refreshToken: tokens.refresh_token || prev.refreshToken,
-                    expiresAt: tokens.expires_in
-                        ? Date.now() + tokens.expires_in * 1000
-                        : null,
+                    expiresAt: computedExpiresAt,
                     user: payload?.preferred_username || prev.user,
                     roles: prev.roles,
                 }));

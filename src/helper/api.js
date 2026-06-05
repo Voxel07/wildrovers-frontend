@@ -38,11 +38,15 @@ api.interceptors.request.use(
                 if (payload) {
                   username = payload.preferred_username || payload.sub;
                 }
+                const computedExpiresAt = payload?.exp
+                  ? payload.exp * 1000
+                  : (tokens.expires_in ? Date.now() + tokens.expires_in * 1000 : null);
+
                 const updatedAuth = {
                   ...auth,
                   JWT: tokens.access_token,
                   refreshToken: tokens.refresh_token || auth.refreshToken,
-                  expiresAt: tokens.expires_in ? (Date.now() + tokens.expires_in * 1000) : null,
+                  expiresAt: computedExpiresAt,
                   user: username,
                 };
                 setCookie('auth:v1', JSON.stringify(updatedAuth), 7);
@@ -102,11 +106,15 @@ api.interceptors.response.use(
                 if (payload) {
                   username = payload.preferred_username || payload.sub;
                 }
+                const computedExpiresAt = payload?.exp
+                  ? payload.exp * 1000
+                  : (tokens.expires_in ? Date.now() + tokens.expires_in * 1000 : null);
+
                 const updatedAuth = {
                   ...auth,
                   JWT: tokens.access_token,
                   refreshToken: tokens.refresh_token || auth.refreshToken,
-                  expiresAt: tokens.expires_in ? (Date.now() + tokens.expires_in * 1000) : null,
+                  expiresAt: computedExpiresAt,
                   user: username,
                 };
                 setCookie('auth:v1', JSON.stringify(updatedAuth), 7);
