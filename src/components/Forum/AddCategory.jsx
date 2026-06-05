@@ -2,7 +2,7 @@
  * This is the Modal to add a new Category
  */
 import React, { useState, useEffect, use, useMemo } from 'react';
-import axios from 'axios';
+import api from '../../helper/api';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -97,7 +97,7 @@ const AddCategory = ({ ref, ...props }) => {
 
     async function saveCategoryToDB(vals) {
         const isEdit = !!props.categoryToEdit;
-        const url = 'http://localhost:8080/forum/category';
+        const url = '/forum/category';
         const data = isEdit ? {
             id: props.categoryToEdit.id,
             category: vals.Name
@@ -109,11 +109,10 @@ const AddCategory = ({ ref, ...props }) => {
         const method = isEdit ? 'post' : 'put';
 
         try {
-            const response = await axios({
+            const response = await api({
                 method,
                 url,
-                data,
-                headers: { Authorization: `Bearer ${auth.JWT}` }
+                data
             });
 
             setState({ resCode: response.status, resData: "" });

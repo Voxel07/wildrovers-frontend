@@ -3,7 +3,7 @@
  * Hooks can only be called form the Body of a functional component.
  */
 import {useState} from "react"
-import axios from 'axios'
+import api from '../../helper/api';
 
 //eigene
 import { saveJWT } from "./saveJWT";
@@ -14,7 +14,7 @@ const LogIn = async(vals) =>{
     const [state, setState] = useState({ statusCode: null, data: null });
 
 
-    await axios.post('http://localhost:8080/user/login',
+    await api.post('/user/login',
     {
        userName: vals.username,
        password: vals.password,

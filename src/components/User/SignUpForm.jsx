@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import axios from 'axios';
+import api from '../../helper/api';
 
 // MUI
 import Button from '@mui/material/Button';
@@ -19,7 +19,7 @@ function SignUpForm() {
     const navigate = useNavigate();
 
     const handleSubmit = async (formData) => {
-        await axios.put('http://localhost:8080/user', {
+        await api.put('/user', {
             firstName: formData.firstName,
             lastName: formData.lastName,
             email: formData.email,

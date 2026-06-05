@@ -2,7 +2,7 @@
  * This is the Modal to add a new Topic
  */
 import React, { useState, useEffect, use } from 'react';
-import axios from 'axios';
+import api from '../../helper/api';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -60,7 +60,7 @@ const AddTopic = ({ ref, ...props }) => {
 
     async function saveTopicToDB(vals) {
         const isEdit = !!props.topicToEdit;
-        const url = 'http://localhost:8080/forum/topic';
+        const url = '/forum/topic';
         const data = isEdit ? {
             id: props.topicToEdit.id,
             topic: vals.Topic
@@ -71,12 +71,11 @@ const AddTopic = ({ ref, ...props }) => {
         const params = isEdit ? {} : { category: props.category.id };
 
         try {
-            const response = await axios({
+            const response = await api({
                 method,
                 url,
                 data,
-                params,
-                headers: { Authorization: `Bearer ${auth.JWT}` }
+                params
             });
             
             setState({ resCode: response.status, resData: "" });
