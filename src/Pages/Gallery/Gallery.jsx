@@ -217,7 +217,7 @@ export default function Gallery() {
             </Typography>
             <Grid container spacing={4}>
               {dbAlbums.map((album) => (
-                <Grid xs={12} sm={6} md={4} key={album.id} sx={{ display: 'flex' }}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }} key={album.id} sx={{ display: 'flex' }}>
                   <Card sx={{
                     width: '100%',
                     display: 'flex',

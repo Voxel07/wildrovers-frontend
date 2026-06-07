@@ -98,7 +98,7 @@ export default function Answer(props) {
     <Card sx={{ width: '100%', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
       <CardContent sx={{ p: 2 }}>
         <Grid container spacing={2}>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
               <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
                 <Avatar 
@@ -152,7 +152,7 @@ export default function Answer(props) {
 
           <Divider sx={{ width: '100%', my: 1, opacity: 0.5 }} />
 
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             {isEditing ? (
               <Box sx={{ mb: 1 }}>
                 <ReactQuill 

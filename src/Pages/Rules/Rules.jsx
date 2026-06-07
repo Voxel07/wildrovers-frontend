@@ -146,7 +146,7 @@ export default function Rules() {
       </Typography>
       <Grid container spacing={3} sx={{ mb: 6 }}>
         {generalRules.map((rule) => (
-          <Grid xs={12} sm={6} key={rule.title}>
+          <Grid size={{ xs: 12, sm: 6 }} key={rule.title}>
             <Card sx={{ height: '100%', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
               <CardContent>
                 <Typography variant="subtitle1" color="primary.main" sx={{ fontWeight: 'bold', mb: 1 }}>

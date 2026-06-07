@@ -357,8 +357,8 @@ export default function Events() {
                     {/* Days counter between adjacent events */}
                     {index > 0 && (
                       <Grid container spacing={2} sx={{ position: 'relative', my: 1.5 }}>
-                        <Grid xs={3.5} sm={2.5} />
-                        <Grid xs={1} sm={1} sx={{ display: 'flex', justifyContent: 'center', position: 'relative', height: 40 }}>
+                        <Grid size={{ xs: 3.5, sm: 2.5 }} />
+                        <Grid size={{ xs: 1, sm: 1 }} sx={{ display: 'flex', justifyContent: 'center', position: 'relative', height: 40 }}>
                           <Box sx={{
                             width: '2px',
                             bgcolor: 'rgba(255, 152, 0, 0.25)',
@@ -385,14 +385,14 @@ export default function Events() {
                             }}
                           />
                         </Grid>
-                        <Grid xs={7.5} sm={8.5} />
+                        <Grid size={{ xs: 7.5, sm: 8.5 }} />
                       </Grid>
                     )}
 
                     {/* Main Event Row */}
                     <Grid container spacing={2} sx={{ alignItems: 'stretch' }}>
                       {/* Left Column: Date & Time */}
-                      <Grid xs={3.5} sm={2.5} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', pr: { xs: 1, sm: 2 } }}>
+                      <Grid size={{ xs: 3.5, sm: 2.5 }} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', pr: { xs: 1, sm: 2 } }}>
                         <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'primary.main', textAlign: 'right', fontSize: { xs: '0.85rem', sm: '1rem' } }}>
                           {dateTextOnly}
                         </Typography>
@@ -417,7 +417,7 @@ export default function Events() {
                       </Grid>
 
                       {/* Middle Column: Line Segment and Circle Node */}
-                      <Grid xs={1} sm={1} sx={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
+                      <Grid size={{ xs: 1, sm: 1 }} sx={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
                         <Box sx={{
                           width: '2px',
                           bgcolor: 'rgba(255, 152, 0, 0.25)',
@@ -445,7 +445,7 @@ export default function Events() {
                       </Grid>
 
                       {/* Right Column: Card */}
-                      <Grid xs={7.5} sm={8.5} sx={{ display: 'flex' }}>
+                      <Grid size={{ xs: 7.5, sm: 8.5 }} sx={{ display: 'flex' }}>
                         <Card sx={{
                           border: '1px solid rgba(255, 255, 255, 0.08)',
                           bgcolor: isFuture ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.005)',

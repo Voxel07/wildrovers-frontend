@@ -12,7 +12,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import Container from '@mui/material/Container';
 import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
-import ShieldIcon from '@mui/icons-material/Shield';
+import RoversLogo from '../../images/WRW_small.webp';
 
 // Eigene Imports
 import NavbarLogo from './Navbar-Logo';
@@ -52,7 +52,12 @@ const ResponsiveAppBar = () => {
         <Toolbar disableGutters>
           
           {/* Desktop Logo Icon */}
-          <ShieldIcon color="primary" sx={{ display: { xs: 'none', md: 'flex' }, mr: 1.5, fontSize: '2rem' }} />
+          <Box
+            component="img"
+            src={RoversLogo}
+            alt="WRW Logo"
+            sx={{ display: { xs: 'none', md: 'flex' }, mr: 1.5, height: 32, width: 32, objectFit: 'contain' }}
+          />
           
           <Typography
             variant="h6"
@@ -75,7 +80,7 @@ const ResponsiveAppBar = () => {
           </Typography>
 
           {/* Mobile Menu Icon */}
-          <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
+          <Box sx={{ flexGrow: 0, display: { xs: 'flex', md: 'none' } }}>
             <IconButton
               size="large"
               aria-label="menu"
@@ -116,7 +121,12 @@ const ResponsiveAppBar = () => {
           </Box>
 
           {/* Mobile Logo Icon */}
-          <ShieldIcon color="primary" sx={{ display: { xs: 'flex', md: 'none' }, mr: 1, fontSize: '1.8rem' }} />
+          <Box
+            component="img"
+            src={RoversLogo}
+            alt="WRW Logo"
+            sx={{ display: { xs: 'flex', md: 'none' }, mr: 1, height: 28, width: 28, objectFit: 'contain' }}
+          />
           
           <Typography
             variant="h5"

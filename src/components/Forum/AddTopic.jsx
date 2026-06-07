@@ -28,11 +28,14 @@ const style = {
     top: '50%',
     left: '50%',
     transform: 'translate(-50%, -50%)',
-    width: 400,
+    width: { xs: '90%', sm: 450, md: 500 },
+    maxWidth: '95%',
     bgcolor: 'background.paper',
-    border: '2px solid #000',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: 2,
     boxShadow: 24,
-    p: 4,
+    p: { xs: 2.5, sm: 4 },
+    boxSizing: 'border-box',
 };
 
 const AddTopic = ({ ref, ...props }) => {
@@ -118,7 +121,7 @@ const AddTopic = ({ ref, ...props }) => {
 
     return (
         <div ref={ref} tabIndex={-1}>
-            <Container className="Form-Container" sx={{ ...style, width: 0.33 }}>
+            <Container className="Form-Container" sx={style}>
                 <Typography sx={{ marginBottom: 5 }}>
                     {props.topicToEdit ? 'Thema editieren' : `Neues Thema zu ${props.category.name} hinzufügen`}
                 </Typography>

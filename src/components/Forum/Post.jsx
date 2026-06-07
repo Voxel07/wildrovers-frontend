@@ -181,7 +181,7 @@ export default function Post({ post, onUpdate, onDelete }) {
     return (
         <Box sx={{ width: '100%', p: { xs: 2, md: 3 } }}>
             <Grid container direction="column" spacing={2}>
-                <Grid item>
+                <Grid size={{ xs: 12 }}>
                     <Stack
                         direction="row"
                         spacing={2}
@@ -240,7 +240,7 @@ export default function Post({ post, onUpdate, onDelete }) {
                 <Divider sx={{ my: 1.5 }} />
 
                 {/* Content — edit mode shows Quill, view mode shows read-only */}
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                     {isEditing ? (
                         <Box sx={{ mb: 1 }}>
                             <ReactQuill
@@ -265,7 +265,7 @@ export default function Post({ post, onUpdate, onDelete }) {
                 <Divider sx={{ mt: 1 }} />
 
                 {/* Like / Dislike bar */}
-                <Grid item>
+                <Grid size={{ xs: 12 }}>
                     <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                         <Tooltip title="Gefällt mir">
                             <IconButton

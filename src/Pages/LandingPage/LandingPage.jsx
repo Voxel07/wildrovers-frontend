@@ -335,7 +335,7 @@ export default function LandingPage() {
 
           <Grid container spacing={3} sx={{ justifyContent: 'center' }}>
             {events.length > 0 ? events.map((event) => (
-              <Grid xs={12} md={4} key={event.id}>
+              <Grid size={{ xs: 12, md: 4 }} key={event.id}>
                 <Paper sx={{
                   p: 3,
                   height: '100%',
@@ -367,7 +367,7 @@ export default function LandingPage() {
                 </Paper>
               </Grid>
             )) : (
-              <Grid xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography align="center" color="text.secondary" sx={{ fontStyle: 'italic' }}>
                   Aktuell keine Events geplant.
                 </Typography>
@@ -408,7 +408,7 @@ export default function LandingPage() {
       {/* Partners & Shops Section */}
       <Container maxWidth="lg" sx={{ py: 10 }}>
         <Grid container spacing={4} sx={{ alignItems: 'center' }}>
-          <Grid xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Typography variant="h4" component="h2" sx={{ fontWeight: 'bold', mb: 3 }}>
               Partner & Shops
             </Typography>
@@ -438,9 +438,9 @@ export default function LandingPage() {
             </Button>
           </Grid>
 
-          <Grid xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Grid container spacing={2}>
-              <Grid xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <Card sx={{
                   p: 3,
                   textAlign: 'center',
@@ -458,7 +458,7 @@ export default function LandingPage() {
                   </Typography>
                 </Card>
               </Grid>
-              <Grid xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <Card sx={{
                   p: 3,
                   textAlign: 'center',

@@ -27,9 +27,7 @@ const Navbar_LoginPromt = () => {
           size="medium" 
           startIcon={<LoginIcon />} 
           sx={{ 
-            marginTop: { xs: 1, md: 2 },
-            marginBottom: { xs: 1, md: 0 },
-            px: 3, 
+            px: { xs: 1.5, sm: 3 }, 
             borderColor: 'primary.main',
             '&:hover': {
               borderColor: 'primary.light',

@@ -120,7 +120,7 @@ export default function Team() {
                   const age = getAge(member.birthday);
 
                   return (
-                    <Grid item xs={12} sm={6} md={4} key={member.id} sx={{ display: 'flex' }}>
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }} key={member.id} sx={{ display: 'flex' }}>
                       <Tilt
                         style={{ display: 'flex', width: '100%' }}
                         tiltMaxAngleX={12}
