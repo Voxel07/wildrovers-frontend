@@ -1,19 +1,19 @@
 import React from 'react'
 import SignUpForm from '../../components/User/SignUpForm'
 
-import Typography from '@mui/material/Typography';
-import Grid from '@mui/material/Grid';
+import Box from '@mui/material/Box';
 
 export default function SignUp() {
   return (
-    <Grid container direction="column" alignItems="center" spacing={2}>
-        <Grid item>
-            <Typography>Regestrier dich</Typography>
-        </Grid>
-        <Grid item>
-            <SignUpForm />
-        </Grid>
-
-    </Grid>
+    <Box sx={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      minHeight: 'calc(100vh - 400px)',
+      width: '100%',
+      px: 3
+    }}>
+      <SignUpForm />
+    </Box>
   )
 }

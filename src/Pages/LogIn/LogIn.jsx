@@ -1,5 +1,5 @@
-import React, { use, useState, useEffect, useReducer } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useReducer } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 
 // Mui
 import Button from '@mui/material/Button';
@@ -11,6 +11,7 @@ import CardContent from '@mui/material/CardContent';
 import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
+import TextField from '@mui/material/TextField';
 import LoginIcon from '@mui/icons-material/Login';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
@@ -62,12 +63,15 @@ function loginReducer(state, action) {
   }
 }
 
-const SignIn = ({ ref, ...props }) => {
+const SignIn = React.forwardRef((props, ref) => {
   const { setAuth } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [loginState, dispatch] = useReducer(loginReducer, initialLoginState);
   const { loading, error } = loginState;
+
+  const [usernameOrEmail, setUsernameOrEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   const from = location.state?.from?.pathname || "/";
 
@@ -135,78 +139,173 @@ const SignIn = ({ ref, ...props }) => {
     }
   };
 
-  const style = props.modal ? {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    width: { xs: '90%', sm: 400 },
-    bgcolor: 'background.paper',
-    boxShadow: 24,
-    p: 4,
-    borderRadius: 3
-  } : {
-    marginTop: 8,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    width: { xs: '90%', sm: 400 },
-    mx: 'auto'
+  const handleLocalLogin = async (e) => {
+    e.preventDefault();
+    if (!usernameOrEmail || !password) {
+      dispatch({ type: 'LOGIN_ERROR', payload: 'Bitte Benutzername/E-Mail und Passwort eingeben.' });
+      return;
+    }
+
+    dispatch({ type: 'LOGIN_START' });
+    try {
+      const response = await api.post('/user/login', {
+        userName: usernameOrEmail,
+        password: password
+      });
+
+      const authObject = response.data;
+      const payload = parseJwt(authObject.JWT);
+      const computedExpiresAt = payload?.exp ? payload.exp * 1000 : null;
+
+      setAuth({
+        JWT: authObject.JWT,
+        user: authObject.USER.Name,
+        roles: authObject.USER.Role,
+        expiresAt: computedExpiresAt
+      });
+
+      if (props.callback) {
+        props.callback();
+      }
+      navigate(from, { replace: true });
+    } catch (err) {
+      console.error("Local login failed", err);
+      const errorMsg = err.response?.data || "Anmeldung fehlgeschlagen. Bitte versuche es erneut.";
+      dispatch({ type: 'LOGIN_ERROR', payload: errorMsg });
+    }
   };
 
-  return (
-    <div {...props} ref={ref}>
-      <Container maxWidth="xs" sx={{ mt: props.modal ? 0 : 8 }}>
-        <Card sx={{ ...style, position: 'relative' }}>
-          {props.modal && (
-            <IconButton
-              color="error"
-              onClick={props.callback}
-              aria-label="close"
-              sx={{ position: 'absolute', right: 8, top: 8 }}
-            >
-              <CloseIcon />
-            </IconButton>
-          )}
+  const cardContentInner = (
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2 }}>
+      <Typography variant="h5" component="h1" gutterBottom sx={{ fontWeight: 'bold', fontFamily: 'Outfit' }}>
+        {loading ? "Verifizierung..." : "Wild Rovers"}
+      </Typography>
+      <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 3 }}>
+        {loading 
+          ? "Der Token wird überprüft. Bitte warten..." 
+          : "Melde dich mit deinem Konto an."}
+      </Typography>
 
-          <CardContent>
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2 }}>
-              <Typography variant="h5" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
-                {loading ? "Verifizierung..." : "Wild Rovers"}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 4 }}>
-                {loading 
-                  ? "Der OIDC-Token wird überprüft. Bitte warten..." 
-                  : "Melde dich über unseren zentralen Authentik-Identity-Provider an."}
-              </Typography>
+      {loading ? (
+        <CircularProgress color="primary" sx={{ my: 2 }} />
+      ) : (
+        <Box component="form" onSubmit={handleLocalLogin} sx={{ width: '100%' }}>
+          <TextField
+            variant="outlined"
+            margin="normal"
+            required
+            fullWidth
+            label="Benutzername oder E-Mail"
+            value={usernameOrEmail}
+            onChange={(e) => setUsernameOrEmail(e.target.value)}
+            autoComplete="username"
+            autoFocus
+          />
+          <TextField
+            variant="outlined"
+            margin="normal"
+            required
+            fullWidth
+            label="Passwort"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+          />
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            color="primary"
+            sx={{ mt: 3, mb: 2, py: 1.2, fontWeight: 'bold' }}
+          >
+            Einloggen
+          </Button>
 
-              {loading ? (
-                <CircularProgress color="primary" sx={{ my: 2 }} />
-              ) : (
-                <Button
-                  variant="contained"
-                  color="primary"
-                  size="large"
-                  fullWidth
-                  startIcon={<LoginIcon />}
-                  onClick={handleLoginClick}
-                  sx={{ py: 1.5, fontSize: '1rem' }}
-                >
-                  Mit Authentik anmelden
-                </Button>
-              )}
+          <Box sx={{ display: 'flex', alignItems: 'center', my: 2 }}>
+            <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider' }} />
+            <Typography variant="body2" color="text.secondary" sx={{ px: 2 }}>
+              oder
+            </Typography>
+            <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider' }} />
+          </Box>
 
-              {error && (
-                <Alert severity="error" sx={{ width: '100%', mt: 3 }}>
-                  {error}
-                </Alert>
-              )}
-            </Box>
-          </CardContent>
-        </Card>
-      </Container>
-    </div>
+          <Button
+            variant="outlined"
+            color="primary"
+            size="large"
+            fullWidth
+            startIcon={<LoginIcon />}
+            onClick={handleLoginClick}
+            sx={{ py: 1.2, fontSize: '0.95rem' }}
+          >
+            Mit Authentik anmelden
+          </Button>
+
+          <Box sx={{ mt: 3, textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              Noch kein Konto?{' '}
+              <Link 
+                to="/Regestrieren" 
+                onClick={() => { if (props.callback) props.callback(); }}
+                style={{ color: '#ff9800', textDecoration: 'none', fontWeight: 'bold' }}
+              >
+                Jetzt registrieren
+              </Link>
+            </Typography>
+          </Box>
+        </Box>
+      )}
+
+      {error && (
+        <Alert severity="error" sx={{ width: '100%', mt: 3 }}>
+          {error}
+        </Alert>
+      )}
+    </Box>
   );
-};
+
+  if (props.modal) {
+    return (
+      <Card 
+        ref={ref}
+        sx={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: { xs: '90%', sm: 400 },
+          bgcolor: 'background.paper',
+          boxShadow: 24,
+          p: 4,
+          borderRadius: 3,
+          outline: 'none'
+        }}
+      >
+        <IconButton
+          color="error"
+          onClick={props.callback}
+          aria-label="close"
+          sx={{ position: 'absolute', right: 8, top: 8 }}
+        >
+          <CloseIcon />
+        </IconButton>
+        <CardContent sx={{ width: '100%', p: 0 }}>
+          {cardContentInner}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Container maxWidth="xs" sx={{ mt: 8 }}>
+      <Card sx={{ width: { xs: '90%', sm: 400 }, mx: 'auto', position: 'relative' }}>
+        <CardContent sx={{ width: '100%' }}>
+          {cardContentInner}
+        </CardContent>
+      </Card>
+    </Container>
+  );
+});
 
 export default SignIn;

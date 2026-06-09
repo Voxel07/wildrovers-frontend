@@ -1,19 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import Button from '@mui/material/Button';
+import Modal from '@mui/material/Modal';
 import LoginIcon from '@mui/icons-material/Login';
-import { redirectToAuthentik } from '../../helper/oidc';
+import SignIn from '../../Pages/LogIn/LogIn';
 
 const Navbar_LoginPromt = () => {
   const location = useLocation();
+  const [open, setOpen] = useState(false);
 
-  const handleLogin = async () => {
-    try {
-      await redirectToAuthentik();
-    } catch (e) {
-      console.error("Failed to redirect to OIDC provider", e);
-    }
-  };
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
 
   const isLoginPage = location.pathname.toLowerCase() === "/login";
 
@@ -21,7 +18,7 @@ const Navbar_LoginPromt = () => {
     <React.Fragment>
       {!isLoginPage ? (
         <Button 
-          onClick={handleLogin} 
+          onClick={handleOpen} 
           variant="outlined" 
           color="primary"
           size="medium" 
@@ -38,6 +35,15 @@ const Navbar_LoginPromt = () => {
           LogIn
         </Button>
       ) : null}
+
+      <Modal
+        open={open}
+        onClose={handleClose}
+        aria-labelledby="login-modal-title"
+        aria-describedby="login-modal-description"
+      >
+        <SignIn modal={true} callback={handleClose} />
+      </Modal>
     </React.Fragment>
   );
 };

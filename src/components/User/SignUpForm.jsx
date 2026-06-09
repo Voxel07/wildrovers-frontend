@@ -9,6 +9,8 @@ import api from '../../helper/api';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import Grid from '@mui/material/Grid';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
 
 // Feedback
 import Alert from '@mui/material/Alert';
@@ -66,74 +68,97 @@ function SignUpForm() {
 
     return (
         <form onSubmit={handleFormSubmit(onSubmit)} className="Form-Container">
-            <Grid container direction="column" alignItems="center" spacing={2}>
-                <Grid item>
+            <Box sx={{ mb: 4, textAlign: 'center' }}>
+                <Typography variant="h4" sx={{ fontFamily: 'Outfit', fontWeight: 800, color: '#f5f5f5', mb: 1 }}>
+                    Registrieren
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                    Erstelle dein Wild Rovers Konto
+                </Typography>
+            </Box>
+
+            <Grid container spacing={2}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                         variant="outlined"
                         label="Vorname"
                         type="text"
+                        fullWidth
                         error={!!errors.firstName}
                         helperText={errors.firstName?.message}
                         {...register("firstName")}
                     />
                 </Grid>
-                <Grid item>
+                <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                         variant="outlined"
                         label="Nachname"
                         type="text"
+                        fullWidth
                         error={!!errors.lastName}
                         helperText={errors.lastName?.message}
                         {...register("lastName")}
                     />
                 </Grid>
-                <Grid item>
+                <Grid size={12}>
                     <TextField
                         variant="outlined"
                         label="Benutzername"
                         type="text"
+                        fullWidth
                         error={!!errors.userName}
                         helperText={errors.userName?.message}
                         {...register("userName")}
                     />
                 </Grid>
-                <Grid item>
+                <Grid size={12}>
                     <TextField
                         variant="outlined"
-                        label="Email"
+                        label="E-Mail-Adresse"
                         type="email"
+                        fullWidth
                         error={!!errors.email}
                         helperText={errors.email?.message}
                         {...register("email")}
                     />
                 </Grid>
-                <Grid item>
+                <Grid size={12}>
                     <TextField
                         variant="outlined"
                         label="Passwort"
                         type="password"
+                        fullWidth
                         error={!!errors.password}
                         helperText={errors.password?.message}
                         {...register("password")}
                     />
                 </Grid>
-                <Grid item>
+                <Grid size={12}>
                     <TextField
                         variant="outlined"
                         label="Passwort wiederholen"
                         type="password"
+                        fullWidth
                         error={!!errors.passwordWdh}
                         helperText={errors.passwordWdh?.message}
                         {...register("passwordWdh")}
                     />
                 </Grid>
-                <Grid item>
-                    <Button variant="outlined" disabled={isSubmitting} type="submit">
-                        Jetzt Regestrieren
+                <Grid size={12} sx={{ mt: 2 }}>
+                    <Button 
+                        variant="contained" 
+                        color="primary" 
+                        fullWidth 
+                        size="large" 
+                        disabled={isSubmitting} 
+                        type="submit"
+                        sx={{ py: 1.5, fontWeight: 'bold' }}
+                    >
+                        Jetzt registrieren
                     </Button>
                 </Grid>
-                <Grid item>
-                    <Stack spacing={2} marginTop={2}>
+                <Grid size={12}>
+                    <Stack spacing={2} marginTop={1}>
                         {!!resData && resCode > 200 ? <Alert severity="error">{resData}</Alert> : null}
                     </Stack>
                 </Grid>

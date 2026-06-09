@@ -25,8 +25,14 @@ import Stack from '@mui/material/Stack';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import DeleteIcon from '@mui/icons-material/Delete';
 import Chip from '@mui/material/Chip';
 import Tooltip from '@mui/material/Tooltip';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
 
 export default function UserManagement() {
   const { auth } = useAuth();
@@ -37,6 +43,11 @@ export default function UserManagement() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+
+  // Confirmation dialog state
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   const isAuthorized = auth?.JWT && (auth.roles === 'Admin' || auth.roles === 'Vorstand');
 
@@ -86,16 +97,15 @@ export default function UserManagement() {
   const handleSaveUser = (user) => {
     setSavingId(user.id);
     const activeVal = user.isActive !== undefined ? user.isActive : user.active;
-    // Construct database entity properties correctly
     const payload = {
       id: user.id,
       userName: user.userName,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      password: user.password, // Keep current password representation
+      password: user.password,
       role: user.role,
-      isActive: activeVal, // Map local boolean back to entity isActive property
+      isActive: activeVal,
       yearlyFeePaid: user.yearlyFeePaid
     };
 
@@ -107,11 +117,42 @@ export default function UserManagement() {
         console.error("Error updating user", err);
         const msg = err.response?.data || 'Fehler beim Speichern.';
         alertsManagerRef.current.showAlert('error', `Speichern fehlgeschlagen: ${msg}`);
-        // Refresh to revert local state
         fetchUsers();
       })
       .finally(() => {
         setSavingId(null);
+      });
+  };
+
+  const handleDeleteClick = (user) => {
+    setUserToDelete(user);
+    setConfirmOpen(true);
+  };
+
+  const handleDeleteCancel = () => {
+    setConfirmOpen(false);
+    setUserToDelete(null);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!userToDelete) return;
+    const user = userToDelete;
+    setConfirmOpen(false);
+    setUserToDelete(null);
+    setDeletingId(user.id);
+
+    api.delete(`/user/${user.id}`)
+      .then(() => {
+        setUsers(prev => prev.filter(u => u.id !== user.id));
+        alertsManagerRef.current.showAlert('success', `Benutzer ${user.userName} erfolgreich gelöscht.`);
+      })
+      .catch(err => {
+        console.error("Error deleting user", err);
+        const msg = err.response?.data || 'Fehler beim Löschen.';
+        alertsManagerRef.current.showAlert('error', `Löschen fehlgeschlagen: ${msg}`);
+      })
+      .finally(() => {
+        setDeletingId(null);
       });
   };
 
@@ -233,16 +274,28 @@ export default function UserManagement() {
                         </Tooltip>
                       </TableCell>
                       <TableCell align="center">
-                        <Button
-                          variant="contained"
-                          color="primary"
-                          size="small"
-                          startIcon={savingId === user.id ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
-                          onClick={() => handleSaveUser(user)}
-                          disabled={savingId !== null}
-                        >
-                          Speichern
-                        </Button>
+                        <Stack direction="row" spacing={1} justifyContent="center">
+                          <Button
+                            variant="contained"
+                            color="primary"
+                            size="small"
+                            startIcon={savingId === user.id ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
+                            onClick={() => handleSaveUser(user)}
+                            disabled={savingId !== null || deletingId === user.id}
+                          >
+                            Speichern
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            color="error"
+                            size="small"
+                            startIcon={deletingId === user.id ? <CircularProgress size={16} color="inherit" /> : <DeleteIcon />}
+                            onClick={() => handleDeleteClick(user)}
+                            disabled={savingId !== null || deletingId !== null}
+                          >
+                            Löschen
+                          </Button>
+                        </Stack>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -259,6 +312,47 @@ export default function UserManagement() {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={confirmOpen}
+        onClose={handleDeleteCancel}
+        PaperProps={{
+          sx: {
+            bgcolor: 'background.paper',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 2,
+            minWidth: 360,
+          }
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 'bold', color: 'error.main' }}>
+          Benutzer löschen
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: 'text.secondary' }}>
+            Bist du sicher, dass du den Benutzer{' '}
+            <Box component="span" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+              {userToDelete?.userName}
+            </Box>{' '}
+            unwiderruflich löschen möchtest? Alle zugehörigen Daten werden entfernt.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          <Button onClick={handleDeleteCancel} variant="outlined" color="inherit">
+            Abbrechen
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            variant="contained"
+            color="error"
+            startIcon={<DeleteIcon />}
+            autoFocus
+          >
+            Endgültig löschen
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }
