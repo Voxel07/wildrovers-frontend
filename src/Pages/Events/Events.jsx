@@ -611,7 +611,7 @@ export default function Events() {
                 variant="outlined"
                 value={formData.eventDate}
                 onChange={handleChange}
-                InputLabelProps={{ shrink: true }}
+                slotProps={{ inputLabel: { shrink: true } }}
                 required
               />
               <TextField

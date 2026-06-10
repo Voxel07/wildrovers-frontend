@@ -85,7 +85,8 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor — retry on 401 by refreshing token
+// Response interceptor — retry on 401 by refreshing token (OIDC sessions only)
+// Local-JWT sessions (no refreshToken) are NOT cleared on 401 — only OIDC refresh failures clear auth.
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -97,6 +98,7 @@ api.interceptors.response.use(
         if (storedAuth) {
           const auth = JSON.parse(storedAuth);
           if (auth && auth.refreshToken) {
+            // OIDC session: attempt token refresh
             if (!isRefreshing) {
               isRefreshing = true;
               try {
@@ -124,6 +126,7 @@ api.interceptors.response.use(
               } catch (err) {
                 isRefreshing = false;
                 console.error('Token refresh failed in response interceptor', err);
+                // Refresh failed for an OIDC session — clear auth and force re-login
                 deleteCookie('auth:v1');
                 window.dispatchEvent(new Event('auth-updated'));
                 if (!window.location.pathname.toLowerCase().includes('/login')) {
@@ -143,16 +146,10 @@ api.interceptors.response.use(
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
             return api(originalRequest);
           }
+          // Local-JWT session (no refreshToken): don't clear auth on 401 — just propagate the error
         }
       } catch (e) {
         console.error('Error in API response interceptor 401 retry', e);
-      }
-
-      // If no stored auth or refresh token, clean up and redirect
-      deleteCookie('auth:v1');
-      window.dispatchEvent(new Event('auth-updated'));
-      if (!window.location.pathname.toLowerCase().includes('/login')) {
-        window.location.href = '/Login';
       }
     }
     return Promise.reject(error);

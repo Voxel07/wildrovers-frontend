@@ -329,7 +329,7 @@ export default function Gallery() {
                 variant="outlined"
                 value={formData.date}
                 onChange={handleChange}
-                InputLabelProps={{ shrink: true }}
+                slotProps={{ inputLabel: { shrink: true } }}
                 required
               />
               <TextField

@@ -103,7 +103,6 @@ export default function UserManagement() {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      password: user.password,
       role: user.role,
       isActive: activeVal,
       yearlyFeePaid: user.yearlyFeePaid

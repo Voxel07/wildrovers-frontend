@@ -24,8 +24,9 @@ const ooClientToken = import.meta.env.VITE_OPENOBSERVE_CLIENT_TOKEN;
 const ooAppId = import.meta.env.VITE_OPENOBSERVE_APP_ID || 'wildrovers-frontend';
 const ooOrg = import.meta.env.VITE_OPENOBSERVE_ORG || 'default';
 const ooInsecure = import.meta.env.VITE_OPENOBSERVE_INSECURE_HTTP === 'true';
+const ooEnabled = import.meta.env.VITE_OPENOBSERVE_ENABLED !== 'false';
 
-if (ooSite && ooClientToken) {
+if (ooEnabled && ooSite && ooClientToken) {
   openobserveRum.init({
     applicationId: ooAppId,
     clientToken: ooClientToken,

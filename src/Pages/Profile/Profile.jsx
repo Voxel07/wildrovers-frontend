@@ -99,8 +99,10 @@ export default function Profile() {
   });
   const [saving, setSaving] = useState(false);
 
-  const fetchProfile = () => {
-    dispatch({ type: 'FETCH_START' });
+  const fetchProfile = (silent = false) => {
+    if (!silent) {
+      dispatch({ type: 'FETCH_START' });
+    }
     api.get('/user/me')
       .then(response => {
         dispatch({ type: 'FETCH_SUCCESS', payload: response.data });
@@ -114,7 +116,9 @@ export default function Profile() {
       })
       .catch(err => {
         console.error("Error fetching user profile", err);
-        dispatch({ type: 'FETCH_FAILURE', payload: "Fehler beim Laden des Profils. Bitte vergewissere dich, dass du eingeloggt bist." });
+        if (!silent) {
+          dispatch({ type: 'FETCH_FAILURE', payload: "Fehler beim Laden des Profils. Bitte vergewissere dich, dass du eingeloggt bist." });
+        }
       });
   };
 
@@ -221,6 +225,7 @@ export default function Profile() {
       .then(res => {
         dispatch({ type: 'UPDATE_PROFILE_SUCCESS', payload: res.data });
         setEditMode(false);
+        fetchProfile(true);
       })
       .catch(err => {
         console.error("Error updating profile", err);
@@ -556,7 +561,7 @@ export default function Profile() {
                           variant="outlined"
                           value={editData.birthday}
                           onChange={handleEditChange}
-                          InputLabelProps={{ shrink: true }}
+                          slotProps={{ inputLabel: { shrink: true } }}
                           sx={{ mt: 1 }}
                         />
                       )}
