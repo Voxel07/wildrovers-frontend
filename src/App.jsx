@@ -1,12 +1,17 @@
-import SideBar from './components/Navigation/SideBar'
+import Sidebar, { useSidebar } from './components/Navigation/Sidebar'
 import { Routes, Navigate, Route, BrowserRouter as Router } from "react-router-dom";
+
+// MUI
+import Box from '@mui/material/Box';
 
 //pages
 import Navbar from './components/Navigation/Navbar';
+import Footer from './components/Navigation/Footer';
 import LandingPage from './Pages/LandingPage/LandingPage';
 import LogIn from './Pages/LogIn/LogIn';
 import SignUp from './Pages/SignUp/SignUp';
 import Unauthorized from './Pages/Sonstige/Unauthorized';
+import Datenschutz from './Pages/Sonstige/Datenschutz';
 import PageNotFound from './Pages/PageNotFound/PageNotFound';
 import VerificationPrompt from './Pages/Sonstige/RegestrationSucessfull';
 import UserManagement from './Pages/Admin/UserManagement';
@@ -40,6 +45,7 @@ import Member from './Pages/StaticContent/Member';
 function App() {
   const { auth } = useAuth();
   const [user, setUser] = useState({ valid: false, name: "", role: "", jwt: "" });
+  const { mode, toggleMode, restoreSidebar } = useSidebar();
 
   useEffect(() => {
     if (auth && auth.JWT) {
@@ -65,9 +71,16 @@ function App() {
   return (
     <UserContext.Provider value={stateValue}>
       <AlertsContext.Provider value={alertsManagerRef}>
-        <Navbar />
-        <AlertsManager ref={alertsManagerRef} />
-        <Routes>
+        <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+          {/* Collapsible Sidebar */}
+          <Sidebar mode={mode} onToggleMode={toggleMode} />
+
+          {/* Main content area */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: '100vh' }}>
+            <Navbar sidebarHidden={mode === 'hidden'} onRestoreSidebar={restoreSidebar} />
+            <AlertsManager ref={alertsManagerRef} />
+            <Box component="main" sx={{ flex: '1 0 auto' }}>
+              <Routes>
           {/*Public Routes */}
           {/* <Route path="/" element={<Member />} /> */}
           <Route path="/" element={<LandingPage />} />
@@ -76,6 +89,7 @@ function App() {
           <Route path="Regestrieren" element={<SignUp />} />
           <Route path="Regestrieren/Erfolgreich" element={<VerificationPrompt />} />
           <Route path="unauthorized" element={<Unauthorized />} />
+          <Route path="Datenschutz" element={<Datenschutz />} />
           <Route path="404" element={<PageNotFound />} />
           <Route path="galery" element={<Gallery />} />
           <Route path="events" element={<Events />} />
@@ -101,6 +115,10 @@ function App() {
 
           {/* </Route> */}
         </Routes>
+            </Box>
+            <Footer />
+          </Box>
+        </Box>
       </AlertsContext.Provider>
     </UserContext.Provider>
   );

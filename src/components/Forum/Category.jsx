@@ -144,12 +144,8 @@ export default function Category(props) {
   };
 
   useEffect(() => {
-    if (props.currentIndex === 0) {
-      setexpandAccordion(true);
-    } else {
-      setexpandAccordion(false);
-    }
-  }, [props.currentIndex]);
+    setexpandAccordion(true);
+  }, []);
 
   const handleExpandClick = (e) => {
     e.stopPropagation();

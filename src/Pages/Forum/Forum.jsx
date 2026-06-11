@@ -173,7 +173,7 @@ const Forum = () => {
                 </Grid>
             </Box>
 
-            <Stack spacing={2} sx={{ mt: { xs: 0, md: 1 } }}>
+            <Stack spacing={2} sx={{ mt: { xs: 0, md: 2 } }}>
                 {categories.length ? (
                     categoryComponents
                 ) : loading ? (

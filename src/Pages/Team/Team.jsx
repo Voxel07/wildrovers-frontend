@@ -84,6 +84,12 @@ export default function Team() {
     return base + photoUrl;
   };
 
+  const getBackgroundUrl = (backgroundUrl) => {
+    if (!backgroundUrl) return null;
+    const base = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+    return base + backgroundUrl;
+  };
+
   if (loading) {
     return (
       <Container sx={{ display: 'flex', justifyContent: 'center', py: 12 }}>
@@ -116,6 +122,7 @@ export default function Team() {
                 {roleMembers.map((member) => {
                   const initial = member.userName ? member.userName[0].toUpperCase() : 'U';
                   const avatarUrl = getAvatarUrl(member.photoUrl);
+                  const bgUrl = getBackgroundUrl(member.backgroundUrl);
                   const isBday = isBirthdayToday(member.birthday);
                   const age = getAge(member.birthday);
 
@@ -148,6 +155,25 @@ export default function Team() {
                           }}
                           elevation={3}
                         >
+                          {/* Background image overlay */}
+                          {bgUrl && (
+                            <Box
+                              sx={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                height: '100%',
+                                backgroundImage: `url(${bgUrl})`,
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center',
+                                opacity: 0.12,
+                                zIndex: 0,
+                                borderRadius: 3,
+                              }}
+                            />
+                          )}
+
                           {/* Ribbon */}
                           {(member.ribbon || member.role === 'Admin') && (
                             <Box sx={{
@@ -188,7 +214,7 @@ export default function Team() {
                             </Box>
                           )}
 
-                          <CardContent sx={{ textAlign: 'center', flexGrow: 1, display: 'flex', flexDirection: 'column', p: 4 }}>
+                          <CardContent sx={{ textAlign: 'center', flexGrow: 1, display: 'flex', flexDirection: 'column', p: 4, position: 'relative', zIndex: 1 }}>
                             <Avatar
                               src={avatarUrl}
                               alt={member.userName}

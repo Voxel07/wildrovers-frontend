@@ -1,101 +1,45 @@
-import React, { use, useState } from 'react'
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../../helper/api'
+import api from '../../helper/api';
 
 import Tooltip from '@mui/material/Tooltip';
 import Avatar from '@mui/material/Avatar';
-import MenuItem from '@mui/material/MenuItem';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
-import Typography from '@mui/material/Typography';
-import Menu from '@mui/material/Menu';
-import { deepOrange } from '@mui/material/colors';
-import Paper from '@mui/material/Paper';
-import Divider from '@mui/material/Divider';
-import MenuList from '@mui/material/MenuList';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import ListItemText from '@mui/material/ListItemText';
-import { UserContext } from '../../context/UserContext';
-import { Link } from "react-router-dom";
-import useAuth from '../../context/useAuth';
-const settings = ['Profile', 'Account', 'Dashboard', 'Logout'];
 
-
-const NavBarLogoMenue = ({ onLogout }) => {
-  const [, setAnchorElNav] = React.useState(null);
-
-  const handleCloseNavMenu = () => {
-    setAnchorElNav(null);
-  };
-
-  return(
-    <Paper  sx={{ width: 120, margin: 0, padding: 0 }}>
-      <Link to={"/Profil"} key={"Profil"}><MenuItem onClick={handleCloseNavMenu}>
-                  <Typography align="center">{"Profil"}</Typography>
-                </MenuItem></Link>
-        <MenuItem>
-          <ListItemText onClick={onLogout}>LogOut</ListItemText >
-        </MenuItem>
-    </Paper>
-  )
-}
-
-const NavbarLogo = props => {
-
-  const [anchorElUser, setAnchorElUser] = React.useState(null);
-  const { setAuth } = useAuth();
+const NavbarLogo = ({ userName }) => {
   const navigate = useNavigate();
-  const { setUser} = use(UserContext);
+  const [photoUrl, setPhotoUrl] = React.useState(null);
 
-  const handleOpenUserMenu = (event) => {
-      setAnchorElUser(event.currentTarget);
-    };
-  const handleCloseUserMenu = () => {
-    setAnchorElUser(null);
-  };
-
-  async function logOut (){
-    api.post('/user/logout')
-    .then(response=>{
-        setUser({valid:false, jwt:null});
-        setAuth({JWT: null, user: null, roles: null});
-        navigate("/", {replace:true});
-    })
-    .catch(error =>{
-      console.log("!!!!"+error);
-      setUser({valid:false, jwt:null});
-      setAuth({JWT: null, user: null, roles: null});
-      navigate("/", {replace:true});
-    })
-  }
+  React.useEffect(() => {
+    if (!userName) return;
+    let cancelled = false;
+    api.get('/user/me')
+      .then((res) => {
+        if (!cancelled && res.data?.photoUrl) {
+          const base = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+          setPhotoUrl(base + res.data.photoUrl);
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [userName]);
 
   return (
-    <Box sx={{ flexGrow: 0}}>
-        <Tooltip title="Open settings">
-            <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-            <Avatar alt={props.userName[0].toUpperCase()} src="..\..\..\images\Default_Profile_Background.png" />
-            </IconButton>
-        </Tooltip>
-        <Menu
-            sx={{ mt: '45px', margin: 0, padding: 0 }}
-            id="menu-appbar"
-            anchorEl={anchorElUser}
-            anchorOrigin={{
-            vertical: 'top',
-            horizontal: 'right',
-            }}
-            keepMounted
-            transformOrigin={{
-            vertical: 'top',
-            horizontal: 'right',
-            }}
-            open={Boolean(anchorElUser)}
-            onClose={handleCloseUserMenu}
-        >
-            <NavBarLogoMenue onLogout={logOut} />
-        </Menu>
+    <Box sx={{ flexGrow: 0 }}>
+      <Tooltip title="Profil">
+        <IconButton onClick={() => navigate('/Profil')} sx={{ p: 0 }}>
+          <Avatar
+            alt={userName[0]?.toUpperCase()}
+            src={photoUrl}
+            sx={{ width: 36, height: 36, bgcolor: 'primary.main', color: '#121212', fontWeight: 700 }}
+          >
+            {userName[0]?.toUpperCase()}
+          </Avatar>
+        </IconButton>
+      </Tooltip>
     </Box>
-  )
+  );
 };
 
 export default NavbarLogo;

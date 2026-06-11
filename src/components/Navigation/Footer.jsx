@@ -29,7 +29,7 @@ const Footer = () => {
           }}
         >
           <Typography variant="body2" color="text.secondary">
-            &copy; {currentYear} Wild Rovers Western e.V. Alle Rechte vorbehalten.
+            &copy; {currentYear} Wild Rovers Würtemberg. Alle Rechte vorbehalten.
           </Typography>
           <Typography
             variant="body2"

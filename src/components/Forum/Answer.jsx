@@ -155,11 +155,15 @@ export default function Answer(props) {
           <Grid size={{ xs: 12 }}>
             {isEditing ? (
               <Box sx={{ mb: 1 }}>
-                <ReactQuill 
-                  theme="snow"
-                  value={editContent}
-                  onChange={setEditContent}
-                />
+                <style>{`.reply-editor .ql-editor.ql-blank::before { color: rgba(255,255,255,0.55) !important; font-style: italic; }`}</style>
+                <Box className="reply-editor">
+                  <ReactQuill
+                    theme="snow"
+                    value={editContent}
+                    onChange={setEditContent}
+                    placeholder="Schreibe deine Antwort..."
+                  />
+                </Box>
               </Box>
             ) : (
               <Box className="reply-body-content" sx={{ pl: 0.5 }}>

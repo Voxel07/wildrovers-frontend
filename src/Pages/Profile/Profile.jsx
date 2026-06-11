@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useReducer } from 'react';
+import React, { useState, useEffect, useReducer, use } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../helper/api';
 import { convertTimestamp } from '../../helper/converter';
 import useAuth from '../../context/useAuth';
+import { AlertsContext } from '../../components/utils/AlertsManager';
 
 // Mui
 import Container from '@mui/material/Container';
@@ -71,6 +72,11 @@ function profileReducer(state, action) {
         ...state,
         profile: { ...state.profile, photoUrl: action.payload }
       };
+    case 'UPDATE_BACKGROUND':
+      return {
+        ...state,
+        profile: { ...state.profile, backgroundUrl: action.payload }
+      };
     case 'UPDATE_PROFILE_SUCCESS':
       return {
         ...state,
@@ -84,6 +90,7 @@ function profileReducer(state, action) {
 export default function Profile() {
   const { auth } = useAuth();
   const navigate = useNavigate();
+  const alertsManagerRef = use(AlertsContext);
   const [state, dispatch] = useReducer(profileReducer, initialProfileState);
   const { profile, loading, error } = state;
 
@@ -155,12 +162,12 @@ export default function Profile() {
 
     // Enforce 2MB size limit in frontend
     if (file.size > 2 * 1024 * 1024) {
-      alert("Das Bild darf maximal 2MB groß sein.");
+      alertsManagerRef.current.showAlert('error', 'Das Bild darf maximal 2MB groß sein.');
       return;
     }
 
     if (!file.type.startsWith('image/')) {
-      alert("Bitte wähle eine gültige Bilddatei aus.");
+      alertsManagerRef.current.showAlert('error', 'Bitte wähle eine gültige Bilddatei aus.');
       return;
     }
 
@@ -198,16 +205,88 @@ export default function Profile() {
           })
           .then(res => {
             dispatch({ type: 'UPDATE_PHOTO', payload: res.data.photoUrl });
+            alertsManagerRef.current.showAlert('success', 'Profilbild erfolgreich aktualisiert.');
           })
           .catch(err => {
             console.error("Error uploading avatar", err);
-            alert("Fehler beim Hochladen des Profilbilds.");
+            alertsManagerRef.current.showAlert('error', 'Fehler beim Hochladen des Profilbilds.');
           });
         }, 'image/jpeg', 0.85); // Compress to JPEG with 85% quality
       };
       img.src = event.target.result;
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleBackgroundChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alertsManagerRef.current.showAlert('error', 'Das Hintergrundbild darf maximal 5MB groß sein.');
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      alertsManagerRef.current.showAlert('error', 'Bitte wähle eine gültige Bilddatei aus.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 1200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxDim || height > maxDim) {
+          const ratio = maxDim / Math.max(width, height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+          if (!blob) return;
+
+          const uploadFormData = new FormData();
+          uploadFormData.append('file', blob, 'background.jpg');
+
+          api.post('/user/me/background', uploadFormData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          })
+          .then(res => {
+            dispatch({ type: 'UPDATE_BACKGROUND', payload: res.data.backgroundUrl });
+            alertsManagerRef.current.showAlert('success', 'Hintergrundbild erfolgreich aktualisiert.');
+          })
+          .catch(err => {
+            console.error("Error uploading background", err);
+            alertsManagerRef.current.showAlert('error', 'Fehler beim Hochladen des Hintergrundbilds.');
+          });
+        }, 'image/jpeg', 0.85);
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveBackground = () => {
+    api.delete('/user/me/background')
+      .then(() => {
+        dispatch({ type: 'UPDATE_BACKGROUND', payload: null });
+        alertsManagerRef.current.showAlert('success', 'Hintergrundbild entfernt.');
+      })
+      .catch(err => {
+        console.error("Error removing background", err);
+        alertsManagerRef.current.showAlert('error', 'Fehler beim Entfernen des Hintergrundbilds.');
+      });
   };
 
   const handleEditChange = (e) => {
@@ -226,10 +305,11 @@ export default function Profile() {
         dispatch({ type: 'UPDATE_PROFILE_SUCCESS', payload: res.data });
         setEditMode(false);
         fetchProfile(true);
+        alertsManagerRef.current.showAlert('success', 'Profil erfolgreich gespeichert.');
       })
       .catch(err => {
         console.error("Error updating profile", err);
-        alert(err.response?.data || "Profilaktualisierung fehlgeschlagen.");
+        alertsManagerRef.current.showAlert('error', err.response?.data || 'Profilaktualisierung fehlgeschlagen.');
       })
       .finally(() => {
         setSaving(false);
@@ -260,6 +340,7 @@ export default function Profile() {
   const initial = profile.userName ? profile.userName[0].toUpperCase() : 'U';
   const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8080';
   const avatarUrl = profile.photoUrl ? apiBase + profile.photoUrl : null;
+  const backgroundUrl = profile.backgroundUrl ? apiBase + profile.backgroundUrl : null;
 
   return (
     <Container maxWidth="md" sx={{ mt: 5, mb: 8, px: { xs: 2, md: 3 } }}>
@@ -316,8 +397,31 @@ export default function Profile() {
       <Grid container spacing={4}>
         {/* Profile Card Left */}
         <Grid size={{ xs: 12, md: 4 }}>
-          <Card sx={{ border: '1px solid rgba(255, 255, 255, 0.08)', textAlign: 'center', py: 4 }}>
-            <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <Card sx={{
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            textAlign: 'center',
+            py: 4,
+            position: 'relative',
+            overflow: 'hidden',
+          }}>
+            {/* Background image */}
+            {backgroundUrl && (
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: '100%',
+                  backgroundImage: `url(${backgroundUrl})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  opacity: 0.15,
+                  zIndex: 0,
+                }}
+              />
+            )}
+            <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 1 }}>
               <Avatar 
                 src={avatarUrl}
                 sx={{ 
@@ -344,18 +448,45 @@ export default function Profile() {
                 sx={{ fontWeight: 'bold', px: 1, mb: 3 }}
               />
 
-              <input 
-                type="file" 
-                accept="image/*" 
-                id="avatar-upload" 
-                style={{ display: 'none' }} 
-                onChange={handleAvatarChange}
-              />
-              <label htmlFor="avatar-upload">
-                <Button component="span" variant="outlined" size="small">
-                  Bild ändern
-                </Button>
-              </label>
+              <Stack spacing={1} sx={{ width: '100%', px: 2 }}>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  id="avatar-upload" 
+                  style={{ display: 'none' }} 
+                  onChange={handleAvatarChange}
+                />
+                <label htmlFor="avatar-upload">
+                  <Button component="span" variant="outlined" size="small" fullWidth>
+                    Profilbild ändern
+                  </Button>
+                </label>
+
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  id="background-upload" 
+                  style={{ display: 'none' }} 
+                  onChange={handleBackgroundChange}
+                />
+                <label htmlFor="background-upload">
+                  <Button component="span" variant="outlined" size="small" fullWidth>
+                    Hintergrund ändern
+                  </Button>
+                </label>
+
+                {profile.backgroundUrl && (
+                  <Button
+                    variant="text"
+                    size="small"
+                    color="error"
+                    fullWidth
+                    onClick={handleRemoveBackground}
+                  >
+                    Hintergrund entfernen
+                  </Button>
+                )}
+              </Stack>
             </CardContent>
           </Card>
         </Grid>
