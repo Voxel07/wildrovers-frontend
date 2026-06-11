@@ -38,7 +38,7 @@ const ResponsiveAppBar = ({ sidebarHidden, onRestoreSidebar }) => {
       elevation={0}
     >
       <Container maxWidth={false}>
-        <Toolbar disableGutters sx={{ minHeight: 56, px: 2 }}>
+        <Toolbar disableGutters sx={{ minHeight: 65, px: 2 }}>
 
           {/* Hamburger – only when sidebar is hidden, restores it to full */}
           {sidebarHidden && (

@@ -42,7 +42,7 @@ const navItems = [
 
 export const SIDEBAR_FULL_WIDTH = 240;
 export const SIDEBAR_MINI_WIDTH = 64;
-const TOPBAR_HEIGHT = 56;
+const TOPBAR_HEIGHT = 65;
 
 /**
  * Collapsible sidebar with three modes cycled by a single button:
@@ -218,7 +218,6 @@ const Sidebar = ({ mode, onToggleMode }) => {
       </List>
 
       {/* Bottom: Logout only */}
-      <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.08)' }} />
       <Box sx={{ p: mode === 'full' ? 1.5 : 0.5 }}>
         {auth?.user ? (
           mode === 'full' ? (
