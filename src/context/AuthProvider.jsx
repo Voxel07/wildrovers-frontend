@@ -1,6 +1,7 @@
 import { createContext, useState, useEffect, useRef, useCallback } from "react";
 import { refreshTokens, parseJwt } from "../helper/oidc";
 import { getCookie, setCookie, deleteCookie } from "../helper/cookies";
+import { openobserveRum } from "@openobserve/browser-rum";
 
 const AuthContext = createContext(null);
 
@@ -95,6 +96,16 @@ export const AuthProvider = ({ children }) => {
             window.removeEventListener("auth-updated", handleAuthUpdate);
         };
     }, []);
+
+    // Set user context in OpenObserve RUM when authenticated
+    useEffect(() => {
+        if (auth?.user) {
+            openobserveRum.setUser({
+                id: auth.user,
+                name: auth.user,
+            });
+        }
+    }, [auth?.user]);
 
     return (
         <AuthContext value={{ auth, setAuth }}>

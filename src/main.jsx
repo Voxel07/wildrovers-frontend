@@ -40,8 +40,12 @@ if (ooEnabled && ooSite && ooClientToken) {
     trackUserInteractions: true,
     apiVersion: 'v1',
     insecureHTTP: ooInsecure,
-    defaultPrivacyLevel: 'allow'
+    defaultPrivacyLevel: 'allow',
+    sessionSampleRate: 100,
+    sessionReplaySampleRate: 50
   });
+
+  openobserveRum.startSessionReplayRecording();
 
   openobserveLogs.init({
     clientToken: ooClientToken,
@@ -51,7 +55,8 @@ if (ooEnabled && ooSite && ooClientToken) {
     env: import.meta.env.MODE || 'production',
     version: '1.0.0',
     apiVersion: 'v1',
-    insecureHTTP: ooInsecure
+    insecureHTTP: ooInsecure,
+    forwardErrorsToLogs: true
   });
 }
 

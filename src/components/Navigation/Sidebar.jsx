@@ -121,7 +121,7 @@ const Sidebar = ({ mode, onToggleMode }) => {
           alignItems: 'center',
           height: TOPBAR_HEIGHT,
           px: 1.5,
-          borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
           flexShrink: 0,
           justifyContent: mode === 'full' ? 'space-between' : 'flex-end',
           gap: 0.5,
@@ -218,7 +218,7 @@ const Sidebar = ({ mode, onToggleMode }) => {
       </List>
 
       {/* Bottom: Logout only */}
-      <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.06)' }} />
+      <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.08)' }} />
       <Box sx={{ p: mode === 'full' ? 1.5 : 0.5 }}>
         {auth?.user ? (
           mode === 'full' ? (
