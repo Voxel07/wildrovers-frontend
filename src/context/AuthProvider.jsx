@@ -2,6 +2,7 @@ import { createContext, useState, useEffect, useRef, useCallback } from "react";
 import { refreshTokens, parseJwt } from "../helper/oidc";
 import { getCookie, setCookie, deleteCookie } from "../helper/cookies";
 import { openobserveRum } from "@openobserve/browser-rum";
+import api from "../helper/api";
 
 const AuthContext = createContext(null);
 
@@ -106,6 +107,21 @@ export const AuthProvider = ({ children }) => {
             });
         }
     }, [auth?.user]);
+
+    // Proactive block detection: poll /user/me every 60s while logged in.
+    // The api interceptor will handle the 403 by clearing the session and redirecting.
+    useEffect(() => {
+        if (!JWT) return;
+
+        const interval = setInterval(() => {
+            api.get('/user/me').catch(() => {
+                // 403 is handled by the api interceptor (session cleared + redirect).
+                // Other errors (network, 401) are ignored here.
+            });
+        }, 60 * 1000);
+
+        return () => clearInterval(interval);
+    }, [JWT]);
 
     return (
         <AuthContext value={{ auth, setAuth }}>

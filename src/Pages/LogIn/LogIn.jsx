@@ -74,6 +74,15 @@ const SignIn = React.forwardRef((props, ref) => {
   const [password, setPassword] = useState('');
 
   const from = location.state?.from?.pathname || "/";
+  const [blockedByAdmin, setBlockedByAdmin] = useState(false);
+
+  // Show blocked banner if redirected here with ?blocked=true
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('blocked') === 'true') {
+      setBlockedByAdmin(true);
+    }
+  }, [location.search]);
 
   // Check URL for authorization code
   useEffect(() => {
@@ -272,6 +281,12 @@ const SignIn = React.forwardRef((props, ref) => {
             </Typography>
           </Box>
         </Box>
+      )}
+
+      {blockedByAdmin && (
+        <Alert severity="warning" sx={{ width: '100%', mt: 3 }}>
+          Dein Account wurde gesperrt. Bitte wende dich an einen Administrator.
+        </Alert>
       )}
 
       {error && (

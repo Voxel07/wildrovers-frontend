@@ -87,10 +87,22 @@ api.interceptors.request.use(
 
 // Response interceptor — retry on 401 by refreshing token (OIDC sessions only)
 // Local-JWT sessions (no refreshToken) are NOT cleared on 401 — only OIDC refresh failures clear auth.
+// On 403, the user is blocked — terminate the session immediately.
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
+    // Blocked user: end the session immediately
+    if (error.response?.status === 403) {
+      deleteCookie('auth:v1');
+      window.dispatchEvent(new Event('auth-updated'));
+      if (!window.location.pathname.toLowerCase().includes('/login')) {
+        window.location.href = '/Login?blocked=true';
+      }
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
