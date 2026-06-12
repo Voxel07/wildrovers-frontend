@@ -183,9 +183,9 @@ export default function UserManagement() {
     <Container maxWidth="xl" sx={{ mt: 4, mb: 6, px: { xs: 1, md: 3 } }}>
       <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
-          <Button 
-            startIcon={<ArrowBackIcon />} 
-            onClick={() => navigate(-1)} 
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate(-1)}
             variant="text"
           >
             Zurück
@@ -194,9 +194,9 @@ export default function UserManagement() {
             Benutzerverwaltung
           </Typography>
         </Stack>
-        <Button 
-          startIcon={<RefreshIcon />} 
-          variant="outlined" 
+        <Button
+          startIcon={<RefreshIcon />}
+          variant="outlined"
           onClick={fetchUsers}
           disabled={loading}
         >
@@ -262,11 +262,11 @@ export default function UserManagement() {
                         />
                       </TableCell>
                       <TableCell align="center">
-                        <Tooltip title={getUserEventsCurrentYearList(user.userName).join(', ') || 'Keine Einsätze in diesem Jahr'}>
-                          <Chip 
-                            label={`${getUserEventsCurrentYear(user.userName)} Einsätze`} 
-                            size="small" 
-                            variant="outlined" 
+                        <Tooltip title={getUserEventsCurrentYearList(user.userName).join(', ') || 'Keine Events in diesem Jahr'}>
+                          <Chip
+                            label={`${getUserEventsCurrentYear(user.userName)}`}
+                            size="small"
+                            variant="outlined"
                             color="secondary"
                             sx={{ cursor: 'help' }}
                           />

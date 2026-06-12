@@ -66,7 +66,7 @@ const AlertsManager = ({ ref, ...props }) => {
           onClose={() => removeAlert(alert.id)}
           sx={{ mb: 1 }}
         >
-          {alert.message}
+          {typeof alert.message === 'object' ? (alert.message.message || JSON.stringify(alert.message)) : alert.message}
         </Alert>
             <LinearProgress
               variant="determinate"

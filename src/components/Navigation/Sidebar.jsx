@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 
 // MUI
 import Box from '@mui/material/Box';
@@ -130,7 +130,8 @@ const Sidebar = ({ mode, onToggleMode }) => {
         {/* Profile — only in full mode */}
         {mode === 'full' && auth?.user && (
           <ListItemButton
-            onClick={() => navigate('/Profil')}
+            component={Link}
+            to="/Profil"
             sx={{
               borderRadius: 2,
               flex: 1,
@@ -171,7 +172,8 @@ const Sidebar = ({ mode, onToggleMode }) => {
           const link = (
             <ListItem key={item.key} disablePadding sx={{ mb: 0.5 }}>
               <ListItemButton
-                onClick={() => navigate(item.path)}
+                component={Link}
+                to={item.path}
                 sx={{
                   borderRadius: 2,
                   justifyContent: mode === 'full' ? 'flex-start' : 'center',
@@ -256,7 +258,8 @@ const Sidebar = ({ mode, onToggleMode }) => {
               color="primary"
               startIcon={<LoginIcon />}
               fullWidth
-              onClick={() => navigate('/Login')}
+              component={Link}
+              to="/Login"
               sx={{ borderRadius: 2 }}
             >
               LogIn
@@ -264,7 +267,7 @@ const Sidebar = ({ mode, onToggleMode }) => {
           ) : (
             <Tooltip title="LogIn" placement="right" arrow>
               <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                <IconButton onClick={() => navigate('/Login')} sx={{ color: 'primary.main' }}>
+                <IconButton component={Link} to="/Login" sx={{ color: 'primary.main' }}>
                   <LoginIcon />
                 </IconButton>
               </Box>

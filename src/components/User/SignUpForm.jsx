@@ -31,11 +31,13 @@ function SignUpForm() {
         .then(response => {
             console.log(JSON.stringify(response.data));
             setState({ resCode: response.status, resData: response.data });
-            navigate("/Regestrieren/Erfolgreich", { replace: true });
+            navigate("/Regestrieren/Erfolgreich", { replace: true, state: { email: formData.email } });
         })
         .catch(error => {
             console.log("Error during registration:", error.response);
-            setState({ resCode: error.response.status, resData: error.response.data });
+            const status = error.response?.status || 500;
+            const data = error.response?.data || error.message || "Registrierung fehlgeschlagen.";
+            setState({ resCode: status, resData: data });
         });
     };
 
@@ -159,7 +161,11 @@ function SignUpForm() {
                 </Grid>
                 <Grid size={12}>
                     <Stack spacing={2} marginTop={1}>
-                        {!!resData && resCode > 200 ? <Alert severity="error">{resData}</Alert> : null}
+                        {!!resData && resCode > 200 ? (
+                            <Alert severity="error">
+                                {typeof resData === 'object' ? (resData.message || JSON.stringify(resData)) : resData}
+                            </Alert>
+                        ) : null}
                     </Stack>
                 </Grid>
             </Grid>
