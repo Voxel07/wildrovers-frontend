@@ -212,6 +212,15 @@ const SignIn = React.forwardRef((props, ref) => {
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="current-password"
           />
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 0.5 }}>
+            <Link 
+              to="/password-reset" 
+              onClick={() => { if (props.callback) props.callback(); }}
+              style={{ color: '#ff9800', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500 }}
+            >
+              Passwort vergessen?
+            </Link>
+          </Box>
           <Button
             type="submit"
             fullWidth

@@ -10,6 +10,7 @@ import Footer from './components/Navigation/Footer';
 import LandingPage from './Pages/LandingPage/LandingPage';
 import LogIn from './Pages/LogIn/LogIn';
 import SignUp from './Pages/SignUp/SignUp';
+import PasswordReset from './Pages/LogIn/PasswordReset';
 import Unauthorized from './Pages/Sonstige/Unauthorized';
 import Datenschutz from './Pages/Sonstige/Datenschutz';
 import PageNotFound from './Pages/PageNotFound/PageNotFound';
@@ -81,40 +82,41 @@ function App() {
             <AlertsManager ref={alertsManagerRef} />
             <Box component="main" sx={{ flex: '1 0 auto' }}>
               <Routes>
-          {/*Public Routes */}
-          {/* <Route path="/" element={<Member />} /> */}
-          <Route path="/" element={<LandingPage />} />
-          <Route path="Login" element={<LogIn />} />
-          <Route path="Profil" element={<Profile />} />
-          <Route path="Regestrieren" element={<SignUp />} />
-          <Route path="Regestrieren/Erfolgreich" element={<VerificationPrompt />} />
-          <Route path="unauthorized" element={<Unauthorized />} />
-          <Route path="Datenschutz" element={<Datenschutz />} />
-          <Route path="404" element={<PageNotFound />} />
-          <Route path="galery" element={<Gallery />} />
-          <Route path="events" element={<Events />} />
-          <Route path="team" element={<Team />} />
+                {/*Public Routes */}
+                {/* <Route path="/" element={<Member />} /> */}
+                <Route path="/" element={<LandingPage />} />
+                <Route path="Login" element={<LogIn />} />
+                <Route path="password-reset" element={<PasswordReset />} />
+                <Route path="Profil" element={<Profile />} />
+                <Route path="Regestrieren" element={<SignUp />} />
+                <Route path="Regestrieren/Erfolgreich" element={<VerificationPrompt />} />
+                <Route path="unauthorized" element={<Unauthorized />} />
+                <Route path="Datenschutz" element={<Datenschutz />} />
+                <Route path="404" element={<PageNotFound />} />
+                <Route path="galery" element={<Gallery />} />
+                <Route path="events" element={<Events />} />
+                <Route path="team" element={<Team />} />
 
-          <Route path="*" element={<Navigate to="/404" replace />} /> {/*Redirect any invalide url to home */}
+                <Route path="*" element={<Navigate to="/404" replace />} /> {/*Redirect any invalide url to home */}
 
-          {/*Member Routes */}
-          {/* <Route element={<RequireAuth allowedRoles={[ROLES.Admin, ROLES.User]} />}> */}
-          <Route path="Forum">
-            <Route index element={<Forum />} />
-            <Route path="Category/:id/*" element={<Categories />} />
-            <Route path="Topic/:id/*" element={<Topics />} />
-            <Route path="Post/:id/*" element={<Posts />} />
-            <Route path="Texteditor" element={<TextEditor />} />
-          </Route>
-          {/* </Route> */}
+                {/*Member Routes */}
+                {/* <Route element={<RequireAuth allowedRoles={[ROLES.Admin, ROLES.User]} />}> */}
+                <Route path="Forum">
+                  <Route index element={<Forum />} />
+                  <Route path="Category/:id/*" element={<Categories />} />
+                  <Route path="Topic/:id/*" element={<Topics />} />
+                  <Route path="Post/:id/*" element={<Posts />} />
+                  <Route path="Texteditor" element={<TextEditor />} />
+                </Route>
+                {/* </Route> */}
 
-          {/*Admin Routes */}
-          {/* <Route element={<RequireAuth allowedRoles={[ROLES.Admin]} />}> */}
-          <Route path='Regeln' element={<Rules />} />
-          <Route path='/Admin/UserManagement' element={<UserManagement />} />
+                {/*Admin Routes */}
+                {/* <Route element={<RequireAuth allowedRoles={[ROLES.Admin]} />}> */}
+                <Route path='Regeln' element={<Rules />} />
+                <Route path='/Admin/UserManagement' element={<UserManagement />} />
 
-          {/* </Route> */}
-        </Routes>
+                {/* </Route> */}
+              </Routes>
             </Box>
             <Footer />
           </Box>
