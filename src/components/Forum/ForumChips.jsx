@@ -4,13 +4,13 @@ import Divider from '@mui/material/Divider';
 import Tooltip from '@mui/material/Tooltip';
 import Chip from '@mui/material/Chip';
 
-export default function ForumChips({ items }) {
+export default function ForumChips({ items, compact }) {
   if (!items || items.length === 0) return null;
   return (
     <Stack
       direction="row"
       spacing={0}
-      divider={<Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255, 255, 255, 0.08)', my: 0.75 }} />}
+      divider={<Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255, 255, 255, 0.08)', my: compact ? 0.25 : 0.75 }} />}
       sx={{
         border: '1px solid rgba(255, 255, 255, 0.08)',
         borderRadius: '20px',
@@ -22,11 +22,12 @@ export default function ForumChips({ items }) {
       {items.map((item, idx) => (
         <Tooltip key={idx} title={item.tooltip || ''} placement="top">
           <Chip
-            icon={item.icon}
+            icon={compact ? React.cloneElement(item.icon, { fontSize: 'small' }) : item.icon}
             label={item.label}
             variant="standard"
+            size={compact ? 'small' : 'medium'}
             color={item.color || "default"}
-            sx={{ border: 'none', borderRadius: 0, bgcolor: 'transparent', height: 32 }}
+            sx={{ border: 'none', borderRadius: 0, bgcolor: 'transparent', height: compact ? 24 : 32 }}
           />
         </Tooltip>
       ))}

@@ -117,12 +117,12 @@ export default function Forum_Topic() {
 
   const topicChips = [
     { tooltip: "Ersteller", icon: <PersonOutlineIcon />, label: creator || 'Unbekannt' },
-    { tooltip: "Erstellungsdatum", icon: <EventNoteIcon />, label: convertTimestamp(creationDate) },
+    { tooltip: "Erstellungsdatum", icon: <EventNoteIcon />, label: convertTimestamp(creationDate, true) },
     { tooltip: "Beiträge", icon: <ForumIcon />, label: postCount }
   ];
 
   return (
-    <Container maxWidth="xl" sx={{ px: { xs: 1, md: 3 }, py: 3 }}>
+    <Container maxWidth="xl" sx={{ px: { xs: 1, md: 3 }, py: 3, pb: 6 }}>
       <ForumBreadcrumbs
         categoryId={topicData.categoryId}
         categoryName={topicData.categoryName}
@@ -137,6 +137,7 @@ export default function Forum_Topic() {
           id="topic-header"
           sx={{
             cursor: 'default',
+            py: 0.5,
             '& .MuiAccordionSummary-content': {
               width: '100%',
               margin: 0,
@@ -150,8 +151,10 @@ export default function Forum_Topic() {
                 {topic}
               </Typography>
             </Grid>
-            <Grid size={{ xs: 12, md: 8 }}>
-              <ForumChips items={topicChips} />
+            <Grid size={{ xs: 12, md: 8 }} sx={{ display: 'flex', justifyContent: { md: 'flex-end' } }}>
+              <Box sx={{ display: { xs: 'none', md: 'block' }, '@media (min-width: 450px)': { display: 'block' } }}>
+                <ForumChips items={topicChips} />
+              </Box>
             </Grid>
           </Grid>
         </AccordionSummary>

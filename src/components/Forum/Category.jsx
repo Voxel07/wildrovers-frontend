@@ -219,15 +219,21 @@ export default function Category(props) {
 
   const isCreatorOrAdmin = auth.user === category.creator || auth.roles === "Admin";
 
-  const categoryChips = [
+  const categoryChipsDesktop = [
     { tooltip: "Ersteller", icon: <PersonIcon />, label: category.creator || 'Unbekannt' },
     { tooltip: "Erstellungsdatum", icon: <EventNoteIcon />, label: convertTimestamp(category.creationDate) },
     { tooltip: "Themen", icon: <TopicIcon />, label: formatNumber(category.topicCount) },
     { tooltip: "Sichtbarkeit", icon: <GroupIcon />, label: category.visibility, color: "error" }
   ];
 
+  const categoryChipsMobile = [
+    { tooltip: "Ersteller", icon: <PersonIcon />, label: category.creator || 'Unbekannt' },
+    { tooltip: "Erstellungsdatum", icon: <EventNoteIcon />, label: convertTimestamp(category.creationDate, true) },
+    { tooltip: "Sichtbarkeit", icon: <GroupIcon />, label: category.visibility, color: "error" }
+  ];
+
   return (
-    <Accordion expanded={expandAccordion} sx={{ border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+    <Accordion expanded={expandAccordion} sx={{ border: '1px solid rgba(255, 255, 255, 0.08)', ml: { xs: 1, sm: 2, md: 3 } }}>
       <AccordionSummary
         expandIcon={
           <span onClick={handleExpandClick} style={{ display: 'flex', alignItems: 'center', padding: 4, cursor: 'pointer' }}>
@@ -237,42 +243,39 @@ export default function Category(props) {
         aria-controls={`panel-${category.id}-content`}
         id={`panel-${category.id}-header`}
         sx={{
-          py: 1,
+          py: 0.5,
+          pb: 0.75,
+          position: 'relative',
           '& .MuiAccordionSummary-content': {
             width: '100%',
             margin: 0,
+          },
+          '& .MuiAccordionSummary-expandIconWrapper': {
+            position: 'absolute',
+            top: 4,
+            right: 8,
+            transform: 'none !important',
           },
           '&:hover': {
             backgroundColor: 'rgba(255, 255, 255, 0.02)'
           }
         }}
       >
-        <Grid container spacing={2} sx={{ flexDirection: 'row', alignItems: 'center', width: '100%' }}>
+        <Grid container spacing={1} sx={{ flexDirection: 'row', alignItems: 'center', width: '100%' }}>
           <Grid size={{ xs: 12, md: 3 }} onClick={redirectToCategory} sx={{ cursor: 'pointer' }}>
             <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'primary.main', display: 'inline-block' }}>
               {category.category}
             </Typography>
           </Grid>
-          <Grid size={{ xs: 12, md: 8 }}>
-            <ForumChips items={categoryChips} />
+          <Grid size={{ xs: 12, md: 9 }}>
+            <Box sx={{ display: { xs: 'none', sm: 'block' }, mx: 'auto', width: 'fit-content' }}>
+              <ForumChips items={categoryChipsDesktop} />
+            </Box>
+            {/* <Box sx={{ display: { xs: 'block', sm: 'none' }, mx: 'auto', width: 'fit-content' }}>
+              <ForumChips items={categoryChipsMobile} />
+            </Box> */}
           </Grid>
 
-          <Grid size={{ xs: 12, md: 1 }} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-            {isCreatorOrAdmin && (
-              <Stack direction="row" spacing={0.5}>
-                <Tooltip title="Kategorie editieren">
-                  <IconButton component="span" size="small" onClick={handleEdit} color="primary">
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Kategorie löschen">
-                  <IconButton component="span" size="small" onClick={handleDelete} color="error">
-                    <DeleteForeverIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </Stack>
-            )}
-          </Grid>
         </Grid>
       </AccordionSummary>
       <Divider />
@@ -294,18 +297,34 @@ export default function Category(props) {
         )}
       </AccordionDetails>
       <Divider />
-      {(auth.roles !== 'Besucher' || auth.canCreateCategory) && hasRequiredRole(auth.roles, category.visibility) && (
-        <Box sx={{ p: 1.5, display: 'flex', justifyContent: 'flex-start' }}>
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<AddCircleOutlineOutlinedIcon />}
-            onClick={handleOpen}
-          >
-            Thema hinzufügen
-          </Button>
+      <Box sx={{ p: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box>
+          {(auth.roles !== 'Besucher' || auth.canCreateCategory) && hasRequiredRole(auth.roles, category.visibility) && (
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<AddCircleOutlineOutlinedIcon />}
+              onClick={handleOpen}
+            >
+              Thema hinzufügen
+            </Button>
+          )}
         </Box>
-      )}
+        {isCreatorOrAdmin && (
+          <Stack direction="row" spacing={0.5}>
+            <Tooltip title="Kategorie editieren">
+              <IconButton size="small" onClick={handleEdit} color="primary">
+                <EditIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Kategorie löschen">
+              <IconButton size="small" onClick={handleDelete} color="error">
+                <DeleteForeverIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        )}
+      </Box>
 
       <Modal
         disableScrollLock

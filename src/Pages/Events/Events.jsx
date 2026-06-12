@@ -19,12 +19,16 @@ import {
   Stack,
   IconButton,
   Tooltip,
-  Chip
+  Chip,
+  Menu,
+  MenuItem
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
+import ForumIcon from '@mui/icons-material/Forum';
 import AddBoxIcon from '@mui/icons-material/AddBox';
 
 const initialModalState = {
@@ -95,6 +99,8 @@ export default function Events() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [eventToDelete, setEventToDelete] = useState(null);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [menuAnchorEl, setMenuAnchorEl] = useState(null);
+  const [menuEventId, setMenuEventId] = useState(null);
 
   const fetchEvents = () => {
     api.get('/event')
@@ -397,7 +403,7 @@ export default function Events() {
                     {index > 0 && (
                       <Grid container spacing={2} sx={{ position: 'relative', my: 1.5 }}>
                         <Grid size={{ xs: 3.5, sm: 2.5 }} />
-                        <Grid size={{ xs: 1, sm: 1 }} sx={{ display: 'flex', justifyContent: 'center', position: 'relative', height: 40 }}>
+                        <Grid size={{ xs: 1, sm: 1 }} sx={{ display: { xs: 'none', sm: 'flex' }, justifyContent: 'center', position: 'relative', height: 40 }}>
                           <Box sx={{
                             width: '2px',
                             bgcolor: 'rgba(255, 152, 0, 0.25)',
@@ -424,14 +430,14 @@ export default function Events() {
                             }}
                           />
                         </Grid>
-                        <Grid size={{ xs: 7.5, sm: 8.5 }} />
+                        <Grid size={{ xs: 12, sm: 8.5 }} />
                       </Grid>
                     )}
 
                     {/* Main Event Row */}
                     <Grid container spacing={2} sx={{ alignItems: 'stretch' }}>
-                      {/* Left Column: Date & Time */}
-                      <Grid size={{ xs: 3.5, sm: 2.5 }} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', pr: { xs: 1, sm: 2 } }}>
+                      {/* Left Column: Date & Time (desktop only) */}
+                      <Grid size={{ xs: 3.5, sm: 2.5 }} sx={{ display: { xs: 'none', sm: 'flex' }, flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', pr: { xs: 1, sm: 2 } }}>
                         <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'primary.main', textAlign: 'right', fontSize: { xs: '0.85rem', sm: '1rem' } }}>
                           {dateTextOnly}
                         </Typography>
@@ -456,7 +462,7 @@ export default function Events() {
                       </Grid>
 
                       {/* Middle Column: Line Segment and Circle Node */}
-                      <Grid size={{ xs: 1, sm: 1 }} sx={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
+                      <Grid size={{ xs: 1, sm: 1 }} sx={{ position: 'relative', display: { xs: 'none', sm: 'flex' }, justifyContent: 'center' }}>
                         <Box sx={{
                           width: '2px',
                           bgcolor: 'rgba(255, 152, 0, 0.25)',
@@ -484,7 +490,7 @@ export default function Events() {
                       </Grid>
 
                       {/* Right Column: Card */}
-                      <Grid size={{ xs: 7.5, sm: 8.5 }} sx={{ display: 'flex' }}>
+                      <Grid size={{ xs: 12, sm: 8.5 }} sx={{ display: 'flex' }}>
                         <Card sx={{
                           border: '1px solid rgba(255, 255, 255, 0.08)',
                           bgcolor: isFuture ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.005)',
@@ -497,11 +503,11 @@ export default function Events() {
                         }}>
                           <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
                             <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                              <Box sx={{ width: '100%' }}>
+                              <Box>
                                 <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1.5, color: isFuture ? 'text.primary' : 'text.secondary', fontSize: { xs: '1.15rem', sm: '1.4rem' } }}>
                                   {event.title}
                                 </Typography>
-                                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
+                                <Stack direction="row" spacing={2} sx={{ mb: 2, flexWrap: 'wrap', rowGap: 0.5 }}>
                                   <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }} color="text.secondary">
                                     <LocationOnIcon sx={{ fontSize: '1.1rem' }} />
                                     <Typography variant="subtitle2">
@@ -510,103 +516,87 @@ export default function Events() {
                                   </Stack>
                                 </Stack>
                               </Box>
-                              {canModify && (
-                                <Stack direction="row" spacing={0.5}>
-                                  <Tooltip title="Bearbeiten">
-                                    <IconButton color="primary" onClick={() => handleOpenEdit(event)} size="small">
-                                      <EditIcon fontSize="small" />
-                                    </IconButton>
-                                  </Tooltip>
-                                  <Tooltip title="Löschen">
-                                    <IconButton color="error" onClick={() => handleOpenDelete(event)} size="small">
-                                      <DeleteIcon fontSize="small" />
-                                    </IconButton>
-                                  </Tooltip>
+                              <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center', flexShrink: 0, ml: 'auto', mr: 1 }}>
+                                <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }} color="text.secondary">
+                                  <CalendarMonthIcon sx={{ fontSize: '1.1rem' }} />
+                                  <Typography variant="subtitle2">
+                                    {dateTextOnly}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                                    {timeTextOnly}
+                                  </Typography>
+                                  {isNextEvent && (
+                                    <Chip
+                                      label={daysToNext === 0 ? "Heute!" : `In ${daysToNext} T.`}
+                                      color="primary"
+                                      size="small"
+                                      sx={{ fontWeight: 'bold', fontSize: '0.65rem', height: 18, ml: 1.5 }}
+                                    />
+                                  )}
                                 </Stack>
-                              )}
+                              </Stack>
+                              <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center', flexShrink: 0 }}>
+                                {event.forumPostUrl && (
+                                  <Tooltip title="Im Forum diskutieren">
+                                    <IconButton
+                                      color="secondary"
+                                      size="small"
+                                      href={event.forumPostUrl.replace(/^https?:\/\/[^/]+/, window.location.origin)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      <ForumIcon fontSize="medium" />
+                                    </IconButton>
+                                  </Tooltip>
+                                )}
+                                {canModify && (
+                                  <IconButton
+                                    size="small"
+                                    onClick={(e) => { setMenuAnchorEl(e.currentTarget); setMenuEventId(event.id); }}
+                                  >
+                                    <MoreVertIcon fontSize="small" />
+                                  </IconButton>
+                                )}
+                              </Stack>
                             </Stack>
 
                             <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.7, whiteSpace: 'pre-wrap', mb: 2 }}>
                               {event.description}
                             </Typography>
 
-                            {/* Attendance / RSVP Options */}
-                            {isLoggedIn && (
-                              <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-                                <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 'bold' }}>Deine Teilnahme:</Typography>
-                                <Stack direction="row" spacing={1}>
-                                  <Button
-                                    size="small"
-                                    variant={event.attendances?.find(a => a.userName === currentUsername)?.status === 'YES' ? 'contained' : 'outlined'}
-                                    color="success"
-                                    onClick={() => handleAttendance(event.id, 'YES')}
-                                  >
-                                    Ja
-                                  </Button>
-                                  <Button
-                                    size="small"
-                                    variant={event.attendances?.find(a => a.userName === currentUsername)?.status === 'NO' ? 'contained' : 'outlined'}
-                                    color="error"
-                                    onClick={() => handleAttendance(event.id, 'NO')}
-                                  >
-                                    Nein
-                                  </Button>
-                                  <Button
-                                    size="small"
-                                    variant={event.attendances?.find(a => a.userName === currentUsername)?.status === 'MAYBE' ? 'contained' : 'outlined'}
-                                    color="warning"
-                                    onClick={() => handleAttendance(event.id, 'MAYBE')}
-                                  >
-                                    Vielleicht
-                                  </Button>
-                                </Stack>
-                              </Box>
-                            )}
-
-                            {/* RSVP Summary counts */}
-                            <Box sx={{ mt: 2.5, display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
-                              <Tooltip title={isTeamMember ? (event.attendances?.filter(a => a.status === 'YES').map(a => a.userName).join(', ') || 'Niemand') : 'Nur für Teammitglieder sichtbar'}>
+                            {/* Attendance chips – also act as buttons when logged in */}
+                            <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
+                              <Tooltip title={isTeamMember ? (event.attendances?.filter(a => a.status === 'YES').map(a => a.userName).join(', ') || 'Niemand') : (isLoggedIn ? 'Zusagen' : 'Nur für Teammitglieder sichtbar')}>
                                 <Chip
                                   label={`Zusagen: ${event.attendances?.filter(a => a.status === 'YES').length || 0}`}
                                   color="success"
                                   size="small"
-                                  variant="outlined"
-                                  sx={{ cursor: isTeamMember ? 'help' : 'default' }}
+                                  variant={event.attendances?.find(a => a.userName === currentUsername)?.status === 'YES' ? 'filled' : 'outlined'}
+                                  onClick={isLoggedIn ? () => handleAttendance(event.id, 'YES') : undefined}
+                                  sx={{ cursor: isLoggedIn ? 'pointer' : (isTeamMember ? 'help' : 'default') }}
                                 />
                               </Tooltip>
-                              <Tooltip title={isTeamMember ? (event.attendances?.filter(a => a.status === 'NO').map(a => a.userName).join(', ') || 'Niemand') : 'Nur für Teammitglieder sichtbar'}>
+                              <Tooltip title={isTeamMember ? (event.attendances?.filter(a => a.status === 'NO').map(a => a.userName).join(', ') || 'Niemand') : (isLoggedIn ? 'Absagen' : 'Nur für Teammitglieder sichtbar')}>
                                 <Chip
                                   label={`Absagen: ${event.attendances?.filter(a => a.status === 'NO').length || 0}`}
                                   color="error"
                                   size="small"
-                                  variant="outlined"
-                                  sx={{ cursor: isTeamMember ? 'help' : 'default' }}
+                                  variant={event.attendances?.find(a => a.userName === currentUsername)?.status === 'NO' ? 'filled' : 'outlined'}
+                                  onClick={isLoggedIn ? () => handleAttendance(event.id, 'NO') : undefined}
+                                  sx={{ cursor: isLoggedIn ? 'pointer' : (isTeamMember ? 'help' : 'default') }}
                                 />
                               </Tooltip>
-                              <Tooltip title={isTeamMember ? (event.attendances?.filter(a => a.status === 'MAYBE').map(a => a.userName).join(', ') || 'Niemand') : 'Nur für Teammitglieder sichtbar'}>
+                              <Tooltip title={isTeamMember ? (event.attendances?.filter(a => a.status === 'MAYBE').map(a => a.userName).join(', ') || 'Niemand') : (isLoggedIn ? 'Vielleicht' : 'Nur für Teammitglieder sichtbar')}>
                                 <Chip
                                   label={`Vielleicht: ${event.attendances?.filter(a => a.status === 'MAYBE').length || 0}`}
                                   color="warning"
                                   size="small"
-                                  variant="outlined"
-                                  sx={{ cursor: isTeamMember ? 'help' : 'default' }}
+                                  variant={event.attendances?.find(a => a.userName === currentUsername)?.status === 'MAYBE' ? 'filled' : 'outlined'}
+                                  onClick={isLoggedIn ? () => handleAttendance(event.id, 'MAYBE') : undefined}
+                                  sx={{ cursor: isLoggedIn ? 'pointer' : (isTeamMember ? 'help' : 'default') }}
                                 />
                               </Tooltip>
 
-                              {/* Forum Link */}
-                              {event.forumPostUrl && (
-                                <Button
-                                  variant="text"
-                                  color="secondary"
-                                  size="small"
-                                  href={event.forumPostUrl.replace(/^https?:\/\/[^/]+/, window.location.origin)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  sx={{ ml: 'auto', textTransform: 'none', fontWeight: 'bold' }}
-                                >
-                                  💬 Diskussion im Forum
-                                </Button>
-                              )}
                             </Box>
                           </CardContent>
                         </Card>
@@ -618,6 +608,34 @@ export default function Events() {
             </Box>
           );
         })()}
+
+        {/* 3-dot menu for edit/delete */}
+        <Menu
+          anchorEl={menuAnchorEl}
+          open={Boolean(menuAnchorEl)}
+          onClose={() => { setMenuAnchorEl(null); setMenuEventId(null); }}
+          transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+          anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        >
+          <MenuItem onClick={() => {
+            const ev = events.find(e => e.id === menuEventId);
+            if (ev) handleOpenEdit(ev);
+            setMenuAnchorEl(null);
+            setMenuEventId(null);
+          }}>
+            <EditIcon fontSize="small" sx={{ mr: 1 }} />
+            Bearbeiten
+          </MenuItem>
+          <MenuItem onClick={() => {
+            const ev = events.find(e => e.id === menuEventId);
+            if (ev) handleOpenDelete(ev);
+            setMenuAnchorEl(null);
+            setMenuEventId(null);
+          }} sx={{ color: 'error.main' }}>
+            <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
+            Löschen
+          </MenuItem>
+        </Menu>
       </Container>
 
       {/* Dialog for adding/editing event */}

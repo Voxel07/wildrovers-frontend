@@ -78,7 +78,7 @@ function SignUpForm() {
 
     return (
         <form onSubmit={handleFormSubmit(onSubmit)} className="Form-Container">
-            <Box sx={{ mb: 4, textAlign: 'center' }}>
+            <Box sx={{ mb: 3, mt:3, textAlign: 'center' }}>
                 <Typography variant="h4" sx={{ fontFamily: 'Outfit', fontWeight: 800, color: '#f5f5f5', mb: 1 }}>
                     Registrieren
                 </Typography>
@@ -103,6 +103,7 @@ function SignUpForm() {
                         variant="outlined"
                         label="Vorname"
                         type="text"
+                        autoComplete="given-name"
                         fullWidth
                         error={!!errors.firstName}
                         helperText={errors.firstName?.message}
@@ -114,6 +115,7 @@ function SignUpForm() {
                         variant="outlined"
                         label="Nachname"
                         type="text"
+                        autoComplete="family-name"
                         fullWidth
                         error={!!errors.lastName}
                         helperText={errors.lastName?.message}
@@ -125,6 +127,7 @@ function SignUpForm() {
                         variant="outlined"
                         label="Benutzername"
                         type="text"
+                        autoComplete="username"
                         fullWidth
                         error={!!errors.userName}
                         helperText={errors.userName?.message}
@@ -136,6 +139,7 @@ function SignUpForm() {
                         variant="outlined"
                         label="E-Mail-Adresse"
                         type="email"
+                        autoComplete="email"
                         fullWidth
                         error={!!errors.email}
                         helperText={errors.email?.message}
@@ -147,6 +151,7 @@ function SignUpForm() {
                         variant="outlined"
                         label="Passwort"
                         type="password"
+                        autoComplete="new-password"
                         fullWidth
                         error={!!errors.password}
                         helperText={errors.password?.message}
@@ -158,6 +163,7 @@ function SignUpForm() {
                         variant="outlined"
                         label="Passwort wiederholen"
                         type="password"
+                        autoComplete="new-password"
                         fullWidth
                         error={!!errors.passwordWdh}
                         helperText={errors.passwordWdh?.message}
@@ -178,7 +184,7 @@ function SignUpForm() {
                     </Button>
                 </Grid>
                 <Grid size={12}>
-                    <Stack spacing={2} marginTop={1}>
+                    <Stack spacing={2} sx={{ mt: 1 }}>
                         {!!resData && resCode > 200 ? (
                             <Alert severity="error">
                                 {typeof resData === 'object' ? (resData.message || JSON.stringify(resData)) : resData}

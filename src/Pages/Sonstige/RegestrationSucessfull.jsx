@@ -196,16 +196,6 @@ export default function RegestrationSucessfull() {
                 
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ width: '100%', justifyContent: 'center' }}>
                   <Button 
-                    variant="outlined" 
-                    color="primary" 
-                    onClick={goHome}
-                    fullWidth
-                    disabled={loading}
-                    sx={{ py: 1.2, fontWeight: 'bold' }}
-                  >
-                    Startseite
-                  </Button>
-                  <Button 
                     variant="contained" 
                     color="primary" 
                     type="submit"
@@ -214,6 +204,16 @@ export default function RegestrationSucessfull() {
                     sx={{ py: 1.2, fontWeight: 'bold' }}
                   >
                     {loading ? <CircularProgress size={24} color="inherit" /> : "Verifizieren"}
+                  </Button>
+                   <Button 
+                    variant="outlined" 
+                    color="primary" 
+                    onClick={goHome}
+                    fullWidth
+                    disabled={loading}
+                    sx={{ py: 1.2, fontWeight: 'bold' }}
+                  >
+                    Startseite
                   </Button>
                 </Stack>
               </Box>

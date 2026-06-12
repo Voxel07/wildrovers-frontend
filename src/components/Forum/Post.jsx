@@ -29,6 +29,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import BarChartIcon from '@mui/icons-material/BarChart';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 
@@ -94,7 +95,7 @@ function votingReducer(state, action) {
 
 const noModules = { toolbar: false };
 
-export default function Post({ post, onUpdate, onDelete, onAddPoll }) {
+export default function Post({ post, onUpdate, onDelete, onAddPoll, pollsVisible, onTogglePolls }) {
     const { auth } = useAuth();
     const alertsManagerRef = use(AlertsContext);
 
@@ -315,6 +316,13 @@ export default function Post({ post, onUpdate, onDelete, onAddPoll }) {
                                 >
                                     Umfrage hinzufügen
                                 </Button>
+                            </Tooltip>
+                        )}
+                        {onTogglePolls && (
+                            <Tooltip title={pollsVisible ? 'Umfragen ausblenden' : 'Umfragen einblenden'}>
+                                <IconButton size="small" onClick={onTogglePolls} color={pollsVisible ? 'primary' : 'default'}>
+                                    {pollsVisible ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
+                                </IconButton>
                             </Tooltip>
                         )}
                     </Stack>

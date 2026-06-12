@@ -22,10 +22,8 @@ import { useTheme } from '@mui/material/styles';
 import AddIcon from '@mui/icons-material/Add';
 import ForumIcon from '@mui/icons-material/Forum';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import FirstPageIcon from '@mui/icons-material/FirstPage';
 import KeyboardArrowLeft from '@mui/icons-material/KeyboardArrowLeft';
 import KeyboardArrowRight from '@mui/icons-material/KeyboardArrowRight';
-import LastPageIcon from '@mui/icons-material/LastPage';
 
 import { convertTimestamp, formatNumber } from '../../helper/converter';
 import ForumChips from './ForumChips';
@@ -63,10 +61,6 @@ function TablePaginationActions(props) {
   const theme = useTheme();
   const { count, page, rowsPerPage, onPageChange } = props;
 
-  const handleFirstPageButtonClick = (event) => {
-    onPageChange(event, 0);
-  };
-
   const handleBackButtonOpen = (event) => {
     onPageChange(event, page - 1);
   };
@@ -75,19 +69,8 @@ function TablePaginationActions(props) {
     onPageChange(event, page + 1);
   };
 
-  const handleLastPageButtonClick = (event) => {
-    onPageChange(event, Math.max(0, Math.ceil(count / rowsPerPage) - 1));
-  };
-
   return (
     <Box sx={{ flexShrink: 0, ml: 2.5 }}>
-      <IconButton
-        onClick={handleFirstPageButtonClick}
-        disabled={page === 0}
-        aria-label="first page"
-      >
-        {theme.direction === 'rtl' ? <LastPageIcon /> : <FirstPageIcon />}
-      </IconButton>
       <IconButton
         onClick={handleBackButtonOpen}
         disabled={page === 0}
@@ -101,13 +84,6 @@ function TablePaginationActions(props) {
         aria-label="next page"
       >
         {theme.direction === 'rtl' ? <KeyboardArrowLeft /> : <KeyboardArrowRight />}
-      </IconButton>
-      <IconButton
-        onClick={handleLastPageButtonClick}
-        disabled={page >= Math.ceil(count / rowsPerPage) - 1}
-        aria-label="last page"
-      >
-        {theme.direction === 'rtl' ? <FirstPageIcon /> : <LastPageIcon />}
       </IconButton>
     </Box>
   );
@@ -159,7 +135,7 @@ export default function Posts(props) {
         <Table
           sx={{ minWidth: { xs: 300, sm: 600 } }}
           aria-labelledby="tableTitle"
-          size='medium'
+          size='small'
         >
           <TableBody>
             {tableData
@@ -195,13 +171,23 @@ export default function Posts(props) {
                           {row.title}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          von: {row.creator} | {convertTimestamp(row.creationDate)}
+                          von: {row.creator}
+                          <Box
+                            component="span"
+                            sx={{
+                              display: 'none',
+                              '@media (min-width: 450px)': { display: 'inline' },
+                            }}
+                          >
+                            {' | '}{convertTimestamp(row.creationDate)}
+                          </Box>
                         </Typography>
                       </Box>
                     </TableCell>
                     <TableCell align="right" sx={{ width: 180 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                         <ForumChips
+                          compact
                           items={[
                             { tooltip: "Antworten", icon: <ForumIcon />, label: formatNumber(row.answerCount) },
                             { tooltip: "Aufrufe", icon: <VisibilityIcon />, label: formatNumber(row.views) }

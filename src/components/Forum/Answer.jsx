@@ -15,6 +15,9 @@ import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 
@@ -39,6 +42,8 @@ export default function Answer(props) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(answer.content);
   const [saving, setSaving] = useState(false);
+  const [menuAnchorEl, setMenuAnchorEl] = useState(null);
+  const menuOpen = Boolean(menuAnchorEl);
 
   const isCreatorOrAdmin = auth.user === answer.creator || auth.roles === "Admin";
 
@@ -100,26 +105,35 @@ export default function Answer(props) {
         <Grid container spacing={2}>
           <Grid size={{ xs: 12 }}>
             <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-              <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+              <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', minWidth: 0 }}>
                 <Avatar 
                   alt={answer.creator ? answer.creator[0].toUpperCase() : 'U'} 
-                  sx={{ bgcolor: 'secondary.main', color: 'secondary.contrastText', width: 32, height: 32, fontWeight: 'bold', fontSize: '0.9rem' }}
+                  sx={{ bgcolor: 'secondary.main', color: 'secondary.contrastText', width: 32, height: 32, fontWeight: 'bold', fontSize: '0.9rem', flexShrink: 0 }}
                 />
-                <Box>
+                <Box sx={{ minWidth: 0 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
                     {answer.creator}
+                    <Box component="span" sx={{ fontWeight: 400, color: 'text.secondary', ml: 1 }}>
+                      <Box component="span" sx={{ display: 'none', '@media (min-width: 450px)': { display: 'inline' } }}>
+                        {convertTimestamp(answer.creationDate)}
+                      </Box>
+                      <Box component="span" sx={{ display: 'inline', '@media (min-width: 450px)': { display: 'none' } }}>
+                        {convertTimestamp(answer.creationDate, true)}
+                      </Box>
+                    </Box>
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {convertTimestamp(answer.creationDate)}
-                    {answer.editDate && ` (bearbeitet am ${answer.editDate})`}
-                  </Typography>
+                  {answer.editDate && (
+                    <Typography variant="caption" color="text.secondary">
+                      bearbeitet am {answer.editDate}
+                    </Typography>
+                  )}
                 </Box>
               </Stack>
 
               {isCreatorOrAdmin && !saving && (
-                <Stack direction="row" spacing={0.5}>
+                <>
                   {isEditing ? (
-                    <>
+                    <Stack direction="row" spacing={0.5}>
                       <Tooltip title="Speichern">
                         <IconButton size="small" color="primary" onClick={handleSaveEdit}>
                           <SaveIcon fontSize="small" />
@@ -130,22 +144,32 @@ export default function Answer(props) {
                           <CancelIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                    </>
+                    </Stack>
                   ) : (
                     <>
-                      <Tooltip title="Antwort bearbeiten">
-                        <IconButton size="small" color="primary" onClick={() => setIsEditing(true)}>
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Antwort löschen">
-                        <IconButton size="small" color="error" onClick={handleDelete}>
-                          <DeleteForeverIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
+                      <IconButton size="small" onClick={(e) => setMenuAnchorEl(e.currentTarget)}>
+                        <MoreVertIcon fontSize="small" />
+                      </IconButton>
+                      <Menu
+                        anchorEl={menuAnchorEl}
+                        open={menuOpen}
+                        onClose={() => setMenuAnchorEl(null)}
+                        onClick={() => setMenuAnchorEl(null)}
+                        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                      >
+                        <MenuItem onClick={() => setIsEditing(true)}>
+                          <EditIcon fontSize="small" sx={{ mr: 1 }} />
+                          Antwort bearbeiten
+                        </MenuItem>
+                        <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
+                          <DeleteForeverIcon fontSize="small" sx={{ mr: 1 }} />
+                          Antwort löschen
+                        </MenuItem>
+                      </Menu>
                     </>
                   )}
-                </Stack>
+                </>
               )}
             </Stack>
           </Grid>

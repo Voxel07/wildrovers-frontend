@@ -1,4 +1,3 @@
-import Sidebar, { useSidebar } from './components/Navigation/Sidebar'
 import { Routes, Navigate, Route, BrowserRouter as Router } from "react-router-dom";
 
 // MUI
@@ -46,7 +45,6 @@ import Member from './Pages/StaticContent/Member';
 function App() {
   const { auth } = useAuth();
   const [user, setUser] = useState({ valid: false, name: "", role: "", jwt: "" });
-  const { mode, toggleMode, restoreSidebar } = useSidebar();
 
   useEffect(() => {
     if (auth && auth.JWT) {
@@ -72,13 +70,8 @@ function App() {
   return (
     <UserContext.Provider value={stateValue}>
       <AlertsContext.Provider value={alertsManagerRef}>
-        <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-          {/* Collapsible Sidebar */}
-          <Sidebar mode={mode} onToggleMode={toggleMode} />
-
-          {/* Main content area */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: '100vh' }}>
-            <Navbar sidebarHidden={mode === 'hidden'} onRestoreSidebar={restoreSidebar} />
+        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+            <Navbar />
             <AlertsManager ref={alertsManagerRef} />
             <Box component="main" sx={{ flex: '1 0 auto' }}>
               <Routes>
@@ -120,7 +113,6 @@ function App() {
             </Box>
             <Footer />
           </Box>
-        </Box>
       </AlertsContext.Provider>
     </UserContext.Provider>
   );

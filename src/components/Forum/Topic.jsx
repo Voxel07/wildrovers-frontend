@@ -7,19 +7,17 @@ import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
 import Tooltip from '@mui/material/Tooltip';
-import Chip from '@mui/material/Chip';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import TopicIcon from '@mui/icons-material/Topic';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemText from '@mui/material/ListItemText';
-import ListItemIcon from '@mui/material/ListItemIcon';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Typography from "@mui/material/Typography";
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import EditIcon from '@mui/icons-material/Edit';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import IconButton from '@mui/material/IconButton';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
 
 // Eigene
 import { convertTimestamp } from '../../helper/converter';
@@ -32,8 +30,21 @@ export default function Topic(props) {
   const navigate = useNavigate();
   const [post, setPost] = useState(null);
   const [allPostsViewed, setAllPostsViewed] = useState(true);
+  const [menuAnchorEl, setMenuAnchorEl] = useState(null);
   const { topic, id, postCount, views, creationDate, creator } = props.topic;
   const alertsManagerRef = use(AlertsContext);
+
+  const menuOpen = Boolean(menuAnchorEl);
+
+  const handleMenuOpen = (e) => {
+    e.stopPropagation();
+    setMenuAnchorEl(e.currentTarget);
+  };
+
+  const handleMenuClose = (e) => {
+    if (e) e.stopPropagation();
+    setMenuAnchorEl(null);
+  };
 
   function redirectToTopic() {
     navigate("/Forum/Topic/" + id);
@@ -127,7 +138,7 @@ export default function Topic(props) {
 
   const isCreatorOrAdmin = auth.user === creator || auth.roles === "Admin";
 
-  const topicChips = [
+  const topicChipsDesktop = [
     { tooltip: "Beiträge", icon: <TopicIcon />, label: postCount },
     { tooltip: "Aufrufe", icon: <VisibilityIcon />, label: views }
   ];
@@ -148,29 +159,37 @@ export default function Topic(props) {
           }
         }}
       >
-        <Grid size={{ xs: 12, sm: 6, md: 5, lg: 6 }} onClick={redirectToTopic} sx={{ cursor: 'pointer' }}>
+        <Grid size={{ xs: 12, sm: 6, md: 5, lg: 6 }} onClick={redirectToTopic} sx={{ cursor: 'pointer', pl: { xs: 1, sm: 0 } }}>
           <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
             <LibraryBooksIcon
               color={allPostsViewed ? "disabled" : "primary"}
               fontSize="medium"
-              sx={{ opacity: allPostsViewed ? 0.5 : 1 }}
+              sx={{ opacity: allPostsViewed ? 0.5 : 1, flexShrink: 0 }}
             />
-            <Box>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
                 {topic}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                Erstellt am {convertTimestamp(creationDate)} von {creator}
+                Erstellt am {convertTimestamp(creationDate, true)} von {creator}
               </Typography>
             </Box>
+            {/* Burger menu – only on mobile */}
+            {isCreatorOrAdmin && (
+              <Box sx={{ display: { xs: 'flex', sm: 'none' }, flexShrink: 0 }}>
+                <IconButton size="small" onClick={handleMenuOpen} color="inherit">
+                  <MoreVertIcon fontSize="small" />
+                </IconButton>
+              </Box>
+            )}
           </Stack>
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 3, md: 3, lg: 2 }}>
-          <ForumChips items={topicChips} />
+        <Grid size={{ xs: 12, sm: 3, md: 3, lg: 2 }} sx={{ display: { xs: 'none', sm: 'block' } }}>
+          <ForumChips items={topicChipsDesktop} />
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 3, md: 3, lg: 3 }}>
+        <Grid size={{ xs: 12, sm: 3, md: 3, lg: 3 }} sx={{ display: { xs: 'none', sm: 'block' } }}>
           {postCount > 0 && post ? lastEntry() : (
             <Typography variant="caption" color="text.secondary">
               Keine Beiträge
@@ -178,7 +197,7 @@ export default function Topic(props) {
           )}
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 12, md: 1, lg: 1 }} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Grid size={{ xs: 12, sm: 12, md: 1, lg: 1 }} sx={{ display: { xs: 'none', sm: 'flex' }, justifyContent: 'flex-end' }}>
           {isCreatorOrAdmin && (
             <Stack direction="row" spacing={0.5}>
               <Tooltip title="Thema editieren">
@@ -195,6 +214,26 @@ export default function Topic(props) {
           )}
         </Grid>
       </Grid>
+
+      {/* Mobile burger menu */}
+      <Menu
+        anchorEl={menuAnchorEl}
+        open={menuOpen}
+        onClose={handleMenuClose}
+        onClick={handleMenuClose}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+      >
+        <MenuItem onClick={handleEdit}>
+          <EditIcon fontSize="small" sx={{ mr: 1 }} />
+          Thema editieren
+        </MenuItem>
+        <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
+          <DeleteForeverIcon fontSize="small" sx={{ mr: 1 }} />
+          Thema löschen
+        </MenuItem>
+      </Menu>
+
       <Divider />
     </Box>
   );

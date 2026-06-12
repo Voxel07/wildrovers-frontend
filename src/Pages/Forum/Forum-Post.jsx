@@ -8,6 +8,7 @@ import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
+import Collapse from '@mui/material/Collapse';
 import Divider from '@mui/material/Divider';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -143,6 +144,8 @@ export default function Forum_Post() {
 
   // Poll Dialog State
   const [createPollOpen, setCreatePollOpen] = useState(false);
+  const [pollsVisible, setPollsVisible] = useState(true);
+  const [eventVisible, setEventVisible] = useState(true);
   const [pollQuestion, setPollQuestion] = useState('');
   const [pollOptions, setPollOptions] = useState(['', '']);
   const [pollAllowMultiple, setPollAllowMultiple] = useState(false);
@@ -409,12 +412,12 @@ export default function Forum_Post() {
         </AccordionSummary>
         <Divider />
         <AccordionDetails sx={{ p: 0 }}>
-          <Post post={post} onUpdate={() => fetchData(true)} onDelete={() => navigate("/Forum/Topic/" + post.topicId)} onAddPoll={() => setCreatePollOpen(true)} />
+          <Post post={post} onUpdate={() => fetchData(true)} onDelete={() => navigate("/Forum/Topic/" + post.topicId)} onAddPoll={() => setCreatePollOpen(true)} pollsVisible={pollsVisible} onTogglePolls={() => setPollsVisible(v => !v)} />
         </AccordionDetails>
       </Accordion>
 
       {/* Render Polls if they exist in the post data */}
-      {post.polls && post.polls.length > 0 && (
+      {pollsVisible && post.polls && post.polls.length > 0 && (
         <Box sx={{ mb: 4 }}>
           <Grid container spacing={3}>
             {post.polls.map(poll => (
@@ -429,13 +432,22 @@ export default function Forum_Post() {
       {/* Associated Event Details & Attendance */}
       {associatedEvent && (
         <Card sx={{ mb: 4, border: '1px solid rgba(255, 255, 255, 0.08)', bgcolor: 'rgba(255, 255, 255, 0.02)', borderRadius: 2 }}>
-          <CardContent sx={{ p: 3 }}>
-            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 2, color: 'primary.main' }}>
-              <EventNoteIcon />
-              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                Zugehöriges Event: {associatedEvent.title}
-              </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+          <CardContent sx={{ py: eventVisible ? 3 : 1.5, px: 3 }}>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+              <Stack direction="row" spacing={1} sx={{ alignItems: 'center', color: 'primary.main' }}>
+                <EventNoteIcon />
+                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  Zugehöriges Event: {associatedEvent.title}
+                </Typography>
+              </Stack>
+              <Tooltip title={eventVisible ? 'Event ausblenden' : 'Event einblenden'}>
+                <IconButton size="small" onClick={() => setEventVisible(v => !v)}>
+                  {eventVisible ? <VisibilityIcon fontSize="small" /> : <VisibilityIcon fontSize="small" sx={{ opacity: 0.3 }} />}
+                </IconButton>
+              </Tooltip>
+            </Stack>
+            <Collapse in={eventVisible}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5, mt: 1 }}>
               Ort: <strong>{associatedEvent.location}</strong> | Datum: <strong>{(() => {
                 if (!associatedEvent.eventDate) return '';
                 try {
@@ -467,7 +479,6 @@ export default function Forum_Post() {
                 }
               })()}</strong>
             </Typography>
-            </Stack>
 
             <Grid container spacing={2} sx={{ mt: 2.5 }}>
               {/* YES / Zusagen */}
@@ -577,12 +588,22 @@ export default function Forum_Post() {
                 </Box>
               </Grid>
             </Grid>
+            </Collapse>
           </CardContent>
         </Card>
       )}
 
       {/* Answers section */}
-      <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 3, color: 'primary.main' }}>
+      <Typography
+        variant="h5"
+        sx={{
+          fontWeight: 'bold',
+          mb: { xs: 1, md: 2 },
+          mt: 0,
+          color: 'primary.main',
+          textAlign: { xs: 'center', md: 'left' },
+        }}
+      >
         Antworten ({answers.length})
       </Typography>
 

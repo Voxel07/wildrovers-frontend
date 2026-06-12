@@ -27,11 +27,13 @@ import useAuth from '../../context/useAuth';
 
 const style = {
     position: 'absolute',
-    top: '50%',
+    top: '10%',
     left: '50%',
-    transform: 'translate(-50%, -50%)',
+    transform: 'translate(-50%, 0)',
     width: { xs: '90%', sm: 450, md: 500 },
     maxWidth: '95%',
+    maxHeight: '85vh',
+    overflowY: 'auto',
     bgcolor: 'background.paper',
     border: '1px solid rgba(255, 255, 255, 0.1)',
     borderRadius: 2,
