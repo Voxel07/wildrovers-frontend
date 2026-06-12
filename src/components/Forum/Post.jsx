@@ -180,7 +180,7 @@ export default function Post({ post, onUpdate, onDelete }) {
 
     return (
         <Box sx={{ width: '100%', p: { xs: 2, md: 3 } }}>
-            <Grid container direction="column" spacing={2}>
+            <Grid container spacing={2} sx={{ flexDirection: 'column' }}>
                 <Grid size={{ xs: 12 }}>
                     <Stack
                         direction="row"

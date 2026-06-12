@@ -247,7 +247,7 @@ export default function Category(props) {
           }
         }}
       >
-        <Grid container direction="row" sx={{ alignItems: 'center', width: '100%' }} spacing={2}>
+        <Grid container spacing={2} sx={{ flexDirection: 'row', alignItems: 'center', width: '100%' }}>
           <Grid size={{ xs: 12, md: 3 }} onClick={redirectToCategory} sx={{ cursor: 'pointer' }}>
             <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'primary.main', display: 'inline-block' }}>
               {category.category}
@@ -294,7 +294,7 @@ export default function Category(props) {
         )}
       </AccordionDetails>
       <Divider />
-      {hasRequiredRole(auth.roles, category.visibility) && (
+      {(auth.roles !== 'Besucher' || auth.canCreateCategory) && hasRequiredRole(auth.roles, category.visibility) && (
         <Box sx={{ p: 1.5, display: 'flex', justifyContent: 'flex-start' }}>
           <Button
             variant="outlined"

@@ -74,12 +74,13 @@ const AddCategory = ({ ref, ...props }) => {
             .max(20, "Name darf max. 20 Zeichen haben"),
     });
 
-    const { register, handleSubmit: handleFormSubmit, reset, formState: { errors, isSubmitting } } = useForm({
+    const { register, handleSubmit: handleFormSubmit, reset, watch, formState: { errors, isSubmitting } } = useForm({
         resolver: yupResolver(validationSchema),
         defaultValues: {
             Name: props.categoryToEdit ? props.categoryToEdit.category : '',
         }
     });
+    const categoryName = watch("Name") || "";
 
     // Reset name if categoryToEdit changes
     useEffect(() => {
@@ -160,7 +161,8 @@ const AddCategory = ({ ref, ...props }) => {
                         variant="outlined"
                         label="Name der Kategorie"
                         error={!!errors.Name}
-                        helperText={errors.Name?.message}
+                        helperText={errors.Name ? `${errors.Name.message} (${categoryName.length}/20)` : `${categoryName.length}/20`}
+                        inputProps={{ maxLength: 20 }}
                         {...register("Name")}
                         sx={{ mb: 3, width: '100%' }}
                     />
@@ -211,7 +213,7 @@ const AddCategory = ({ ref, ...props }) => {
                         )}
                     />
 
-                    <Grid container direction="row" sx={{ justifyContent: 'space-between' }}>
+                    <Grid container sx={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                         <Button variant="outlined" onClick={props.callback} color="error" sx={{ marginTop: 2 }}>
                             Abbrechen
                         </Button>

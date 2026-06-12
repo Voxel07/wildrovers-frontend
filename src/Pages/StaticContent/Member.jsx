@@ -1,92 +1,92 @@
 import React from 'react'
 import Tilt from 'react-parallax-tilt';
-import { Grid } from '@mui/material';
+import { Box } from '@mui/material';
 
 export default function Member() {
   return (
-    <Grid container justifyContent="center" alignItems="center" spacing={5}>
-        <Grid item>
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: 5 }}>
+        <Box>
         <Tilt style={{scale:2}}>
             <div style={{ height: '300px', background: "linear-gradient(#e66465, #9198e5)" , glareEnable: true , glareColor: 'red', tiltMaxAngleX : 1, tiltMaxAngleY: 1, borderRadius: 10, border: 'solid 2px red', scale:2}}>
-                <Grid container justifyContent="center" alignItems="center" direction={'column'}>
-                    <Grid item >
+                <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                    <Box>
                         <h1>React Parallax Tilt 👀</h1>
-                    </Grid>
-                    <Grid item position={'relative'} justifySelf={'flex-end'}>
+                    </Box>
+                    <Box sx={{ position: 'relative', justifySelf: 'flex-end' }}>
                         <h1>Matze</h1>
-                    </Grid>
-                </Grid>
+                    </Box>
+                </Box>
             </div>
         </Tilt>
-        </Grid>
-        <Grid item>
+        </Box>
+        <Box>
         <Tilt>
             <div style={{ height: '300px', backgroundColor: 'gray', glareEnable: true , glareColor: 'red', tiltMaxAngleX : 1, tiltMaxAngleY: 1, borderRadius: 10, border: 'solid 2px red'}}>
-                <Grid container justifyContent="center" alignItems="center" >
-                    <Grid item >
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <Box>
                         <h1>React Parallax Tilt 👀</h1>
-                    </Grid>
-                </Grid>
+                    </Box>
+                </Box>
             </div>
         </Tilt>
-        </Grid>
-        <Grid item>
+        </Box>
+        <Box>
         <Tilt>
             <div style={{ height: '300px', backgroundColor: 'gray', glareEnable: true , glareColor: 'red', tiltMaxAngleX : 1, tiltMaxAngleY: 1, borderRadius: 10, border: 'solid 2px red'}}>
-                <Grid container justifyContent="center" alignItems="center">
-                    <Grid item >
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <Box>
                         <h1>React Parallax Tilt 👀</h1>
-                    </Grid>
-                </Grid>
+                    </Box>
+                </Box>
             </div>
         </Tilt>
-        </Grid>
-        <Grid item>
+        </Box>
+        <Box>
         <Tilt>
             <div style={{ height: '300px', backgroundColor: 'gray', glareEnable: true , glareColor: 'red', tiltMaxAngleX : 1, tiltMaxAngleY: 1, borderRadius: 10, border: 'solid 2px red'}}>
-                <Grid container justifyContent="center" alignItems="center">
-                    <Grid item >
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <Box>
                         <h1>React Parallax Tilt 👀</h1>
-                    </Grid>
-                </Grid>
+                    </Box>
+                </Box>
             </div>
         </Tilt>
-        </Grid>
-        <Grid item>
+        </Box>
+        <Box>
         <Tilt>
             <div style={{ height: '300px', backgroundColor: 'gray', glareEnable: true , glareColor: 'red', tiltMaxAngleX : 1, tiltMaxAngleY: 1, borderRadius: 10, border: 'solid 2px red'}}>
-                <Grid container justifyContent="center" alignItems="center">
-                    <Grid item >
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <Box>
                         <h1>React Parallax Tilt 👀</h1>
-                    </Grid>
-                </Grid>
+                    </Box>
+                </Box>
             </div>
         </Tilt>
-        </Grid>
-        <Grid item>
+        </Box>
+        <Box>
         <Tilt>
             <div style={{ height: '300px', backgroundColor: 'gray', glareEnable: true , glareColor: 'red', tiltMaxAngleX : 1, tiltMaxAngleY: 1, borderRadius: 10, border: 'solid 2px red'}}>
-                <Grid container justifyContent="center" alignItems="center">
-                    <Grid item >
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <Box>
                         <h1>React Parallax Tilt 👀</h1>
-                    </Grid>
-                </Grid>
+                    </Box>
+                </Box>
             </div>
         </Tilt>
-        </Grid>
-        <Grid item>
+        </Box>
+        <Box>
         <Tilt>
             <div style={{ height: '300px', backgroundColor: 'gray', glareEnable: true , glareColor: 'red', tiltMaxAngleX : 1, tiltMaxAngleY: 1, borderRadius: 10, border: 'solid 2px red'}}>
-                <Grid container justifyContent="center" alignItems="center">
-                    <Grid item >
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <Box>
                         <h1>React Parallax Tilt 👀</h1>
-                    </Grid>
-                </Grid>
+                    </Box>
+                </Box>
             </div>
         </Tilt>
-        </Grid>
+        </Box>
 
-        <Grid item> </Grid>
-    </Grid>
+        <Box> </Box>
+    </Box>
   );
 }

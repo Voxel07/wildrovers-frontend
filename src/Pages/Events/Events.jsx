@@ -89,7 +89,7 @@ export default function Events() {
   const [events, setEvents] = useState([]);
   const [modalState, dispatchModal] = useReducer(modalReducer, initialModalState);
   const { openModal, editMode, selectedEventId, formData, formError } = modalState;
-  
+
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [eventToDelete, setEventToDelete] = useState(null);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -284,7 +284,7 @@ export default function Events() {
         ) : (
           <Box sx={{ display: 'flex', justifyContent: 'center', mb: 6 }}>
             <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', border: '1px solid rgba(255, 255, 255, 0.08)', p: 2, borderRadius: 2, bgcolor: 'rgba(0,0,0,0.2)' }}>
-              🔒 Bitte im Forum einloggen, um Events zu erstellen oder zu bearbeiten.
+              🔒 Bitte einloggen, um Events zu erstellen oder zu bearbeiten.
             </Typography>
           </Box>
         )}
@@ -326,7 +326,7 @@ export default function Events() {
         {(() => {
           const filteredEvents = events.filter(e => e.eventDate && new Date(e.eventDate).getFullYear() === selectedYear);
           const sortedEvents = [...filteredEvents].sort((a, b) => new Date(a.eventDate) - new Date(b.eventDate));
-          
+
           if (sortedEvents.length === 0) {
             return (
               <Typography align="center" color="text.secondary" sx={{ fontStyle: 'italic', py: 4 }}>
@@ -337,7 +337,7 @@ export default function Events() {
 
           const today = new Date();
           today.setHours(0, 0, 0, 0);
-          
+
           // Find the next upcoming event
           const upcomingEvents = sortedEvents.filter(e => new Date(e.eventDate) >= today);
           const nextEvent = upcomingEvents.length > 0 ? upcomingEvents[0] : null;

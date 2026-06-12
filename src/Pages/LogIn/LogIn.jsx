@@ -108,12 +108,19 @@ const SignIn = React.forwardRef((props, ref) => {
 
             // Fetch /user/me to trigger backend DB JIT-provisioning for first-time OIDC users
             api.get('/user/me')
-              .then(() => {
+              .then((res) => {
+                const dbUser = res.data;
+                setAuth(prev => ({
+                  ...prev,
+                  canCreateCategory: dbUser?.canCreateCategory || false
+                }));
                 navigate(from, { replace: true });
               })
               .catch((err) => {
                 console.error("JIT-provisioning via /user/me failed", err);
-                navigate(from, { replace: true });
+                setAuth({});
+                const errorMsg = err.response?.data || "Anmeldung fehlgeschlagen. Dein Account ist gesperrt.";
+                dispatch({ type: 'LOGIN_ERROR', payload: errorMsg });
               });
           } else {
             throw new Error("Invalid token payload");
@@ -161,6 +168,7 @@ const SignIn = React.forwardRef((props, ref) => {
         JWT: authObject.JWT,
         user: authObject.USER.Name,
         roles: authObject.USER.Role,
+        canCreateCategory: authObject.USER.canCreateCategory,
         expiresAt: computedExpiresAt
       });
 

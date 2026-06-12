@@ -47,12 +47,13 @@ const AddTopic = ({ ref, ...props }) => {
         Topic: yup.string().required("Name des Themas ist erforderlich").min(3, "Name muss min. 3 Zeichen haben").max(20, "Name darf max. 20 Zeichen haben"),
     });
 
-    const { register, handleSubmit: handleFormSubmit, reset, formState: { errors, isSubmitting } } = useForm({
+    const { register, handleSubmit: handleFormSubmit, reset, watch, formState: { errors, isSubmitting } } = useForm({
         resolver: yupResolver(validationSchema),
         defaultValues: {
             Topic: props.topicToEdit ? props.topicToEdit.topic : '',
         }
     });
+    const topicName = watch("Topic") || "";
 
     // Reset form values if topicToEdit changes
     useEffect(() => {
@@ -80,7 +81,7 @@ const AddTopic = ({ ref, ...props }) => {
                 data,
                 params
             });
-            
+
             setState({ resCode: response.status, resData: "" });
             alertsManagerRef.current.showAlert('success', isEdit ? 'Thema erfolgreich aktualisiert' : 'Thema: ' + vals.Topic + ' Erfolgreich erstellt');
 
@@ -130,15 +131,16 @@ const AddTopic = ({ ref, ...props }) => {
                         variant="outlined"
                         label="Name des Themas"
                         error={!!errors.Topic}
-                        helperText={errors.Topic?.message}
+                        helperText={errors.Topic ? `${errors.Topic.message} (${topicName.length}/20)` : `${topicName.length}/20`}
+                        inputProps={{ maxLength: 20 }}
                         {...register("Topic")}
                         sx={{ mb: 3, width: '100%' }}
                     />
-                    <Grid container direction="row" sx={{ justifyContent: 'space-between' }}>
+                    <Grid container sx={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                        <Button onClick={props.callback} color="error"> Abbrechen </Button>
                         <Button disabled={isSubmitting} type="submit">
                             {props.topicToEdit ? 'Speichern' : 'Hinzufügen'}
                         </Button>
-                        <Button onClick={props.callback} color="error"> Abbrechen </Button>
                     </Grid>
                 </form>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', mt: 2 }}>

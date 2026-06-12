@@ -183,7 +183,7 @@ export default function Gallery() {
             </>
           ) : (
             <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', border: '1px solid rgba(255, 255, 255, 0.08)', p: 2, borderRadius: 2, bgcolor: 'rgba(0,0,0,0.2)' }}>
-              🔒 Bitte im Forum einloggen, um Bilder hochzuladen oder Alben hinzuzufügen.
+              🔒 Bitte einloggen, um Bilder hochzuladen oder Alben hinzuzufügen.
             </Typography>
           )}
         </Stack>
@@ -237,11 +237,11 @@ export default function Gallery() {
                         {album.title}
                       </Typography>
                       <Stack spacing={1.5}>
-                        <Stack direction="row" spacing={1} alignItems="center" color="text.secondary">
+                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', color: 'text.secondary' }}>
                           <CalendarTodayIcon sx={{ fontSize: '1rem' }} />
                           <Typography variant="body2">{formatDate(album.date)}</Typography>
                         </Stack>
-                        <Stack direction="row" spacing={1} alignItems="center" color="text.secondary">
+                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', color: 'text.secondary' }}>
                           <LocationOnIcon sx={{ fontSize: '1rem' }} />
                           <Typography variant="body2">{album.location}</Typography>
                         </Stack>
@@ -274,7 +274,6 @@ export default function Gallery() {
         <Box sx={{
           width: '100%',
           height: '80vh',
-          borderRadius: 3,
           overflow: 'hidden',
           border: '1px solid rgba(255, 255, 255, 0.08)',
           bgcolor: 'background.paper',

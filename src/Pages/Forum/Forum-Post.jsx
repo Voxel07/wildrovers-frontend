@@ -201,7 +201,7 @@ export default function Forum_Post() {
             '&:hover': { backgroundColor: 'rgba(255,255,255,0.02)' }
           }}
         >
-          <Grid container direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', width: '100%' }} spacing={2}>
+          <Grid container spacing={2} sx={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
             <Grid size={{ xs: 12, md: 6 }}>
               <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
                 {post.title}
@@ -230,7 +230,7 @@ export default function Forum_Post() {
         Antworten ({answers.length})
       </Typography>
 
-      <Grid container direction="column" spacing={3}>
+      <Grid container spacing={3} sx={{ flexDirection: 'column' }}>
         {answers.length ? (
           answers.map(answer => (
             <Grid key={answer.id}>

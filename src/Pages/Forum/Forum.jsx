@@ -90,7 +90,7 @@ const Forum = () => {
                 <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
                     Forum
                 </Typography>
-                {auth?.JWT && (
+                {auth?.JWT && (auth.roles !== 'Besucher' || auth.canCreateCategory) && (
                     <Button 
                         variant="contained" 
                         color="primary"
@@ -111,7 +111,7 @@ const Forum = () => {
                 borderBottom: '2px solid rgba(255, 255, 255, 0.08)',
                 display: { xs: 'none', md: 'block' }
             }}>
-                <Grid container direction="row" sx={{ alignItems: 'center' }}>
+                <Grid container sx={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Grid size={{ xs: 3 }}>
                         <Stack direction="row" spacing={2}>
                             <TableSortLabel
@@ -131,7 +131,7 @@ const Forum = () => {
                         </Stack>
                     </Grid>
                     <Grid size={{ xs: 9 }}>
-                        <Grid container direction="row" spacing={4} sx={{ pl: 2 }}>
+                        <Grid container spacing={4} sx={{ flexDirection: 'row', pl: 2 }}>
                             <Grid size={{ xs: 3 }}>
                                 <TableSortLabel
                                   active={sort.field === "creator"}

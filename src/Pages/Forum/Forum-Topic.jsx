@@ -144,7 +144,7 @@ export default function Forum_Topic() {
             '&:hover': { backgroundColor: 'rgba(255,255,255,0.02)' }
           }}
         >
-          <Grid container direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', width: '100%' }} spacing={2}>
+          <Grid container spacing={2} sx={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
             <Grid size={{ xs: 12, md: 4 }}>
               <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
                 {topic}

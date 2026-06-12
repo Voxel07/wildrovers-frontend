@@ -426,6 +426,8 @@ export default function TextEditor(props) {
               fullWidth
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              inputProps={{ maxLength: 50 }}
+              helperText={`${title.length}/50`}
             />
 
             {/* Rich text editor — resizable container */}
@@ -485,13 +487,26 @@ export default function TextEditor(props) {
                 <Typography variant="body2" color="text.secondary">
                   Optionen: {pollOptions.filter(o => o.value.trim() !== '').map(o => o.value).join(', ')}
                 </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  Mehrfachauswahl: {allowMultiple ? 'Ja' : 'Nein'}
+                </Typography>
               </Alert>
             )}
 
             {error && <Alert severity="error">{error}</Alert>}
 
-            {/* Submit */}
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+            {/* Submit / Cancel */}
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+              <Button
+                variant="outlined"
+                color="error"
+                size="large"
+                onClick={() => navigate(-1)}
+                disabled={saving}
+                sx={{ py: 1.5, px: 4 }}
+              >
+                Abbrechen
+              </Button>
               <Button
                 variant="contained"
                 color="primary"
@@ -552,7 +567,7 @@ export default function TextEditor(props) {
             />
             <Typography variant="subtitle2" color="text.secondary">Antwortoptionen</Typography>
             {pollOptions.map((option) => (
-              <Stack direction="row" spacing={1} key={option.id} alignItems="center">
+              <Stack direction="row" spacing={1} key={option.id} sx={{ alignItems: 'center' }}>
                 <TextField
                   label={`Option ${pollOptions.indexOf(option) + 1}`}
                   variant="outlined"

@@ -33,12 +33,14 @@ export default function PollWidget(props) {
   const [poll, setPoll] = useState(pollData);
   const [voting, setVoting] = useState(false);
 
-  // Check if current user has already voted
+  // Check if current user has already voted and load their votes
   useEffect(() => {
     if (auth.user && poll) {
-      api.get('/forum/poll/hasVoted', { params: { poll: poll.id } })
+      api.get('/forum/poll/myVotes', { params: { poll: poll.id } })
         .then(response => {
-          setHasVoted(response.data === true);
+          const votes = response.data || [];
+          setSelectedOptions(votes);
+          setHasVoted(votes.length > 0);
         })
         .catch(err => {
           console.error("Failed to check if user has voted", err);
@@ -69,30 +71,22 @@ export default function PollWidget(props) {
     selectedOptions.forEach(optId => searchParams.append('option', optId));
 
     api.post(`/forum/poll/vote?${searchParams.toString()}`)
-    .then(response => {
-      alertsManagerRef.current.showAlert('success', 'Stimme erfolgreich abgegeben!');
-      setHasVoted(true);
-      
-      // Update local poll votes count dynamically
-      setPoll(prev => {
-        const updatedOptions = prev.options.map(opt => {
-          if (selectedOptions.includes(opt.id)) {
-            return { ...opt, votes: (opt.votes || 0) + 1 };
-          }
-          return opt;
-        });
-        return { ...prev, options: updatedOptions };
+      .then(response => {
+        alertsManagerRef.current.showAlert('success', 'Stimme erfolgreich abgegeben!');
+        setHasVoted(true);
+        if (response.data && response.data.id) {
+          setPoll(response.data);
+        }
+      })
+      .catch(error => {
+        console.error("Voting failed", error);
+        const status = error.response?.status || 500;
+        const data = error.response?.data || 'Fehler beim Abstimmen';
+        alertsManagerRef.current.showAlert('error', `${status}: ${data}`);
+      })
+      .finally(() => {
+        setVoting(false);
       });
-    })
-    .catch(error => {
-      console.error("Voting failed", error);
-      const status = error.response?.status || 500;
-      const data = error.response?.data || 'Fehler beim Abstimmen';
-      alertsManagerRef.current.showAlert('error', `${status}: ${data}`);
-    })
-    .finally(() => {
-      setVoting(false);
-    });
   };
 
   if (loading) {
@@ -105,11 +99,23 @@ export default function PollWidget(props) {
   return (
     <Card sx={{ border: '1px solid rgba(255, 152, 0, 0.25)', bgcolor: 'background.paper', mb: 3 }}>
       <CardContent sx={{ p: 3 }}>
-        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 2 }}>
-          <BarChartIcon color="primary" />
-          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-            Umfrage: {poll.question}
-          </Typography>
+        <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+            <BarChartIcon color="primary" />
+            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+              Umfrage: {poll.question}
+            </Typography>
+          </Stack>
+          {hasVoted && auth.user && (
+            <Button
+              variant="outlined"
+              color="secondary"
+              size="small"
+              onClick={() => setHasVoted(false)}
+            >
+              Stimme ändern
+            </Button>
+          )}
         </Stack>
 
         {!hasVoted && auth.user ? (
@@ -166,14 +172,14 @@ export default function PollWidget(props) {
 
               return (
                 <Box key={option.id} sx={{ mb: 2 }}>
-                  <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                  <Stack direction="row" spacing={2} sx={{ justifyContent: 'space-between', mb: 0.5 }}>
                     <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                       <Typography variant="body2" sx={{ fontWeight: isUserChoice ? 'bold' : 'normal' }}>
                         {option.optionText}
                       </Typography>
                       {isUserChoice && <CheckCircleIcon color="success" sx={{ fontSize: '1rem' }} />}
                     </Stack>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" color="text.secondary" sx={{ flexShrink: 0 }}>
                       {optVotes} {optVotes === 1 ? 'Stimme' : 'Stimmen'} ({percentage}%)
                     </Typography>
                   </Stack>

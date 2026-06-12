@@ -94,6 +94,14 @@ export default function UserManagement() {
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, yearlyFeePaid: !currentVal } : u));
   };
 
+  const handleToggleCanCreateCategory = (userId, currentVal) => {
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, canCreateCategory: !currentVal } : u));
+  };
+
+  const handleToggleBlocked = (userId, currentVal) => {
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, isBlocked: !currentVal } : u));
+  };
+
   const handleSaveUser = (user) => {
     setSavingId(user.id);
     const activeVal = user.isActive !== undefined ? user.isActive : user.active;
@@ -105,7 +113,9 @@ export default function UserManagement() {
       lastName: user.lastName,
       role: user.role,
       isActive: activeVal,
-      yearlyFeePaid: user.yearlyFeePaid
+      isBlocked: !!user.isBlocked,
+      yearlyFeePaid: user.yearlyFeePaid,
+      canCreateCategory: !!user.canCreateCategory
     };
 
     api.post('/user', payload)
@@ -221,7 +231,9 @@ export default function UserManagement() {
                     <TableCell sx={{ fontWeight: 'bold' }}>E-Mail-Adresse</TableCell>
                     <TableCell sx={{ fontWeight: 'bold' }}>Rolle</TableCell>
                     <TableCell align="center" sx={{ fontWeight: 'bold' }}>Status (Aktiv)</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>Gesperrt</TableCell>
                     <TableCell align="center" sx={{ fontWeight: 'bold' }}>Beitrag bezahlt</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>Kategorie & Thema</TableCell>
                     <TableCell align="center" sx={{ fontWeight: 'bold' }}>Events besucht</TableCell>
                     <TableCell align="center" sx={{ fontWeight: 'bold' }}>Aktionen</TableCell>
                   </TableRow>
@@ -256,9 +268,24 @@ export default function UserManagement() {
                       </TableCell>
                       <TableCell align="center">
                         <Switch
+                          checked={!!user.isBlocked}
+                          onChange={() => handleToggleBlocked(user.id, !!user.isBlocked)}
+                          color="error"
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Switch
                           checked={!!user.yearlyFeePaid}
                           onChange={() => handleToggleFeePaid(user.id, !!user.yearlyFeePaid)}
                           color="primary"
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Switch
+                          checked={user.role === 'Besucher' ? !!user.canCreateCategory : true}
+                          onChange={() => handleToggleCanCreateCategory(user.id, !!user.canCreateCategory)}
+                          disabled={user.role !== 'Besucher'}
+                          color="warning"
                         />
                       </TableCell>
                       <TableCell align="center">
@@ -273,7 +300,7 @@ export default function UserManagement() {
                         </Tooltip>
                       </TableCell>
                       <TableCell align="center">
-                        <Stack direction="row" spacing={1} justifyContent="center">
+                        <Stack direction="row" spacing={1} sx={{ justifyContent: 'center' }}>
                           <Button
                             variant="contained"
                             color="primary"
@@ -300,7 +327,7 @@ export default function UserManagement() {
                   ))}
                   {users.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
+                      <TableCell colSpan={10} align="center" sx={{ py: 6 }}>
                         <Typography color="text.secondary">Keine Benutzer gefunden.</Typography>
                       </TableCell>
                     </TableRow>
@@ -316,12 +343,14 @@ export default function UserManagement() {
       <Dialog
         open={confirmOpen}
         onClose={handleDeleteCancel}
-        PaperProps={{
-          sx: {
-            bgcolor: 'background.paper',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 2,
-            minWidth: 360,
+        slotProps={{
+          paper: {
+            sx: {
+              bgcolor: 'background.paper',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 2,
+              minWidth: 360,
+            }
           }
         }}
       >
