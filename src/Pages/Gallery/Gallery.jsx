@@ -392,7 +392,7 @@ export default function Gallery() {
             <Stack spacing={3}>
               <TextField
                 name="title"
-                label="Einsatz-Titel"
+                label="Event-Titel"
                 fullWidth
                 variant="outlined"
                 value={formData.title}

@@ -310,9 +310,6 @@ export default function Events() {
         <Typography variant="h3" color="primary" align="center" sx={{ fontWeight: 'bold', mb: 2 }}>
           Anstehende Events
         </Typography>
-        <Typography variant="subtitle1" color="text.secondary" align="center" sx={{ mb: 6, maxWidth: 600, mx: 'auto' }}>
-          Alle anstehenden und vergangenen Events der Wild Rovers auf einen Blick.
-        </Typography>
 
         {isLoggedIn ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', mb: 6 }}>
@@ -641,7 +638,7 @@ export default function Events() {
       {/* Dialog for adding/editing event */}
       <Dialog open={openModal} onClose={handleCloseModal} fullWidth maxWidth="sm">
         <DialogTitle sx={{ fontWeight: 'bold', borderBottom: '1px solid rgba(255,255,255,0.08)', color: 'primary.main' }}>
-          {editMode ? 'Einsatz-Termin bearbeiten' : 'Neuen Einsatz-Termin erstellen'}
+          {editMode ? 'Event-Termin bearbeiten' : 'Neuen Event-Termin erstellen'}
         </DialogTitle>
         <form onSubmit={handleSubmit}>
           <DialogContent sx={{ p: 3 }}>
@@ -653,7 +650,7 @@ export default function Events() {
             <Stack spacing={3}>
               <TextField
                 name="title"
-                label="Einsatz-Titel"
+                label="Event-Titel"
                 fullWidth
                 variant="outlined"
                 value={formData.title}
