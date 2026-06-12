@@ -33,6 +33,11 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Checkbox from '@mui/material/Checkbox';
+import Divider from '@mui/material/Divider';
+import BlockIcon from '@mui/icons-material/Block';
+import HowToRegIcon from '@mui/icons-material/HowToReg';
 
 export default function UserManagement() {
   const { auth } = useAuth();
@@ -45,9 +50,14 @@ export default function UserManagement() {
   const [savingId, setSavingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
+  // Signup toggle state
+  const [signupEnabled, setSignupEnabled] = useState(true);
+  const [signupToggleLoading, setSignupToggleLoading] = useState(false);
+
   // Confirmation dialog state
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
+  const [deleteForumPosts, setDeleteForumPosts] = useState(false);
 
   const isAuthorized = auth?.JWT && (auth.roles === 'Admin' || auth.roles === 'Vorstand');
 
@@ -80,6 +90,10 @@ export default function UserManagement() {
       return;
     }
     fetchUsers();
+    // Fetch initial signup status
+    api.get('/user/signup-status')
+      .then(res => setSignupEnabled(res.data.signupEnabled))
+      .catch(err => console.error('Failed to fetch signup status', err));
   }, [auth, navigate]);
 
   const handleRoleChange = (userId, newRole) => {
@@ -135,34 +149,75 @@ export default function UserManagement() {
 
   const handleDeleteClick = (user) => {
     setUserToDelete(user);
+    setDeleteForumPosts(false);
     setConfirmOpen(true);
   };
 
   const handleDeleteCancel = () => {
     setConfirmOpen(false);
     setUserToDelete(null);
+    setDeleteForumPosts(false);
   };
 
   const handleDeleteConfirm = () => {
     if (!userToDelete) return;
     const user = userToDelete;
+    const shouldDeletePosts = deleteForumPosts;
     setConfirmOpen(false);
     setUserToDelete(null);
+    setDeleteForumPosts(false);
     setDeletingId(user.id);
 
-    api.delete(`/user/${user.id}`)
-      .then(() => {
-        setUsers(prev => prev.filter(u => u.id !== user.id));
-        alertsManagerRef.current.showAlert('success', `Benutzer ${user.userName} erfolgreich gelöscht.`);
+    const doDelete = () =>
+      api.delete(`/user/${user.id}`)
+        .then(() => {
+          setUsers(prev => prev.filter(u => u.id !== user.id));
+          alertsManagerRef.current.showAlert('success', `Benutzer ${user.userName} erfolgreich gelöscht.`);
+        })
+        .catch(err => {
+          console.error('Error deleting user', err);
+          const msg = err.response?.data || 'Fehler beim Löschen.';
+          alertsManagerRef.current.showAlert('error', `Löschen fehlgeschlagen: ${msg}`);
+        })
+        .finally(() => {
+          setDeletingId(null);
+        });
+
+    if (shouldDeletePosts) {
+      api.delete(`/user/${user.id}/posts`)
+        .then(() => {
+          alertsManagerRef.current.showAlert('info', `Forumsbeiträge von ${user.userName} gelöscht.`);
+        })
+        .catch(err => {
+          console.error('Error deleting posts', err);
+          alertsManagerRef.current.showAlert('error', 'Forumsbeiträge konnten nicht gelöscht werden.');
+        })
+        .finally(() => {
+          doDelete();
+        });
+    } else {
+      doDelete();
+    }
+  };
+
+  const handleSignupToggle = () => {
+    setSignupToggleLoading(true);
+    const newValue = !signupEnabled;
+    api.post(`/user/signup-enabled?enabled=${newValue}`)
+      .then(res => {
+        setSignupEnabled(res.data.signupEnabled);
+        alertsManagerRef.current.showAlert(
+          'success',
+          res.data.signupEnabled
+            ? 'Registrierung wurde wieder aktiviert.'
+            : 'Registrierung wurde deaktiviert.'
+        );
       })
       .catch(err => {
-        console.error("Error deleting user", err);
-        const msg = err.response?.data || 'Fehler beim Löschen.';
-        alertsManagerRef.current.showAlert('error', `Löschen fehlgeschlagen: ${msg}`);
+        console.error('Failed to toggle signup', err);
+        alertsManagerRef.current.showAlert('error', 'Fehler beim Ändern der Registrierungseinstellung.');
       })
-      .finally(() => {
-        setDeletingId(null);
-      });
+      .finally(() => setSignupToggleLoading(false));
   };
 
   const getUserEventsCurrentYear = (userName) => {
@@ -213,6 +268,46 @@ export default function UserManagement() {
           Aktualisieren
         </Button>
       </Stack>
+
+      {/* Signup Toggle Card */}
+      <Card sx={{ mb: 3, border: '1px solid rgba(255, 255, 255, 0.08)', bgcolor: 'background.paper', borderRadius: 2 }}>
+        <CardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 2, '&:last-child': { pb: 2 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {signupEnabled
+              ? <HowToRegIcon sx={{ color: 'success.main', fontSize: 28, flexShrink: 0 }} />
+              : <BlockIcon sx={{ color: 'error.main', fontSize: 28, flexShrink: 0 }} />}
+            <Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', lineHeight: 1.3 }}>
+                Registrierung neuer Benutzer
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {signupEnabled
+                  ? 'Neue Benutzer können sich derzeit registrieren.'
+                  : 'Die Registrierung ist derzeit deaktiviert.'}
+              </Typography>
+            </Box>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Chip
+              label={signupEnabled ? 'Aktiv' : 'Deaktiviert'}
+              color={signupEnabled ? 'success' : 'error'}
+              variant="outlined"
+              size="small"
+            />
+            <Tooltip title={signupEnabled ? 'Registrierung deaktivieren' : 'Registrierung aktivieren'}>
+              <span style={{ display: 'flex', alignItems: 'center' }}>
+                <Switch
+                  checked={signupEnabled}
+                  onChange={handleSignupToggle}
+                  disabled={signupToggleLoading}
+                  color={signupEnabled ? 'success' : 'error'}
+                  id="signup-toggle"
+                />
+              </span>
+            </Tooltip>
+          </Box>
+        </CardContent>
+      </Card>
 
       <Card sx={{ border: '1px solid rgba(255, 255, 255, 0.08)', bgcolor: 'background.paper', borderRadius: 2 }}>
         <CardContent sx={{ p: 0 }}>
@@ -349,7 +444,7 @@ export default function UserManagement() {
               bgcolor: 'background.paper',
               border: '1px solid rgba(255,255,255,0.1)',
               borderRadius: 2,
-              minWidth: 360,
+              minWidth: 400,
             }
           }
         }}
@@ -358,13 +453,34 @@ export default function UserManagement() {
           Benutzer löschen
         </DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ color: 'text.secondary' }}>
+          <DialogContentText sx={{ color: 'text.secondary', mb: 2 }}>
             Bist du sicher, dass du den Benutzer{' '}
             <Box component="span" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
               {userToDelete?.userName}
             </Box>{' '}
             unwiderruflich löschen möchtest? Alle zugehörigen Daten werden entfernt.
           </DialogContentText>
+          <Divider sx={{ mb: 2, borderColor: 'rgba(255,255,255,0.08)' }} />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={deleteForumPosts}
+                onChange={e => setDeleteForumPosts(e.target.checked)}
+                color="error"
+                id="delete-forum-posts-checkbox"
+              />
+            }
+            label={
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: 'bold', color: deleteForumPosts ? 'error.main' : 'text.primary' }}>
+                  Alle Forumsbeiträge löschen
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Entfernt sämtliche Posts dieses Benutzers im Forum (z.B. bei Spam-Accounts).
+                </Typography>
+              </Box>
+            }
+          />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
           <Button onClick={handleDeleteCancel} variant="outlined" color="inherit">
@@ -377,7 +493,7 @@ export default function UserManagement() {
             startIcon={<DeleteIcon />}
             autoFocus
           >
-            Endgültig löschen
+            {deleteForumPosts ? 'Posts + Account löschen' : 'Endgültig löschen'}
           </Button>
         </DialogActions>
       </Dialog>

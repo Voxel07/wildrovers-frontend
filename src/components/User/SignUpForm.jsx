@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -11,14 +11,22 @@ import TextField from '@mui/material/TextField';
 import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-
-// Feedback
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
+import BlockIcon from '@mui/icons-material/Block';
 
 function SignUpForm() {
     const [state, setState] = useState({ resCode: null, resData: null });
+    const [signupEnabled, setSignupEnabled] = useState(true);
+    const [signupStatusLoading, setSignupStatusLoading] = useState(true);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        api.get('/user/signup-status')
+            .then(res => setSignupEnabled(res.data.signupEnabled))
+            .catch(() => setSignupEnabled(true)) // fail open
+            .finally(() => setSignupStatusLoading(false));
+    }, []);
 
     const handleSubmit = async (formData) => {
         await api.put('/user', {
@@ -78,6 +86,16 @@ function SignUpForm() {
                     Erstelle dein Wild Rovers Konto
                 </Typography>
             </Box>
+
+            {!signupStatusLoading && !signupEnabled && (
+                <Alert
+                    severity="error"
+                    icon={<BlockIcon />}
+                    sx={{ mb: 3, fontWeight: 'bold' }}
+                >
+                    Die Registrierung ist derzeit deaktiviert. Bitte wende dich an einen Administrator.
+                </Alert>
+            )}
 
             <Grid container spacing={2}>
                 <Grid size={{ xs: 12, sm: 6 }}>
@@ -152,7 +170,7 @@ function SignUpForm() {
                         color="primary" 
                         fullWidth 
                         size="large" 
-                        disabled={isSubmitting} 
+                        disabled={isSubmitting || !signupEnabled || signupStatusLoading} 
                         type="submit"
                         sx={{ py: 1.5, fontWeight: 'bold' }}
                     >
