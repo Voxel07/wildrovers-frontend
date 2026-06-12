@@ -150,11 +150,12 @@ export default function Answer(props) {
             </Stack>
           </Grid>
 
-          <Divider sx={{ width: '100%', my: 1, opacity: 0.5 }} />
+          <Divider sx={{ width: '100%', opacity: 0.5 }} />
 
           <Grid size={{ xs: 12 }}>
             {isEditing ? (
               <Box sx={{ mb: 1 }}>
+                <style>{`.reply-editor .ql-container.ql-snow, .reply-editor .ql-toolbar.ql-snow { border-color: rgba(255,255,255,0.12) !important; }`}</style>
                 <style>{`.reply-editor .ql-editor.ql-blank::before { color: rgba(255,255,255,0.55) !important; font-style: italic; }`}</style>
                 <Box className="reply-editor">
                   <ReactQuill
@@ -167,6 +168,7 @@ export default function Answer(props) {
               </Box>
             ) : (
               <Box className="reply-body-content" sx={{ pl: 0.5 }}>
+                <style>{`.reply-body-content .ql-container.ql-snow { border: none !important; } .reply-body-content .ql-editor { padding: 0; }`}</style>
                 <ReactQuill
                   theme="snow"
                   modules={noModules}

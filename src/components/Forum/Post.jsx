@@ -28,6 +28,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
+import BarChartIcon from '@mui/icons-material/BarChart';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 
@@ -93,7 +94,7 @@ function votingReducer(state, action) {
 
 const noModules = { toolbar: false };
 
-export default function Post({ post, onUpdate, onDelete }) {
+export default function Post({ post, onUpdate, onDelete, onAddPoll }) {
     const { auth } = useAuth();
     const alertsManagerRef = use(AlertsContext);
 
@@ -248,21 +249,25 @@ export default function Post({ post, onUpdate, onDelete }) {
                     </Stack>
                 </Grid>
 
-                <Divider sx={{ my: 1.5 }} />
+                <Divider />
 
                 {/* Content — edit mode shows Quill, view mode shows read-only */}
                 <Grid size={{ xs: 12 }}>
                     {isEditing ? (
                         <Box sx={{ mb: 1 }}>
+                            <style>{`.post-edit-quill .ql-container.ql-snow, .post-edit-quill .ql-toolbar.ql-snow { border-color: rgba(255,255,255,0.12) !important; }`}</style>
+                            <Box className="post-edit-quill">
                             <ReactQuill
                                 theme="snow"
                                 value={editContent}
                                 onChange={setEditContent}
                                 style={{ height: 300, marginBottom: 50 }}
                             />
+                            </Box>
                         </Box>
                     ) : (
                         <Box className="post-body-content" sx={{ mt: 1 }}>
+                            <style>{`.post-body-content .ql-container.ql-snow { border: none !important; } .post-body-content .ql-editor { padding: 0; }`}</style>
                             <ReactQuill
                                 theme="snow"
                                 modules={noModules}
@@ -272,33 +277,46 @@ export default function Post({ post, onUpdate, onDelete }) {
                         </Box>
                     )}
                 </Grid>
-
-                <Divider sx={{ mt: 1 }} />
-
-                {/* Like / Dislike bar */}
+                <Divider sx={{ mt: 1 }} />                {/* Like / Dislike bar + Poll button */}
                 <Grid size={{ xs: 12 }}>
-                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                        <Tooltip title="Gefällt mir">
-                            <IconButton
-                                size="small"
-                                color={voted === 'like' ? 'primary' : 'default'}
-                                onClick={() => handleVote('like')}
-                            >
-                                {voted === 'like' ? <ThumbUpIcon /> : <ThumbUpOutlinedIcon />}
-                            </IconButton>
-                        </Tooltip>
-                        <Typography variant="body2" sx={{ minWidth: 20 }}>{formatNumber(likes)}</Typography>
+                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                            <Tooltip title="Gefällt mir">
+                                <IconButton
+                                    size="small"
+                                    color={voted === 'like' ? 'primary' : 'default'}
+                                    onClick={() => handleVote('like')}
+                                >
+                                    {voted === 'like' ? <ThumbUpIcon /> : <ThumbUpOutlinedIcon />}
+                                </IconButton>
+                            </Tooltip>
+                            <Typography variant="body2" sx={{ minWidth: 20 }}>{formatNumber(likes)}</Typography>
 
-                        <Tooltip title="Gefällt mir nicht">
-                            <IconButton
-                                size="small"
-                                color={voted === 'dislike' ? 'error' : 'default'}
-                                onClick={() => handleVote('dislike')}
-                            >
-                                {voted === 'dislike' ? <ThumbDownIcon /> : <ThumbDownOutlinedIcon />}
-                            </IconButton>
-                        </Tooltip>
-                        <Typography variant="body2" sx={{ minWidth: 20 }}>{formatNumber(dislikes)}</Typography>
+                            <Tooltip title="Gefällt mir nicht">
+                                <IconButton
+                                    size="small"
+                                    color={voted === 'dislike' ? 'error' : 'default'}
+                                    onClick={() => handleVote('dislike')}
+                                >
+                                    {voted === 'dislike' ? <ThumbDownIcon /> : <ThumbDownOutlinedIcon />}
+                                </IconButton>
+                            </Tooltip>
+                            <Typography variant="body2" sx={{ minWidth: 20 }}>{formatNumber(dislikes)}</Typography>
+                        </Stack>
+
+                        {isCreatorOrAdmin && onAddPoll && (
+                            <Tooltip title="Umfrage hinzufügen">
+                                <Button
+                                    variant="outlined"
+                                    color="primary"
+                                    size="small"
+                                    startIcon={<BarChartIcon />}
+                                    onClick={onAddPoll}
+                                >
+                                    Umfrage hinzufügen
+                                </Button>
+                            </Tooltip>
+                        )}
                     </Stack>
                 </Grid>
             </Grid>
@@ -350,4 +368,5 @@ Post.propTypes = {
     post: PropTypes.object,
     onUpdate: PropTypes.func,
     onDelete: PropTypes.func,
+  onAddPoll: PropTypes.func,
 };

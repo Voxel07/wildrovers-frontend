@@ -33,6 +33,7 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
 import Checkbox from '@mui/material/Checkbox';
@@ -146,6 +147,7 @@ export default function Forum_Post() {
   const [pollOptions, setPollOptions] = useState(['', '']);
   const [pollAllowMultiple, setPollAllowMultiple] = useState(false);
   const [submittingPoll, setSubmittingPoll] = useState(false);
+  const [deletePollId, setDeletePollId] = useState(null);
 
   const isCreatorOrAdmin = post && auth.user && (post.creator === auth.user || auth.roles === 'Admin');
 
@@ -210,6 +212,31 @@ export default function Forum_Post() {
       })
       .finally(() => {
         setSubmittingPoll(false);
+      });
+  };
+
+  const handleDeletePoll = (pollId) => {
+    setDeletePollId(pollId);
+  };
+
+  const handleConfirmDeletePoll = () => {
+    if (!deletePollId) return;
+    const pollId = deletePollId;
+    setDeletePollId(null);
+
+    api.delete(`/forum/poll/delete?poll=${pollId}`)
+      .then(() => {
+        alertsManagerRef.current.showAlert('success', 'Umfrage erfolgreich gelöscht');
+        fetchData(true);
+      })
+      .catch(error => {
+        console.error("Failed to delete poll", error);
+        const status = error.response?.status || 500;
+        const rawData = error.response?.data;
+        const msg = typeof rawData === 'object'
+          ? (rawData.message || rawData.details || JSON.stringify(rawData))
+          : (rawData || 'Fehler beim Löschen der Umfrage');
+        alertsManagerRef.current.showAlert('error', `${status}: ${msg}`);
       });
   };
 
@@ -382,7 +409,7 @@ export default function Forum_Post() {
         </AccordionSummary>
         <Divider />
         <AccordionDetails sx={{ p: 0 }}>
-          <Post post={post} onUpdate={() => fetchData(true)} onDelete={() => navigate("/Forum/Topic/" + post.topicId)} />
+          <Post post={post} onUpdate={() => fetchData(true)} onDelete={() => navigate("/Forum/Topic/" + post.topicId)} onAddPoll={() => setCreatePollOpen(true)} />
         </AccordionDetails>
       </Accordion>
 
@@ -392,24 +419,10 @@ export default function Forum_Post() {
           <Grid container spacing={3}>
             {post.polls.map(poll => (
               <Grid key={poll.id} size={post.polls.length === 1 ? { xs: 12 } : { xs: 12, md: 6 }}>
-                <PollWidget pollData={poll} />
+                <PollWidget pollData={poll} canDelete={isCreatorOrAdmin} onDelete={() => handleDeletePoll(poll.id)} />
               </Grid>
             ))}
           </Grid>
-        </Box>
-      )}
-
-      {/* Button to add a new poll */}
-      {isCreatorOrAdmin && (
-        <Box sx={{ mb: 4, display: 'flex', justifyContent: 'flex-start' }}>
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<BarChartIcon />}
-            onClick={() => setCreatePollOpen(true)}
-          >
-            Umfrage hinzufügen
-          </Button>
         </Box>
       )}
 
@@ -422,7 +435,6 @@ export default function Forum_Post() {
               <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
                 Zugehöriges Event: {associatedEvent.title}
               </Typography>
-            </Stack>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
               Ort: <strong>{associatedEvent.location}</strong> | Datum: <strong>{(() => {
                 if (!associatedEvent.eventDate) return '';
@@ -455,6 +467,7 @@ export default function Forum_Post() {
                 }
               })()}</strong>
             </Typography>
+            </Stack>
 
             <Grid container spacing={2} sx={{ mt: 2.5 }}>
               {/* YES / Zusagen */}
@@ -465,7 +478,8 @@ export default function Forum_Post() {
                     p: 2,
                     borderRadius: 2,
                     bgcolor: userStatus === 'YES' ? 'rgba(76, 175, 80, 0.12)' : 'rgba(76, 175, 80, 0.03)',
-                    border: userStatus === 'YES' ? '2px solid rgba(76, 175, 80, 0.5)' : '1px solid rgba(76, 175, 80, 0.12)',
+                    border: '2px solid',
+                    borderColor: userStatus === 'YES' ? 'rgba(76, 175, 80, 0.5)' : 'rgba(76, 175, 80, 0.12)',
                     height: '100%',
                     cursor: isLoggedIn ? 'pointer' : 'default',
                     transition: 'all 0.2s ease-in-out',
@@ -495,7 +509,8 @@ export default function Forum_Post() {
                     p: 2,
                     borderRadius: 2,
                     bgcolor: userStatus === 'NO' ? 'rgba(244, 67, 54, 0.12)' : 'rgba(244, 67, 54, 0.03)',
-                    border: userStatus === 'NO' ? '2px solid rgba(244, 67, 54, 0.5)' : '1px solid rgba(244, 67, 54, 0.12)',
+                    border: '2px solid',
+                    borderColor: userStatus === 'NO' ? 'rgba(244, 67, 54, 0.5)' : 'rgba(244, 67, 54, 0.12)',
                     height: '100%',
                     cursor: isLoggedIn ? 'pointer' : 'default',
                     transition: 'all 0.2s ease-in-out',
@@ -525,7 +540,8 @@ export default function Forum_Post() {
                     p: 2,
                     borderRadius: 2,
                     bgcolor: userStatus === 'MAYBE' ? 'rgba(255, 152, 0, 0.12)' : 'rgba(255, 152, 0, 0.03)',
-                    border: userStatus === 'MAYBE' ? '2px solid rgba(255, 152, 0, 0.5)' : '1px solid rgba(255, 152, 0, 0.12)',
+                    border: '2px solid',
+                    borderColor: userStatus === 'MAYBE' ? 'rgba(255, 152, 0, 0.5)' : 'rgba(255, 152, 0, 0.12)',
                     height: '100%',
                     cursor: isLoggedIn ? 'pointer' : 'default',
                     transition: 'all 0.2s ease-in-out',
@@ -549,7 +565,7 @@ export default function Forum_Post() {
 
               {/* NO RESPONSE / Ausstehend */}
               <Grid size={{ xs: 12, sm: 3 }}>
-                <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.1)', height: '100%' }}>
+                <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(255, 255, 255, 0.02)', border: '2px solid rgba(255, 255, 255, 0.1)', height: '100%' }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
                     ⚪ Rückmeldung ausstehend ({associatedEvent.nonRespondents?.length || 0})
                   </Typography>
@@ -624,6 +640,42 @@ export default function Forum_Post() {
           </Grid>
         )}
       </Grid>
+
+      {/* Dialog for confirming poll deletion */}
+      <Dialog
+        open={deletePollId !== null}
+        onClose={() => setDeletePollId(null)}
+        PaperProps={{
+          sx: {
+            bgcolor: 'background.paper',
+            backgroundImage: 'none',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 2,
+            minWidth: 320
+          }
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 'bold', color: 'error.main' }}>
+          Umfrage löschen
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Möchtest du diese Umfrage wirklich unwiderruflich löschen? Alle Stimmen gehen dabei verloren.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setDeletePollId(null)} color="inherit">
+            Abbrechen
+          </Button>
+          <Button
+            onClick={handleConfirmDeletePoll}
+            variant="contained"
+            color="error"
+          >
+            Löschen
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Dialog for creating a poll */}
       <Dialog

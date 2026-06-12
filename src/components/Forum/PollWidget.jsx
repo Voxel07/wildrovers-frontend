@@ -15,15 +15,18 @@ import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
 import LinearProgress from '@mui/material/LinearProgress';
 import Stack from '@mui/material/Stack';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import BarChartIcon from '@mui/icons-material/BarChart';
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 
 // Eigene
 import useAuth from '../../context/useAuth';
 import { AlertsContext } from '../../components/utils/AlertsManager';
 
 export default function PollWidget(props) {
-  const { pollData } = props;
+  const { pollData, canDelete, onDelete } = props;
   const { auth } = useAuth();
   const alertsManagerRef = use(AlertsContext);
 
@@ -97,7 +100,7 @@ export default function PollWidget(props) {
   const totalVotes = poll.options.reduce((sum, opt) => sum + (opt.votes || 0), 0);
 
   return (
-    <Card sx={{ border: '1px solid rgba(255, 152, 0, 0.25)', bgcolor: 'background.paper', mb: 3 }}>
+    <Card sx={{ border: '1px solid rgba(255, 152, 0, 0.25)', bgcolor: 'background.paper' }}>
       <CardContent sx={{ p: 3 }}>
         <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
@@ -106,16 +109,29 @@ export default function PollWidget(props) {
               Umfrage: {poll.question}
             </Typography>
           </Stack>
-          {hasVoted && auth.user && (
-            <Button
-              variant="outlined"
-              color="secondary"
-              size="small"
-              onClick={() => setHasVoted(false)}
-            >
-              Stimme ändern
-            </Button>
-          )}
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+            {hasVoted && auth.user && (
+              <Button
+                variant="outlined"
+                color="secondary"
+                size="small"
+                onClick={() => setHasVoted(false)}
+              >
+                Stimme ändern
+              </Button>
+            )}
+            {canDelete && (
+              <Tooltip title="Umfrage löschen">
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={onDelete}
+                >
+                  <DeleteForeverIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Stack>
         </Stack>
 
         {!hasVoted && auth.user ? (
@@ -211,4 +227,6 @@ export default function PollWidget(props) {
 
 PollWidget.propTypes = {
   pollData: PropTypes.object.isRequired,
+  canDelete: PropTypes.bool,
+  onDelete: PropTypes.func,
 };
