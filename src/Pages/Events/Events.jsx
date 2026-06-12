@@ -35,6 +35,7 @@ const initialModalState = {
     title: '',
     description: '',
     eventDate: '',
+    eventEndDate: '',
     location: ''
   },
   formError: '',
@@ -48,7 +49,7 @@ function modalReducer(state, action) {
         openModal: true,
         editMode: false,
         selectedEventId: null,
-        formData: { title: '', description: '', eventDate: '', location: '' },
+        formData: { title: '', description: '', eventDate: '', eventEndDate: '', location: '' },
         formError: '',
       };
     case 'OPEN_EDIT':
@@ -85,6 +86,7 @@ export default function Events() {
   const isLoggedIn = !!auth?.JWT;
   const isAdmin = auth?.roles === 'Admin';
   const currentUsername = auth?.user;
+  const isTeamMember = isLoggedIn && ['Frischling', 'Mitglied', 'Vorstand', 'Admin'].includes(auth?.roles);
 
   const [events, setEvents] = useState([]);
   const [modalState, dispatchModal] = useReducer(modalReducer, initialModalState);
@@ -129,6 +131,10 @@ export default function Events() {
     if (event.eventDate) {
       formattedDate = event.eventDate.substring(0, 16);
     }
+    let formattedEndDate = '';
+    if (event.eventEndDate) {
+      formattedEndDate = event.eventEndDate.substring(0, 16);
+    }
 
     dispatchModal({
       type: 'OPEN_EDIT',
@@ -138,6 +144,7 @@ export default function Events() {
           title: event.title,
           description: event.description || '',
           eventDate: formattedDate,
+          eventEndDate: formattedEndDate,
           location: event.location
         }
       }
@@ -168,6 +175,7 @@ export default function Events() {
       title: formData.title,
       description: formData.description,
       eventDate: formData.eventDate, // format YYYY-MM-DDThh:mm is fully compatible with LocalDateTime
+      eventEndDate: formData.eventEndDate || null,
       location: formData.location
     };
 
@@ -182,9 +190,12 @@ export default function Events() {
       })
       .catch(err => {
         console.error("Error saving event", err);
+        const errMsg = typeof err.response?.data === 'string'
+          ? err.response.data
+          : (err.response?.data?.message || 'Fehler beim Speichern des Events. Bitte Eingaben überprüfen.');
         dispatchModal({
           type: 'SET_FORM_ERROR',
-          payload: err.response?.data || 'Fehler beim Speichern des Events. Bitte Eingaben überprüfen.'
+          payload: errMsg
         });
       });
   };
@@ -239,23 +250,51 @@ export default function Events() {
     }
   };
 
-  const parseEventDate = (dateStr) => {
-    if (!dateStr) return { dateTextOnly: '', timeTextOnly: '' };
+  const parseEventDate = (startDateStr, endDateStr) => {
+    if (!startDateStr) return { dateTextOnly: '', timeTextOnly: '' };
     try {
-      const d = new Date(dateStr);
-      const dateTextOnly = d.toLocaleDateString("de-DE", {
+      const start = new Date(startDateStr);
+      const dateTextOnly = start.toLocaleDateString("de-DE", {
         day: '2-digit',
         month: 'short'
       });
-      const timeTextOnly = d.toLocaleDateString("de-DE", {
+      let timeTextOnly = start.toLocaleDateString("de-DE", {
         year: 'numeric'
-      }) + ', ' + d.toLocaleTimeString("de-DE", {
+      }) + ', ' + start.toLocaleTimeString("de-DE", {
         hour: '2-digit',
         minute: '2-digit'
       }) + ' Uhr';
+
+      if (endDateStr) {
+        const end = new Date(endDateStr);
+        if (start.toDateString() === end.toDateString()) {
+          timeTextOnly = start.toLocaleDateString("de-DE", {
+            year: 'numeric'
+          }) + ', ' + start.toLocaleTimeString("de-DE", {
+            hour: '2-digit',
+            minute: '2-digit'
+          }) + ' - ' + end.toLocaleTimeString("de-DE", {
+            hour: '2-digit',
+            minute: '2-digit'
+          }) + ' Uhr';
+        } else {
+          const endDayText = end.toLocaleDateString("de-DE", {
+            day: '2-digit',
+            month: 'short'
+          });
+          const endYearText = end.toLocaleDateString("de-DE", {
+            year: 'numeric'
+          }) + ', ' + end.toLocaleTimeString("de-DE", {
+            hour: '2-digit',
+            minute: '2-digit'
+          }) + ' Uhr';
+
+          timeTextOnly = `${start.toLocaleTimeString("de-DE", { hour: '2-digit', minute: '2-digit' })} Uhr bis ${endDayText} ${endYearText}`;
+        }
+      }
       return { dateTextOnly, timeTextOnly };
     } catch (e) {
-      return { dateTextOnly: dateStr, timeTextOnly: '' };
+      return { dateTextOnly: startDateStr, timeTextOnly: '' };
     }
   };
 
@@ -350,7 +389,7 @@ export default function Events() {
                 const isFuture = new Date(event.eventDate) >= today;
                 const isNextEvent = nextEvent && nextEvent.id === event.id;
                 const daysToNext = isNextEvent ? Math.ceil((new Date(event.eventDate) - today) / (1000 * 60 * 60 * 24)) : 0;
-                const { dateTextOnly, timeTextOnly } = parseEventDate(event.eventDate);
+                const { dateTextOnly, timeTextOnly } = parseEventDate(event.eventDate, event.eventEndDate);
 
                 return (
                   <Box key={event.id}>
@@ -526,31 +565,31 @@ export default function Events() {
 
                             {/* RSVP Summary counts */}
                             <Box sx={{ mt: 2.5, display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
-                              <Tooltip title={event.attendances?.filter(a => a.status === 'YES').map(a => a.userName).join(', ') || 'Niemand'}>
+                              <Tooltip title={isTeamMember ? (event.attendances?.filter(a => a.status === 'YES').map(a => a.userName).join(', ') || 'Niemand') : 'Nur für Teammitglieder sichtbar'}>
                                 <Chip
                                   label={`Zusagen: ${event.attendances?.filter(a => a.status === 'YES').length || 0}`}
                                   color="success"
                                   size="small"
                                   variant="outlined"
-                                  sx={{ cursor: 'help' }}
+                                  sx={{ cursor: isTeamMember ? 'help' : 'default' }}
                                 />
                               </Tooltip>
-                              <Tooltip title={event.attendances?.filter(a => a.status === 'NO').map(a => a.userName).join(', ') || 'Niemand'}>
+                              <Tooltip title={isTeamMember ? (event.attendances?.filter(a => a.status === 'NO').map(a => a.userName).join(', ') || 'Niemand') : 'Nur für Teammitglieder sichtbar'}>
                                 <Chip
                                   label={`Absagen: ${event.attendances?.filter(a => a.status === 'NO').length || 0}`}
                                   color="error"
                                   size="small"
                                   variant="outlined"
-                                  sx={{ cursor: 'help' }}
+                                  sx={{ cursor: isTeamMember ? 'help' : 'default' }}
                                 />
                               </Tooltip>
-                              <Tooltip title={event.attendances?.filter(a => a.status === 'MAYBE').map(a => a.userName).join(', ') || 'Niemand'}>
+                              <Tooltip title={isTeamMember ? (event.attendances?.filter(a => a.status === 'MAYBE').map(a => a.userName).join(', ') || 'Niemand') : 'Nur für Teammitglieder sichtbar'}>
                                 <Chip
                                   label={`Vielleicht: ${event.attendances?.filter(a => a.status === 'MAYBE').length || 0}`}
                                   color="warning"
                                   size="small"
                                   variant="outlined"
-                                  sx={{ cursor: 'help' }}
+                                  sx={{ cursor: isTeamMember ? 'help' : 'default' }}
                                 />
                               </Tooltip>
 
@@ -560,7 +599,7 @@ export default function Events() {
                                   variant="text"
                                   color="secondary"
                                   size="small"
-                                  href={event.forumPostUrl}
+                                  href={event.forumPostUrl.replace(/^https?:\/\/[^/]+/, window.location.origin)}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   sx={{ ml: 'auto', textTransform: 'none', fontWeight: 'bold' }}
@@ -613,6 +652,16 @@ export default function Events() {
                 onChange={handleChange}
                 slotProps={{ inputLabel: { shrink: true } }}
                 required
+              />
+              <TextField
+                name="eventEndDate"
+                label="Enddatum & Endzeit (optional)"
+                type="datetime-local"
+                fullWidth
+                variant="outlined"
+                value={formData.eventEndDate || ''}
+                onChange={handleChange}
+                slotProps={{ inputLabel: { shrink: true } }}
               />
               <TextField
                 name="location"

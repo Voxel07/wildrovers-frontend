@@ -12,6 +12,12 @@ import Chip from '@mui/material/Chip';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import IconButton from '@mui/material/IconButton';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
 import ForumIcon from '@mui/icons-material/Forum';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ThumbUpOutlinedIcon from '@mui/icons-material/ThumbUpOutlined';
@@ -94,6 +100,7 @@ export default function Post({ post, onUpdate, onDelete }) {
     const [isEditing, setIsEditing] = useState(false);
     const [editContent, setEditContent] = useState(post?.content ?? '');
     const [saving, setSaving] = useState(false);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
     // Optimistic like/dislike state using useReducer
     const [votingState, dispatchVoting] = useReducer(votingReducer, {
@@ -152,29 +159,33 @@ export default function Post({ post, onUpdate, onDelete }) {
             })
             .catch(err => {
                 const status = err.response?.status || 500;
-                const msg = err.response?.data || 'Fehler beim Speichern';
+                const rawData = err.response?.data;
+                const msg = typeof rawData === 'object'
+                    ? (rawData.message || rawData.details || JSON.stringify(rawData))
+                    : (rawData || 'Fehler beim Speichern');
                 alertsManagerRef.current.showAlert('error', `${status}: ${msg}`);
             })
             .finally(() => setSaving(false));
     };
 
-    const handleDeletePost = () => {
-        if (window.confirm("Möchtest du diesen Beitrag wirklich löschen?")) {
-            setSaving(true);
-            api.delete('/forum/post', {
-                data: { id }
+    const handleDeletePostActual = () => {
+        setSaving(true);
+        api.delete('/forum/post', {
+            data: { id }
+        })
+            .then(() => {
+                alertsManagerRef.current.showAlert('success', 'Beitrag erfolgreich gelöscht');
+                if (onDelete) onDelete();
             })
-                .then(() => {
-                    alertsManagerRef.current.showAlert('success', 'Beitrag erfolgreich gelöscht');
-                    if (onDelete) onDelete();
-                })
-                .catch(err => {
-                    const status = err.response?.status || 500;
-                    const msg = err.response?.data || 'Fehler beim Löschen';
-                    alertsManagerRef.current.showAlert('error', `${status}: ${msg}`);
-                })
-                .finally(() => setSaving(false));
-        }
+            .catch(err => {
+                const status = err.response?.status || 500;
+                const rawData = err.response?.data;
+                const msg = typeof rawData === 'object'
+                    ? (rawData.message || rawData.details || JSON.stringify(rawData))
+                    : (rawData || 'Fehler beim Löschen');
+                alertsManagerRef.current.showAlert('error', `${status}: ${msg}`);
+            })
+            .finally(() => setSaving(false));
     };
 
 
@@ -226,7 +237,7 @@ export default function Post({ post, onUpdate, onDelete }) {
                                             </IconButton>
                                         </Tooltip>
                                         <Tooltip title="Beitrag löschen">
-                                            <IconButton size="small" color="error" onClick={handleDeletePost}>
+                                            <IconButton size="small" color="error" onClick={() => setDeleteDialogOpen(true)}>
                                                 <DeleteForeverIcon fontSize="small" />
                                             </IconButton>
                                         </Tooltip>
@@ -291,6 +302,46 @@ export default function Post({ post, onUpdate, onDelete }) {
                     </Stack>
                 </Grid>
             </Grid>
+
+            {/* Custom Delete Confirmation Dialog */}
+            <Dialog
+                open={deleteDialogOpen}
+                onClose={() => setDeleteDialogOpen(false)}
+                PaperProps={{
+                    sx: {
+                        bgcolor: 'background.paper',
+                        backgroundImage: 'none',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: 2,
+                        minWidth: 320
+                    }
+                }}
+            >
+                <DialogTitle sx={{ fontWeight: 'bold', color: 'error.main' }}>
+                    Beitrag löschen
+                </DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Möchtest du diesen Beitrag wirklich unwiderruflich löschen? Alle Antworten, Bilder und zugehörigen Umfragen gehen dabei verloren.
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions sx={{ p: 2 }}>
+                    <Button onClick={() => setDeleteDialogOpen(false)} color="inherit">
+                        Abbrechen
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            setDeleteDialogOpen(false);
+                            handleDeletePostActual();
+                        }}
+                        variant="contained"
+                        color="error"
+                        disabled={saving}
+                    >
+                        Löschen
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 }

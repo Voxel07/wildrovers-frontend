@@ -27,6 +27,17 @@ import PersonOutlineIcon from '@mui/icons-material/PersonOutlined';
 import ForumIcon from '@mui/icons-material/Forum';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
+import BarChartIcon from '@mui/icons-material/BarChart';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import TextField from '@mui/material/TextField';
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import IconButton from '@mui/material/IconButton';
 
 // Quill for Reply Editor
 import ReactQuill from 'react-quill-new';
@@ -45,6 +56,7 @@ import ForumChips from '../../components/Forum/ForumChips';
 const initialFetchState = {
   post: null,
   answers: [],
+  associatedEvent: null,
   loading: true,
 };
 
@@ -56,6 +68,7 @@ function fetchReducer(state, action) {
         loading: true,
         post: null,
         answers: [],
+        associatedEvent: null,
       };
     case 'FETCH_SUCCESS':
       return {
@@ -63,11 +76,47 @@ function fetchReducer(state, action) {
         loading: false,
         post: action.payload.post,
         answers: action.payload.answers,
+        associatedEvent: action.payload.associatedEvent,
       };
     case 'FETCH_FAILURE':
       return {
         ...state,
         loading: false,
+      };
+    case 'OPTIMISTIC_ATTENDANCE': {
+      if (!state.associatedEvent) return state;
+      const { userName, status } = action.payload;
+
+      let updatedAttendances = [...(state.associatedEvent.attendances || [])];
+      const existingIndex = updatedAttendances.findIndex(a => a.userName === userName);
+      if (existingIndex > -1) {
+        updatedAttendances[existingIndex] = {
+          ...updatedAttendances[existingIndex],
+          status: status
+        };
+      } else {
+        updatedAttendances.push({
+          userName: userName,
+          status: status
+        });
+      }
+
+      let updatedNonRespondents = [...(state.associatedEvent.nonRespondents || [])];
+      updatedNonRespondents = updatedNonRespondents.filter(name => name !== userName);
+
+      return {
+        ...state,
+        associatedEvent: {
+          ...state.associatedEvent,
+          attendances: updatedAttendances,
+          nonRespondents: updatedNonRespondents
+        }
+      };
+    }
+    case 'REVERT_EVENT':
+      return {
+        ...state,
+        associatedEvent: action.payload
       };
     default:
       return state;
@@ -81,26 +130,107 @@ export default function Forum_Post() {
   const alertsManagerRef = use(AlertsContext);
 
   const [state, dispatch] = useReducer(fetchReducer, initialFetchState);
-  const { post, answers, loading } = state;
+  const { post, answers, associatedEvent, loading } = state;
+  const userStatus = associatedEvent?.attendances?.find(a => a.userName === auth.user)?.status;
+
+  const isLoggedIn = !!auth?.JWT;
+  const isTeamMember = isLoggedIn && ['Frischling', 'Mitglied', 'Vorstand', 'Admin'].includes(auth?.roles);
 
   // Reply State
   const [replyContent, setReplyContent] = useState('');
   const [submittingReply, setSubmittingReply] = useState(false);
 
-  // Fetch post and answers — Promise.all ensures loading stays true until BOTH arrive
-  const fetchData = useCallback(() => {
-    dispatch({ type: 'FETCH_START' });
+  // Poll Dialog State
+  const [createPollOpen, setCreatePollOpen] = useState(false);
+  const [pollQuestion, setPollQuestion] = useState('');
+  const [pollOptions, setPollOptions] = useState(['', '']);
+  const [pollAllowMultiple, setPollAllowMultiple] = useState(false);
+  const [submittingPoll, setSubmittingPoll] = useState(false);
+
+  const isCreatorOrAdmin = post && auth.user && (post.creator === auth.user || auth.roles === 'Admin');
+
+  const handleClosePollDialog = () => {
+    setCreatePollOpen(false);
+    setPollQuestion('');
+    setPollOptions(['', '']);
+    setPollAllowMultiple(false);
+  };
+
+  const handleAddOption = () => {
+    setPollOptions([...pollOptions, '']);
+  };
+
+  const handleOptionChange = (index, value) => {
+    const newOptions = [...pollOptions];
+    newOptions[index] = value;
+    setPollOptions(newOptions);
+  };
+
+  const handleRemoveOption = (index) => {
+    if (pollOptions.length <= 2) {
+      alertsManagerRef.current.showAlert('warning', 'Eine Umfrage muss mindestens 2 Optionen haben.');
+      return;
+    }
+    setPollOptions(pollOptions.filter((_, idx) => idx !== index));
+  };
+
+  const handleCreatePollSubmit = () => {
+    if (!pollQuestion.trim()) {
+      alertsManagerRef.current.showAlert('warning', 'Bitte gib eine Umfrage-Frage ein.');
+      return;
+    }
+
+    const filteredOptions = pollOptions.filter(opt => opt.trim() !== '');
+    if (filteredOptions.length < 2) {
+      alertsManagerRef.current.showAlert('warning', 'Bitte gib mindestens 2 Optionen ein.');
+      return;
+    }
+
+    setSubmittingPoll(true);
+    const optionsPayload = filteredOptions.map(opt => ({ optionText: opt }));
+
+    api.post(`/forum/poll/create?post=${id}`, {
+      question: pollQuestion,
+      allowMultiple: pollAllowMultiple,
+      options: optionsPayload
+    })
+      .then(() => {
+        alertsManagerRef.current.showAlert('success', 'Umfrage erfolgreich hinzugefügt!');
+        handleClosePollDialog();
+        fetchData(true);
+      })
+      .catch(error => {
+        console.error("Failed to create poll", error);
+        const status = error.response?.status || 500;
+        const rawData = error.response?.data;
+        const msg = typeof rawData === 'object'
+          ? (rawData.message || rawData.details || JSON.stringify(rawData))
+          : (rawData || 'Fehler beim Erstellen der Umfrage');
+        alertsManagerRef.current.showAlert('error', `${status}: ${msg}`);
+      })
+      .finally(() => {
+        setSubmittingPoll(false);
+      });
+  };
+
+  // Fetch post, answers, and associated event
+  const fetchData = useCallback((silent = false) => {
+    if (!silent) {
+      dispatch({ type: 'FETCH_START' });
+    }
 
     Promise.all([
       api.get("/forum/post", { params: { post: id } }),
       api.get("/forum/answer", { params: { post: id } }),
+      api.get(`/event/by-post/${id}`).then(res => res.data).catch(() => null),
     ])
-      .then(([postRes, answersRes]) => {
+      .then(([postRes, answersRes, eventData]) => {
         dispatch({
           type: 'FETCH_SUCCESS',
           payload: {
             post: postRes.data?.[0] ?? null,
             answers: answersRes.data ?? [],
+            associatedEvent: eventData,
           },
         });
       })
@@ -129,16 +259,54 @@ export default function Forum_Post() {
       .then(response => {
         alertsManagerRef.current.showAlert('success', 'Antwort erfolgreich hinzugefügt');
         setReplyContent('');
-        fetchData(); // Reload post & answers
+        fetchData(true); // Reload post & answers silently
       })
       .catch(error => {
         console.error(error);
         const status = error.response?.status || 500;
-        const data = error.response?.data || 'Fehler beim Senden';
+        const rawData = error.response?.data;
+        const data = typeof rawData === 'object'
+          ? (rawData.message || rawData.details || JSON.stringify(rawData))
+          : (rawData || 'Fehler beim Senden');
         alertsManagerRef.current.showAlert('error', `${status}: ${data}`);
       })
       .finally(() => {
         setSubmittingReply(false);
+      });
+  };
+
+  const handleAttendance = (status) => {
+    if (!associatedEvent) return;
+
+    // Backup current associatedEvent in case of failure
+    const backupEvent = associatedEvent;
+
+    // Optimistically update the UI state
+    dispatch({
+      type: 'OPTIMISTIC_ATTENDANCE',
+      payload: { userName: auth.user, status }
+    });
+
+    api.post(`/event/${associatedEvent.id}/attendance`, { status })
+      .then(() => {
+        fetchData(true); // Silent refresh to ensure state consistency with the backend
+      })
+      .catch(err => {
+        console.error("Error setting attendance", err);
+
+        // Revert the optimistic update immediately
+        dispatch({
+          type: 'REVERT_EVENT',
+          payload: backupEvent
+        });
+
+        const statusErr = err.response?.status || 500;
+        const rawData = err.response?.data;
+        const msg = typeof rawData === 'object'
+          ? (rawData.message || rawData.details || JSON.stringify(rawData))
+          : (rawData || 'Teilnahme konnte nicht aktualisiert werden');
+
+        alertsManagerRef.current.showAlert('error', `${statusErr}: ${msg}`);
       });
   };
 
@@ -214,15 +382,187 @@ export default function Forum_Post() {
         </AccordionSummary>
         <Divider />
         <AccordionDetails sx={{ p: 0 }}>
-          <Post post={post} onUpdate={fetchData} onDelete={() => navigate("/Forum/Topic/" + post.topicId)} />
+          <Post post={post} onUpdate={() => fetchData(true)} onDelete={() => navigate("/Forum/Topic/" + post.topicId)} />
         </AccordionDetails>
       </Accordion>
 
-      {/* Render Poll if exists in the post data */}
-      {post.poll && (
+      {/* Render Polls if they exist in the post data */}
+      {post.polls && post.polls.length > 0 && (
         <Box sx={{ mb: 4 }}>
-          <PollWidget pollData={post.poll} />
+          <Grid container spacing={3}>
+            {post.polls.map(poll => (
+              <Grid key={poll.id} size={post.polls.length === 1 ? { xs: 12 } : { xs: 12, md: 6 }}>
+                <PollWidget pollData={poll} />
+              </Grid>
+            ))}
+          </Grid>
         </Box>
+      )}
+
+      {/* Button to add a new poll */}
+      {isCreatorOrAdmin && (
+        <Box sx={{ mb: 4, display: 'flex', justifyContent: 'flex-start' }}>
+          <Button
+            variant="outlined"
+            color="primary"
+            startIcon={<BarChartIcon />}
+            onClick={() => setCreatePollOpen(true)}
+          >
+            Umfrage hinzufügen
+          </Button>
+        </Box>
+      )}
+
+      {/* Associated Event Details & Attendance */}
+      {associatedEvent && (
+        <Card sx={{ mb: 4, border: '1px solid rgba(255, 255, 255, 0.08)', bgcolor: 'rgba(255, 255, 255, 0.02)', borderRadius: 2 }}>
+          <CardContent sx={{ p: 3 }}>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 2, color: 'primary.main' }}>
+              <EventNoteIcon />
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                Zugehöriges Event: {associatedEvent.title}
+              </Typography>
+            </Stack>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+              Ort: <strong>{associatedEvent.location}</strong> | Datum: <strong>{(() => {
+                if (!associatedEvent.eventDate) return '';
+                try {
+                  const start = new Date(associatedEvent.eventDate);
+                  let dateText = start.toLocaleDateString("de-DE", {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  }) + ' Uhr';
+                  if (associatedEvent.eventEndDate) {
+                    const end = new Date(associatedEvent.eventEndDate);
+                    if (start.toDateString() === end.toDateString()) {
+                      dateText += ' bis ' + end.toLocaleTimeString("de-DE", { hour: '2-digit', minute: '2-digit' }) + ' Uhr';
+                    } else {
+                      dateText += ' bis ' + end.toLocaleDateString("de-DE", {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      }) + ' Uhr';
+                    }
+                  }
+                  return dateText;
+                } catch (e) {
+                  return associatedEvent.eventDate;
+                }
+              })()}</strong>
+            </Typography>
+
+            <Grid container spacing={2} sx={{ mt: 2.5 }}>
+              {/* YES / Zusagen */}
+              <Grid size={{ xs: 12, sm: 3 }}>
+                <Box
+                  onClick={isLoggedIn ? () => handleAttendance('YES') : undefined}
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    bgcolor: userStatus === 'YES' ? 'rgba(76, 175, 80, 0.12)' : 'rgba(76, 175, 80, 0.03)',
+                    border: userStatus === 'YES' ? '2px solid rgba(76, 175, 80, 0.5)' : '1px solid rgba(76, 175, 80, 0.12)',
+                    height: '100%',
+                    cursor: isLoggedIn ? 'pointer' : 'default',
+                    transition: 'all 0.2s ease-in-out',
+                    '&:hover': isLoggedIn ? {
+                      bgcolor: userStatus === 'YES' ? 'rgba(76, 175, 80, 0.18)' : 'rgba(76, 175, 80, 0.08)',
+                      borderColor: 'rgba(76, 175, 80, 0.35)',
+                      transform: 'translateY(-2px)'
+                    } : {}
+                  }}
+                >
+                  <Typography variant="subtitle2" color="success.main" sx={{ fontWeight: 'bold', mb: 1 }}>
+                    🟢 Zusagen ({associatedEvent.attendances?.filter(a => a.status === 'YES').length || 0})
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
+                    {isTeamMember 
+                      ? (associatedEvent.attendances?.filter(a => a.status === 'YES').map(a => a.userName).join(', ') || 'Keine Zusagen')
+                      : '🔒 Nur für Teammitglieder sichtbar'}
+                  </Typography>
+                </Box>
+              </Grid>
+
+              {/* NO / Absagen */}
+              <Grid size={{ xs: 12, sm: 3 }}>
+                <Box
+                  onClick={isLoggedIn ? () => handleAttendance('NO') : undefined}
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    bgcolor: userStatus === 'NO' ? 'rgba(244, 67, 54, 0.12)' : 'rgba(244, 67, 54, 0.03)',
+                    border: userStatus === 'NO' ? '2px solid rgba(244, 67, 54, 0.5)' : '1px solid rgba(244, 67, 54, 0.12)',
+                    height: '100%',
+                    cursor: isLoggedIn ? 'pointer' : 'default',
+                    transition: 'all 0.2s ease-in-out',
+                    '&:hover': isLoggedIn ? {
+                      bgcolor: userStatus === 'NO' ? 'rgba(244, 67, 54, 0.18)' : 'rgba(244, 67, 54, 0.08)',
+                      borderColor: 'rgba(244, 67, 54, 0.35)',
+                      transform: 'translateY(-2px)'
+                    } : {}
+                  }}
+                >
+                  <Typography variant="subtitle2" color="error.main" sx={{ fontWeight: 'bold', mb: 1 }}>
+                    🔴 Absagen ({associatedEvent.attendances?.filter(a => a.status === 'NO').length || 0})
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
+                    {isTeamMember 
+                      ? (associatedEvent.attendances?.filter(a => a.status === 'NO').map(a => a.userName).join(', ') || 'Keine Absagen')
+                      : '🔒 Nur für Teammitglieder sichtbar'}
+                  </Typography>
+                </Box>
+              </Grid>
+
+              {/* MAYBE / Vielleicht */}
+              <Grid size={{ xs: 12, sm: 3 }}>
+                <Box
+                  onClick={isLoggedIn ? () => handleAttendance('MAYBE') : undefined}
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    bgcolor: userStatus === 'MAYBE' ? 'rgba(255, 152, 0, 0.12)' : 'rgba(255, 152, 0, 0.03)',
+                    border: userStatus === 'MAYBE' ? '2px solid rgba(255, 152, 0, 0.5)' : '1px solid rgba(255, 152, 0, 0.12)',
+                    height: '100%',
+                    cursor: isLoggedIn ? 'pointer' : 'default',
+                    transition: 'all 0.2s ease-in-out',
+                    '&:hover': isLoggedIn ? {
+                      bgcolor: userStatus === 'MAYBE' ? 'rgba(255, 152, 0, 0.18)' : 'rgba(255, 152, 0, 0.08)',
+                      borderColor: 'rgba(255, 152, 0, 0.35)',
+                      transform: 'translateY(-2px)'
+                    } : {}
+                  }}
+                >
+                  <Typography variant="subtitle2" color="warning.main" sx={{ fontWeight: 'bold', mb: 1 }}>
+                    🟡 Vielleicht ({associatedEvent.attendances?.filter(a => a.status === 'MAYBE').length || 0})
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
+                    {isTeamMember 
+                      ? (associatedEvent.attendances?.filter(a => a.status === 'MAYBE').map(a => a.userName).join(', ') || 'Keine Einträge')
+                      : '🔒 Nur für Teammitglieder sichtbar'}
+                  </Typography>
+                </Box>
+              </Grid>
+
+              {/* NO RESPONSE / Ausstehend */}
+              <Grid size={{ xs: 12, sm: 3 }}>
+                <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.1)', height: '100%' }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
+                    ⚪ Rückmeldung ausstehend ({associatedEvent.nonRespondents?.length || 0})
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
+                    {isTeamMember 
+                      ? (associatedEvent.nonRespondents?.join(', ') || 'Keine Ausstehenden')
+                      : '🔒 Nur für Teammitglieder sichtbar'}
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
       )}
 
       {/* Answers section */}
@@ -234,7 +574,7 @@ export default function Forum_Post() {
         {answers.length ? (
           answers.map(answer => (
             <Grid key={answer.id}>
-              <Answer answer={answer} onUpdate={fetchData} />
+              <Answer answer={answer} onUpdate={() => fetchData(true)} />
             </Grid>
           ))
         ) : (
@@ -284,6 +624,103 @@ export default function Forum_Post() {
           </Grid>
         )}
       </Grid>
+
+      {/* Dialog for creating a poll */}
+      <Dialog
+        open={createPollOpen}
+        onClose={handleClosePollDialog}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: 'background.paper',
+            backgroundImage: 'none',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 2
+          }
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+          Umfrage hinzufügen
+        </DialogTitle>
+        <DialogContent dividers sx={{ borderBottom: '1px solid rgba(255,255,255,0.08)', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Frage / Thema der Umfrage"
+            type="text"
+            fullWidth
+            variant="outlined"
+            value={pollQuestion}
+            onChange={(e) => setPollQuestion(e.target.value)}
+            sx={{ mb: 3 }}
+          />
+
+          <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 'bold' }}>
+            Optionen
+          </Typography>
+
+          <Stack spacing={1.5} sx={{ mb: 3 }}>
+            {pollOptions.map((option, index) => (
+              <Stack key={index} direction="row" spacing={1} alignItems="center">
+                <TextField
+                  placeholder={`Option ${index + 1}`}
+                  type="text"
+                  fullWidth
+                  variant="outlined"
+                  size="small"
+                  value={option}
+                  onChange={(e) => handleOptionChange(index, e.target.value)}
+                />
+                <IconButton
+                  color="error"
+                  onClick={() => handleRemoveOption(index)}
+                  disabled={pollOptions.length <= 2}
+                  size="small"
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Stack>
+            ))}
+          </Stack>
+
+          <Button
+            startIcon={<AddIcon />}
+            variant="outlined"
+            size="small"
+            onClick={handleAddOption}
+            sx={{ mb: 3 }}
+          >
+            Option hinzufügen
+          </Button>
+
+          <Box>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={pollAllowMultiple}
+                  onChange={(e) => setPollAllowMultiple(e.target.checked)}
+                  color="primary"
+                />
+              }
+              label="Mehrfachauswahl erlauben"
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button onClick={handleClosePollDialog} color="inherit">
+            Abbrechen
+          </Button>
+          <Button
+            onClick={handleCreatePollSubmit}
+            variant="contained"
+            color="primary"
+            disabled={submittingPoll}
+          >
+            {submittingPoll ? 'Wird erstellt...' : 'Erstellen'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

@@ -16,7 +16,9 @@ import {
   DialogActions,
   TextField,
   Stack,
-  CardActions
+  CardActions,
+  IconButton,
+  Tooltip
 } from '@mui/material';
 
 import Grid from '@mui/material/Grid';
@@ -25,9 +27,13 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import LaunchIcon from '@mui/icons-material/Launch';
 import LibraryAddIcon from '@mui/icons-material/LibraryAdd';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 const initialModalState = {
   openModal: false,
+  editMode: false,
+  selectedAlbumId: null,
   formData: {
     title: '',
     url: '',
@@ -39,11 +45,22 @@ const initialModalState = {
 
 function modalReducer(state, action) {
   switch (action.type) {
-    case 'OPEN':
+    case 'OPEN_ADD':
       return {
         ...state,
         openModal: true,
+        editMode: false,
+        selectedAlbumId: null,
         formData: { title: '', url: '', date: '', location: '' },
+        formError: '',
+      };
+    case 'OPEN_EDIT':
+      return {
+        ...state,
+        openModal: true,
+        editMode: true,
+        selectedAlbumId: action.payload.id,
+        formData: action.payload.formData,
         formError: '',
       };
     case 'CLOSE':
@@ -69,6 +86,8 @@ function modalReducer(state, action) {
 export default function Gallery() {
   const { auth } = useAuth();
   const isLoggedIn = !!auth?.JWT;
+  const isAdmin = auth?.roles === 'Admin';
+  const currentUsername = auth?.user;
 
   const proxyUrl = import.meta.env.VITE_IMMICH_PROXY_URL || "";
   const dropUrl = import.meta.env.VITE_IMMICH_DROP_URL || "";
@@ -76,7 +95,10 @@ export default function Gallery() {
   const [showUpload, setShowUpload] = useState(false);
   const [dbAlbums, setDbAlbums] = useState([]);
   const [modalState, dispatchModal] = useReducer(modalReducer, initialModalState);
-  const { openModal, formData, formError } = modalState;
+  const { openModal, editMode, selectedAlbumId, formData, formError } = modalState;
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [albumToDelete, setAlbumToDelete] = useState(null);
 
   const fetchAlbums = () => {
     api.get('/gallery')
@@ -92,12 +114,51 @@ export default function Gallery() {
     fetchAlbums();
   }, []);
 
-  const handleOpenModal = () => {
-    dispatchModal({ type: 'OPEN' });
+  const handleOpenAdd = () => {
+    dispatchModal({ type: 'OPEN_ADD' });
+  };
+
+  const handleOpenEdit = (album) => {
+    dispatchModal({
+      type: 'OPEN_EDIT',
+      payload: {
+        id: album.id,
+        formData: {
+          title: album.title,
+          url: album.url,
+          date: album.date ? album.date.substring(0, 10) : '',
+          location: album.location
+        }
+      }
+    });
   };
 
   const handleCloseModal = () => {
     dispatchModal({ type: 'CLOSE' });
+  };
+
+  const handleOpenDelete = (album) => {
+    setAlbumToDelete(album);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!albumToDelete) return;
+    api.delete(`/gallery/${albumToDelete.id}`)
+      .then(() => {
+        setDeleteDialogOpen(false);
+        setAlbumToDelete(null);
+        fetchAlbums();
+      })
+      .catch(err => {
+        console.error("Error deleting album", err);
+        alert(err.response?.data || "Löschen fehlgeschlagen.");
+      });
+  };
+
+  const handleCloseDelete = () => {
+    setDeleteDialogOpen(false);
+    setAlbumToDelete(null);
   };
 
   const handleChange = (e) => {
@@ -124,16 +185,23 @@ export default function Gallery() {
       return;
     }
 
-    api.post('/gallery', formData)
+    const request = editMode
+      ? api.put(`/gallery/${selectedAlbumId}`, formData)
+      : api.post('/gallery', formData);
+
+    request
       .then(() => {
         handleCloseModal();
         fetchAlbums();
       })
       .catch(err => {
-        console.error("Error adding gallery", err);
+        console.error("Error saving gallery", err);
+        const errMsg = typeof err.response?.data === 'string'
+          ? err.response.data
+          : (err.response?.data?.message || 'Fehler beim Speichern. Bitte Eingaben überprüfen.');
         dispatchModal({
           type: 'SET_FORM_ERROR',
-          payload: err.response?.data || 'Fehler beim Hinzufügen der Galerie. Bitte Eingaben überprüfen.'
+          payload: errMsg
         });
       });
   };
@@ -175,7 +243,7 @@ export default function Gallery() {
                 variant="outlined"
                 color="primary"
                 startIcon={<LibraryAddIcon />}
-                onClick={handleOpenModal}
+                onClick={handleOpenAdd}
                 sx={{ px: 3, py: 1.2 }}
               >
                 Kiosk-Album hinzufügen
@@ -216,53 +284,74 @@ export default function Gallery() {
               Events-Timeline & Alben
             </Typography>
             <Grid container spacing={4}>
-              {dbAlbums.map((album) => (
-                <Grid size={{ xs: 12, sm: 6, md: 4 }} key={album.id} sx={{ display: 'flex' }}>
-                  <Card sx={{
-                    width: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    bgcolor: 'rgba(255, 255, 255, 0.01)',
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      borderColor: 'primary.main',
-                      boxShadow: '0 8px 24px rgba(255, 152, 0, 0.1)'
-                    }
-                  }}>
-                    <CardContent>
-                      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-                        {album.title}
-                      </Typography>
-                      <Stack spacing={1.5}>
-                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', color: 'text.secondary' }}>
-                          <CalendarTodayIcon sx={{ fontSize: '1rem' }} />
-                          <Typography variant="body2">{formatDate(album.date)}</Typography>
+              {dbAlbums.map((album) => {
+                const isCreator = album.creatorName === currentUsername;
+                const canModify = isLoggedIn && (isCreator || isAdmin);
+
+                return (
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }} key={album.id} sx={{ display: 'flex' }}>
+                    <Card sx={{
+                      width: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      bgcolor: 'rgba(255, 255, 255, 0.01)',
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        borderColor: 'primary.main',
+                        boxShadow: '0 8px 24px rgba(255, 152, 0, 0.1)'
+                      }
+                    }}>
+                      <CardContent>
+                        <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                          <Typography variant="h6" sx={{ fontWeight: 'bold', pr: 1 }}>
+                            {album.title}
+                          </Typography>
+                          {canModify && (
+                            <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0 }}>
+                              <Tooltip title="Bearbeiten">
+                                <IconButton color="primary" onClick={() => handleOpenEdit(album)} size="small">
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Löschen">
+                                <IconButton color="error" onClick={() => handleOpenDelete(album)} size="small">
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            </Stack>
+                          )}
                         </Stack>
-                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', color: 'text.secondary' }}>
-                          <LocationOnIcon sx={{ fontSize: '1rem' }} />
-                          <Typography variant="body2">{album.location}</Typography>
+                        <Stack spacing={1.5}>
+                          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', color: 'text.secondary' }}>
+                            <CalendarTodayIcon sx={{ fontSize: '1rem' }} />
+                            <Typography variant="body2">{formatDate(album.date)}</Typography>
+                          </Stack>
+                          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', color: 'text.secondary' }}>
+                            <LocationOnIcon sx={{ fontSize: '1rem' }} />
+                            <Typography variant="body2">{album.location}</Typography>
+                          </Stack>
                         </Stack>
-                      </Stack>
-                    </CardContent>
-                    <CardActions sx={{ p: 2, pt: 0 }}>
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        fullWidth
-                        href={album.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        endIcon={<LaunchIcon />}
-                      >
-                        Album öffnen
-                      </Button>
-                    </CardActions>
-                  </Card>
-                </Grid>
-              ))}
+                      </CardContent>
+                      <CardActions sx={{ p: 2, pt: 0 }}>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          fullWidth
+                          href={album.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          endIcon={<LaunchIcon />}
+                        >
+                          Album öffnen
+                        </Button>
+                      </CardActions>
+                    </Card>
+                  </Grid>
+                );
+              })}
             </Grid>
           </Box>
         )}
@@ -288,10 +377,10 @@ export default function Gallery() {
         </Box>
       </Container>
 
-      {/* Dialog for adding album */}
+      {/* Dialog for adding/editing album */}
       <Dialog open={openModal} onClose={handleCloseModal} fullWidth maxWidth="sm">
         <DialogTitle sx={{ fontWeight: 'bold', borderBottom: '1px solid rgba(255,255,255,0.08)', color: 'primary.main' }}>
-          Neues Album zur Timeline hinzufügen
+          {editMode ? 'Album bearbeiten' : 'Neues Album zur Timeline hinzufügen'}
         </DialogTitle>
         <form onSubmit={handleSubmit}>
           <DialogContent sx={{ p: 3 }}>
@@ -351,6 +440,29 @@ export default function Gallery() {
             </Button>
           </DialogActions>
         </form>
+      </Dialog>
+
+      {/* Custom dialog for deleting album */}
+      <Dialog open={deleteDialogOpen} onClose={handleCloseDelete} fullWidth maxWidth="xs">
+        <DialogTitle sx={{ fontWeight: 'bold', borderBottom: '1px solid rgba(255,255,255,0.08)', color: 'error.main' }}>
+          ⚠️ Album löschen?
+        </DialogTitle>
+        <DialogContent sx={{ p: 3, mt: 1 }}>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            Bist du sicher, dass du das Album <strong>{albumToDelete?.title}</strong> löschen möchtest?
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Dies löscht den Galerie-Eintrag unwiderruflich aus der Timeline.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <Button onClick={handleCloseDelete} color="inherit">
+            Abbrechen
+          </Button>
+          <Button onClick={handleConfirmDelete} variant="contained" color="error">
+            Löschen
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );
