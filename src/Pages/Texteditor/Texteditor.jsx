@@ -3,8 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../../helper/api';
 
 // Quill
-import ReactQuill, { Quill } from 'react-quill-new';
-import 'react-quill-new/dist/quill.snow.css';
+import ForumQuill from '../../components/Forum/ForumQuill';
 
 // MUI
 import {
@@ -101,123 +100,7 @@ export default function TextEditor(props) {
   const { hasPoll, pollQuestion, pollOptions, pollDialogOpen, allowMultiple } = pollState;
 
   const topicId = location.state?.topicId;
-  const quillRef = useRef(null);
 
-  // Image resize state
-  const [resizeTarget, setResizeTarget] = useState(null); // { blot, domNode } | null
-  const [isDragging, setIsDragging] = useState(false);
-  const dragRef = useRef({ startX: 0, startWidth: 0 });
-  const outlineRef = useRef(null);   // selection border DOM node
-  const handleRef = useRef(null);    // drag handle DOM node
-  const rafRef = useRef(null);
-
-  // Keep resize-handle position in sync with the image via rAF
-  const syncHandlePos = useCallback(() => {
-    if (!resizeTarget || !outlineRef.current || !handleRef.current) return;
-    const rect = resizeTarget.domNode.getBoundingClientRect();
-    outlineRef.current.style.top = `${rect.top}px`;
-    outlineRef.current.style.left = `${rect.left}px`;
-    outlineRef.current.style.width = `${rect.width}px`;
-    outlineRef.current.style.height = `${rect.height}px`;
-    handleRef.current.style.top = `${rect.bottom - 8}px`;
-    handleRef.current.style.left = `${rect.right - 8}px`;
-    rafRef.current = requestAnimationFrame(syncHandlePos);
-  }, [resizeTarget]);
-
-  useEffect(() => {
-    if (!resizeTarget) return;
-    // Set initial position before first paint
-    const rect = resizeTarget.domNode.getBoundingClientRect();
-    if (outlineRef.current) {
-      outlineRef.current.style.top = `${rect.top}px`;
-      outlineRef.current.style.left = `${rect.left}px`;
-      outlineRef.current.style.width = `${rect.width}px`;
-      outlineRef.current.style.height = `${rect.height}px`;
-    }
-    if (handleRef.current) {
-      handleRef.current.style.top = `${rect.bottom - 8}px`;
-      handleRef.current.style.left = `${rect.right - 8}px`;
-    }
-    rafRef.current = requestAnimationFrame(syncHandlePos);
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [resizeTarget, syncHandlePos]);
-
-  // Commit image width through Quill's API so it persists in the document model
-  const commitImageWidth = useCallback((pxWidth) => {
-    if (!resizeTarget || !quillRef.current) return;
-    const editor = quillRef.current.getEditor();
-    try {
-      const index = editor.getIndex(resizeTarget.blot);
-      editor.formatText(index, 1, 'width', `${Math.round(Math.max(60, pxWidth))}px`);
-    } catch (e) {
-      console.error('Failed to format image width', e);
-    }
-  }, [resizeTarget]);
-
-  // Drag handlers
-  const handleDragStart = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!resizeTarget) return;
-    dragRef.current = {
-      startX: e.clientX,
-      startWidth: resizeTarget.domNode.getBoundingClientRect().width,
-    };
-    setIsDragging(true);
-  }, [resizeTarget]);
-
-  useEffect(() => {
-    if (!isDragging) return;
-    const handleMove = (e) => {
-      const dx = e.clientX - dragRef.current.startX;
-      commitImageWidth(dragRef.current.startWidth + dx);
-    };
-    const handleUp = () => setIsDragging(false);
-    document.addEventListener('mousemove', handleMove);
-    document.addEventListener('mouseup', handleUp);
-    return () => {
-      document.removeEventListener('mousemove', handleMove);
-      document.removeEventListener('mouseup', handleUp);
-    };
-  }, [isDragging, commitImageWidth]);
-
-  // Custom image handler: upload immediately, insert URL (avoids base64 in content)
-  const imageHandler = useCallback(() => {
-    const input = document.createElement('input');
-    input.setAttribute('type', 'file');
-    input.setAttribute('accept', 'image/*');
-    input.style.display = 'none';
-
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) {
-        document.body.removeChild(input);
-        return;
-      }
-      const formData = new FormData();
-      formData.append('file', file);
-      try {
-        const res = await api.post('/forum/img/upload', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        const url = res.data?.url;
-        if (url && quillRef.current) {
-          const editor = quillRef.current.getEditor();
-          const range = editor.getSelection(true);
-          editor.insertEmbed(range.index, 'image', url);
-          editor.setSelection(range.index + 1);
-        }
-      } catch (err) {
-        console.error('Image upload failed', err);
-        alertsManagerRef.current.showAlert('error', 'Bild konnte nicht hochgeladen werden');
-      } finally {
-        document.body.removeChild(input);
-      }
-    };
-
-    document.body.appendChild(input);
-    input.click();
-  }, [alertsManagerRef]);
 
 
 
@@ -298,58 +181,7 @@ export default function TextEditor(props) {
       });
   };
 
-  const myModules = {
-    toolbar: {
-      container: [
-        [{ size: ['huge', 'large', false, 'small'] }],
-        ['bold', 'italic', 'underline', 'strike', 'blockquote'],
-        [{ list: 'ordered' }, { list: 'bullet' }, { indent: '-1' }, { indent: '+1' }],
-        ['link', 'image'],
-        [{ align: [false, 'center', 'right'] }],
-        [{ color: [] }, { background: [] }],
-        ['clean'],
-      ],
-      handlers: {
-        image: imageHandler,
-      },
-    },
-  };
 
-  // Click-to-select images for resize
-  useEffect(() => {
-    const quill = quillRef.current;
-    if (!quill || isReadOnly) return;
-    const editor = quill.getEditor();
-
-    const handleClick = (e) => {
-      const img = e.target.closest('img');
-      if (!img) {
-        setResizeTarget(null);
-        return;
-      }
-      try {
-        const blot = Quill.find(img);
-        if (blot) {
-          setResizeTarget({ blot, domNode: img });
-          e.stopPropagation();
-        }
-      } catch {
-        setResizeTarget(null);
-      }
-    };
-
-    // Click outside any image clears selection
-    const handleOutside = (e) => {
-      if (!e.target.closest('img')) setResizeTarget(null);
-    };
-
-    editor.root.addEventListener('click', handleClick);
-    document.addEventListener('click', handleOutside);
-    return () => {
-      editor.root.removeEventListener('click', handleClick);
-      document.removeEventListener('click', handleOutside);
-    };
-  }, [isReadOnly]);
 
 
 
@@ -357,7 +189,7 @@ export default function TextEditor(props) {
   if (isReadOnly) {
     return (
       <Box className="quill-viewer">
-        <ReactQuill theme="snow" modules={noModules} value={props.value || ''} readOnly />
+        <ForumQuill value={props.value || ''} readOnly />
       </Box>
     );
   }
@@ -445,14 +277,10 @@ export default function TextEditor(props) {
                   '& .ql-container': { height: 'calc(100% - 42px) !important' },
                 }}
               >
-                <ReactQuill
-                  ref={quillRef}
-                  theme="snow"
-                  modules={myModules}
+                <ForumQuill
                   value={content}
                   onChange={setContent}
                   placeholder="Schreibe deinen Beitrag hier..."
-                  style={{ height: '100%' }}
                 />
               </Box>
             </Box>
@@ -523,35 +351,7 @@ export default function TextEditor(props) {
         </Box>
       </Box>
 
-      {/* Image resize handles — fixed-position overlay, driven by rAF */}
-      {resizeTarget && (
-        <>
-          <Box
-            ref={outlineRef}
-            sx={{
-              position: 'fixed',
-              border: '2px solid #ff9800',
-              pointerEvents: 'none',
-              zIndex: 1300,
-              borderRadius: '2px',
-            }}
-          />
-          <Box
-            ref={handleRef}
-            onMouseDown={handleDragStart}
-            sx={{
-              position: 'fixed',
-              width: 16,
-              height: 16,
-              bgcolor: '#ff9800',
-              border: '2px solid #fff',
-              cursor: 'nwse-resize',
-              zIndex: 1301,
-              boxShadow: '0 0 4px rgba(0,0,0,0.4)',
-            }}
-          />
-        </>
-      )}
+
 
       {/* Poll setup dialog */}
       <Dialog open={pollDialogOpen} onClose={() => dispatchPoll({ type: 'CLOSE_DIALOG' })} maxWidth="sm" fullWidth disableScrollLock>

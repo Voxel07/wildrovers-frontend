@@ -513,7 +513,7 @@ export default function Events() {
                                   </Stack>
                                 </Stack>
                               </Box>
-                              <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center', flexShrink: 0, ml: 'auto', mr: 1 }}>
+                              <Stack direction="row" spacing={0.5} sx={{ display: { xs: 'flex', sm: 'none' }, alignItems: 'center', flexShrink: 0, ml: 'auto', mr: 1 }}>
                                 <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }} color="text.secondary">
                                   <CalendarMonthIcon sx={{ fontSize: '1.1rem' }} />
                                   <Typography variant="subtitle2">

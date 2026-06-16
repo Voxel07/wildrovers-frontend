@@ -42,8 +42,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import IconButton from '@mui/material/IconButton';
 
 // Quill for Reply Editor
-import ReactQuill from 'react-quill-new';
-import 'react-quill-new/dist/quill.snow.css';
+import ForumQuill from '../../components/Forum/ForumQuill';
 
 // Eigene
 import Post from '../../components/Forum/Post';
@@ -631,8 +630,7 @@ export default function Forum_Post() {
                   Antwort verfassen
                 </Typography>
                 <Box sx={{ mb: 2 }}>
-                  <ReactQuill
-                    theme="snow"
+                  <ForumQuill
                     value={replyContent}
                     onChange={setReplyContent}
                     placeholder="Schreibe eine Antwort..."

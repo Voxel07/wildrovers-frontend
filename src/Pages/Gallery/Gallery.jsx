@@ -18,7 +18,8 @@ import {
   Stack,
   CardActions,
   IconButton,
-  Tooltip
+  Tooltip,
+  Chip
 } from '@mui/material';
 
 import Grid from '@mui/material/Grid';
@@ -29,6 +30,7 @@ import LaunchIcon from '@mui/icons-material/Launch';
 import LibraryAddIcon from '@mui/icons-material/LibraryAdd';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import PersonIcon from '@mui/icons-material/Person';
 
 const initialModalState = {
   openModal: false,
@@ -99,6 +101,19 @@ export default function Gallery() {
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [albumToDelete, setAlbumToDelete] = useState(null);
+
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  useEffect(() => {
+    if (dbAlbums.length > 0) {
+      const years = Array.from(
+        new Set(dbAlbums.map(a => a.date ? new Date(a.date).getFullYear() : null).filter(Boolean))
+      ).sort((a, b) => b - a);
+      if (years.length > 0 && !years.includes(selectedYear)) {
+        setSelectedYear(years[0]);
+      }
+    }
+  }, [dbAlbums]);
 
   const fetchAlbums = () => {
     api.get('/gallery')
@@ -246,7 +261,7 @@ export default function Gallery() {
                 onClick={handleOpenAdd}
                 sx={{ px: 3, py: 1.2 }}
               >
-                Kiosk-Album hinzufügen
+                Album hinzufügen
               </Button>
             </>
           ) : (
@@ -283,75 +298,128 @@ export default function Gallery() {
             <Typography variant="h4" sx={{ borderBottom: '2px solid', borderColor: 'primary.main', pb: 1, mb: 4, fontWeight: 'bold' }}>
               Events-Timeline & Alben
             </Typography>
-            <Grid container spacing={4}>
-              {dbAlbums.map((album) => {
-                const isCreator = album.creatorName === currentUsername;
-                const canModify = isLoggedIn && (isCreator || isAdmin);
 
-                return (
-                  <Grid size={{ xs: 12, sm: 6, md: 4 }} key={album.id} sx={{ display: 'flex' }}>
-                    <Card sx={{
-                      width: '100%',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                      bgcolor: 'rgba(255, 255, 255, 0.01)',
-                      transition: 'all 0.3s ease',
-                      '&:hover': {
-                        transform: 'translateY(-4px)',
-                        borderColor: 'primary.main',
-                        boxShadow: '0 8px 24px rgba(255, 152, 0, 0.1)'
-                      }
-                    }}>
-                      <CardContent>
-                        <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                          <Typography variant="h6" sx={{ fontWeight: 'bold', pr: 1 }}>
-                            {album.title}
-                          </Typography>
-                          {canModify && (
-                            <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0 }}>
-                              <Tooltip title="Bearbeiten">
-                                <IconButton color="primary" onClick={() => handleOpenEdit(album)} size="small">
-                                  <EditIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Löschen">
-                                <IconButton color="error" onClick={() => handleOpenDelete(album)} size="small">
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
+            {/* Year Filter Chips */}
+            {(() => {
+              const uniqueYears = Array.from(
+                new Set(dbAlbums.map(a => a.date ? new Date(a.date).getFullYear() : null).filter(Boolean))
+              ).sort((a, b) => b - a);
+              if (uniqueYears.length <= 1) return null;
+              return (
+                <Stack direction="row" spacing={1.5} sx={{ justifyContent: 'center', mb: 6, flexWrap: 'wrap', gap: 1 }}>
+                  {uniqueYears.map(year => (
+                    <Chip
+                      key={year}
+                      label={year}
+                      clickable
+                      color={selectedYear === year ? "primary" : "default"}
+                      variant={selectedYear === year ? "filled" : "outlined"}
+                      onClick={() => setSelectedYear(year)}
+                      sx={{
+                        fontSize: '0.95rem',
+                        py: 2,
+                        px: 1.5,
+                        fontWeight: 'bold',
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          borderColor: 'primary.main',
+                          bgcolor: selectedYear === year ? 'primary.main' : 'rgba(255, 152, 0, 0.08)'
+                        }
+                      }}
+                    />
+                  ))}
+                </Stack>
+              );
+            })()}
+
+            <Grid container spacing={4}>
+              {(() => {
+                const filteredAlbums = dbAlbums.filter(a => a.date && new Date(a.date).getFullYear() === selectedYear);
+                const sortedAlbums = [...filteredAlbums].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                if (sortedAlbums.length === 0) {
+                  return (
+                    <Grid size={12}>
+                      <Typography align="center" color="text.secondary" sx={{ fontStyle: 'italic', py: 4 }}>
+                        Keine Alben für das Jahr {selectedYear} vorhanden.
+                      </Typography>
+                    </Grid>
+                  );
+                }
+
+                return sortedAlbums.map((album) => {
+                  const isCreator = album.creatorName === currentUsername;
+                  const canModify = isLoggedIn && (isCreator || isAdmin);
+
+                  return (
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }} key={album.id} sx={{ display: 'flex' }}>
+                      <Card sx={{
+                        width: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        bgcolor: 'rgba(255, 255, 255, 0.01)',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          transform: 'translateY(-4px)',
+                          borderColor: 'primary.main',
+                          boxShadow: '0 8px 24px rgba(255, 152, 0, 0.1)'
+                        }
+                      }}>
+                        <CardContent>
+                          <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                            <Typography variant="h6" sx={{ fontWeight: 'bold', pr: 1 }}>
+                              {album.title}
+                            </Typography>
+                            {canModify && (
+                              <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0 }}>
+                                <Tooltip title="Bearbeiten">
+                                  <IconButton color="primary" onClick={() => handleOpenEdit(album)} size="small">
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Löschen">
+                                  <IconButton color="error" onClick={() => handleOpenDelete(album)} size="small">
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              </Stack>
+                            )}
+                          </Stack>
+                          <Stack spacing={1.5}>
+                            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', color: 'text.secondary' }}>
+                              <CalendarTodayIcon sx={{ fontSize: '1rem' }} />
+                              <Typography variant="body2">{formatDate(album.date)}</Typography>
                             </Stack>
-                          )}
-                        </Stack>
-                        <Stack spacing={1.5}>
-                          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', color: 'text.secondary' }}>
-                            <CalendarTodayIcon sx={{ fontSize: '1rem' }} />
-                            <Typography variant="body2">{formatDate(album.date)}</Typography>
+                            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', color: 'text.secondary' }}>
+                              <LocationOnIcon sx={{ fontSize: '1rem' }} />
+                              <Typography variant="body2">{album.location}</Typography>
+                            </Stack>
+                            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', color: 'text.secondary' }}>
+                              <PersonIcon sx={{ fontSize: '1rem' }} />
+                              <Typography variant="body2">{album.creatorName || 'Unbekannt'}</Typography>
+                            </Stack>
                           </Stack>
-                          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', color: 'text.secondary' }}>
-                            <LocationOnIcon sx={{ fontSize: '1rem' }} />
-                            <Typography variant="body2">{album.location}</Typography>
-                          </Stack>
-                        </Stack>
-                      </CardContent>
-                      <CardActions sx={{ p: 2, pt: 0 }}>
-                        <Button
-                          variant="contained"
-                          color="primary"
-                          fullWidth
-                          href={album.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          endIcon={<LaunchIcon />}
-                        >
-                          Album öffnen
-                        </Button>
-                      </CardActions>
-                    </Card>
-                  </Grid>
-                );
-              })}
+                        </CardContent>
+                        <CardActions sx={{ p: 2, pt: 0 }}>
+                          <Button
+                            variant="contained"
+                            color="primary"
+                            fullWidth
+                            href={album.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            endIcon={<LaunchIcon />}
+                          >
+                            Album öffnen
+                          </Button>
+                        </CardActions>
+                      </Card>
+                    </Grid>
+                  );
+                });
+              })()}
             </Grid>
           </Box>
         )}

@@ -18,6 +18,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
+import TextField from '@mui/material/TextField';
 import ForumIcon from '@mui/icons-material/Forum';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ThumbUpOutlinedIcon from '@mui/icons-material/ThumbUpOutlined';
@@ -34,8 +35,7 @@ import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 
 // Quill
-import ReactQuill from 'react-quill-new';
-import 'react-quill-new/dist/quill.snow.css';
+import ForumQuill from './ForumQuill';
 
 // Eigene
 import { convertTimestamp, formatNumber } from '../../helper/converter';
@@ -100,6 +100,7 @@ export default function Post({ post, onUpdate, onDelete, onAddPoll, pollsVisible
     const alertsManagerRef = use(AlertsContext);
 
     const [isEditing, setIsEditing] = useState(false);
+    const [editTitle, setEditTitle] = useState(post?.title ?? '');
     const [editContent, setEditContent] = useState(post?.content ?? '');
     const [saving, setSaving] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -148,12 +149,16 @@ export default function Post({ post, onUpdate, onDelete, onAddPoll, pollsVisible
     };
 
     const handleSaveEdit = () => {
+        if (!editTitle || editTitle.trim() === '') {
+            alertsManagerRef.current.showAlert('warning', 'Bitte gib einen Titel ein');
+            return;
+        }
         if (!editContent || editContent.trim() === '' || editContent === '<p><br></p>') {
             alertsManagerRef.current.showAlert('warning', 'Bitte gib einen Inhalt ein');
             return;
         }
         setSaving(true);
-        api.post('/forum/post', { id, content: editContent })
+        api.post('/forum/post', { id, title: editTitle, content: editContent })
             .then(() => {
                 alertsManagerRef.current.showAlert('success', 'Beitrag erfolgreich aktualisiert');
                 setIsEditing(false);
@@ -226,7 +231,7 @@ export default function Post({ post, onUpdate, onDelete, onAddPoll, pollsVisible
                                             </IconButton>
                                         </Tooltip>
                                         <Tooltip title="Abbrechen">
-                                            <IconButton size="small" color="error" onClick={() => { setIsEditing(false); setEditContent(post.content); }}>
+                                            <IconButton size="small" color="error" onClick={() => { setIsEditing(false); setEditContent(post.content); setEditTitle(post.title); }}>
                                                 <CancelIcon fontSize="small" />
                                             </IconButton>
                                         </Tooltip>
@@ -256,22 +261,29 @@ export default function Post({ post, onUpdate, onDelete, onAddPoll, pollsVisible
                 <Grid size={{ xs: 12 }}>
                     {isEditing ? (
                         <Box sx={{ mb: 1 }}>
+                            <TextField
+                                label="Beitragstitel"
+                                variant="outlined"
+                                fullWidth
+                                value={editTitle}
+                                onChange={(e) => setEditTitle(e.target.value)}
+                                inputProps={{ maxLength: 50 }}
+                                helperText={`${editTitle.length}/50`}
+                                sx={{ mb: 2 }}
+                            />
                             <style>{`.post-edit-quill .ql-container.ql-snow, .post-edit-quill .ql-toolbar.ql-snow { border-color: rgba(255,255,255,0.12) !important; }`}</style>
                             <Box className="post-edit-quill">
-                            <ReactQuill
-                                theme="snow"
-                                value={editContent}
-                                onChange={setEditContent}
-                                style={{ height: 300, marginBottom: 50 }}
-                            />
+                                <ForumQuill
+                                    value={editContent}
+                                    onChange={setEditContent}
+                                    style={{ height: 300, marginBottom: 50 }}
+                                />
                             </Box>
                         </Box>
                     ) : (
                         <Box className="post-body-content" sx={{ mt: 1 }}>
                             <style>{`.post-body-content .ql-container.ql-snow { border: none !important; } .post-body-content .ql-editor { padding: 0; }`}</style>
-                            <ReactQuill
-                                theme="snow"
-                                modules={noModules}
+                            <ForumQuill
                                 value={post.content}
                                 readOnly
                             />
@@ -305,26 +317,28 @@ export default function Post({ post, onUpdate, onDelete, onAddPoll, pollsVisible
                             <Typography variant="body2" sx={{ minWidth: 20 }}>{formatNumber(dislikes)}</Typography>
                         </Stack>
 
-                        {isCreatorOrAdmin && onAddPoll && (
-                            <Tooltip title="Umfrage hinzufügen">
-                                <Button
-                                    variant="outlined"
-                                    color="primary"
-                                    size="small"
-                                    startIcon={<BarChartIcon />}
-                                    onClick={onAddPoll}
-                                >
-                                    Umfrage hinzufügen
-                                </Button>
-                            </Tooltip>
-                        )}
-                        {onTogglePolls && (
-                            <Tooltip title={pollsVisible ? 'Umfragen ausblenden' : 'Umfragen einblenden'}>
-                                <IconButton size="small" onClick={onTogglePolls} color={pollsVisible ? 'primary' : 'default'}>
-                                    {pollsVisible ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
-                                </IconButton>
-                            </Tooltip>
-                        )}
+                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                            {isCreatorOrAdmin && onAddPoll && (
+                                <Tooltip title="Umfrage hinzufügen">
+                                    <Button
+                                        variant="outlined"
+                                        color="primary"
+                                        size="small"
+                                        startIcon={<BarChartIcon />}
+                                        onClick={onAddPoll}
+                                    >
+                                        Umfrage hinzufügen
+                                    </Button>
+                                </Tooltip>
+                            )}
+                            {onTogglePolls && (
+                                <Tooltip title={pollsVisible ? 'Umfragen ausblenden' : 'Umfragen einblenden'}>
+                                    <IconButton size="small" onClick={onTogglePolls} color={pollsVisible ? 'primary' : 'default'}>
+                                        {pollsVisible ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
+                                    </IconButton>
+                                </Tooltip>
+                            )}
+                        </Stack>
                     </Stack>
                 </Grid>
             </Grid>
@@ -376,5 +390,5 @@ Post.propTypes = {
     post: PropTypes.object,
     onUpdate: PropTypes.func,
     onDelete: PropTypes.func,
-  onAddPoll: PropTypes.func,
+    onAddPoll: PropTypes.func,
 };

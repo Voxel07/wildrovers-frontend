@@ -22,8 +22,7 @@ import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 
 // Quill
-import ReactQuill from 'react-quill-new';
-import 'react-quill-new/dist/quill.snow.css';
+import ForumQuill from './ForumQuill';
 
 // Eigene
 import { convertTimestamp } from '../../helper/converter';
@@ -182,8 +181,7 @@ export default function Answer(props) {
                 <style>{`.reply-editor .ql-container.ql-snow, .reply-editor .ql-toolbar.ql-snow { border-color: rgba(255,255,255,0.12) !important; }`}</style>
                 <style>{`.reply-editor .ql-editor.ql-blank::before { color: rgba(255,255,255,0.55) !important; font-style: italic; }`}</style>
                 <Box className="reply-editor">
-                  <ReactQuill
-                    theme="snow"
+                  <ForumQuill
                     value={editContent}
                     onChange={setEditContent}
                     placeholder="Schreibe deine Antwort..."
@@ -193,9 +191,7 @@ export default function Answer(props) {
             ) : (
               <Box className="reply-body-content" sx={{ pl: 0.5 }}>
                 <style>{`.reply-body-content .ql-container.ql-snow { border: none !important; } .reply-body-content .ql-editor { padding: 0; }`}</style>
-                <ReactQuill
-                  theme="snow"
-                  modules={noModules}
+                <ForumQuill
                   value={answer.content}
                   readOnly
                 />

@@ -104,14 +104,14 @@ const AddCategory = ({ ref, ...props }) => {
     async function saveCategoryToDB(vals) {
         const isEdit = !!props.categoryToEdit;
         const url = '/forum/category';
-        const data = isEdit ? {
-            id: props.categoryToEdit.id,
-            category: vals.Name
-        } : {
+        const data = {
             category: vals.Name,
             position: selectedValuePos ? selectedValuePos.id : null,
             visibility: selectedValueVis ? selectedValueVis.label : 'Besucher'
         };
+        if (isEdit) {
+            data.id = props.categoryToEdit.id;
+        }
         const method = isEdit ? 'post' : 'put';
 
         try {
