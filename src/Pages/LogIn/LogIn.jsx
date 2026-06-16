@@ -19,7 +19,7 @@ import IconButton from '@mui/material/IconButton';
 // Auth & OIDC
 import useAuth from '../../context/useAuth';
 import { redirectToAuthentik, exchangeCodeForToken, parseJwt } from '../../helper/oidc';
-import api from '../../helper/api';
+import api, { extractErrorMessage } from '../../helper/api';
 
 // Map OIDC groups to local DB roles
 function mapGroupsToRole(groups) {
@@ -128,7 +128,7 @@ const SignIn = React.forwardRef((props, ref) => {
               .catch((err) => {
                 console.error("JIT-provisioning via /user/me failed", err);
                 setAuth({});
-                const errorMsg = err.response?.data || "Anmeldung fehlgeschlagen. Dein Account ist gesperrt.";
+                const errorMsg = extractErrorMessage(err);
                 dispatch({ type: 'LOGIN_ERROR', payload: errorMsg });
               });
           } else {
@@ -187,7 +187,7 @@ const SignIn = React.forwardRef((props, ref) => {
       navigate(from, { replace: true });
     } catch (err) {
       console.error("Local login failed", err);
-      const errorMsg = err.response?.data || "Anmeldung fehlgeschlagen. Bitte versuche es erneut.";
+      const errorMsg = extractErrorMessage(err);
       dispatch({ type: 'LOGIN_ERROR', payload: errorMsg });
     }
   };

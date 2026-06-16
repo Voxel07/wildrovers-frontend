@@ -1,5 +1,5 @@
 import React, { useState, useEffect, use } from 'react';
-import api from '../../helper/api';
+import api, { extractErrorMessage } from '../../helper/api';
 import useAuth from '../../context/useAuth';
 
 // Mui
@@ -12,6 +12,8 @@ import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
 import TableSortLabel from '@mui/material/TableSortLabel';
 import Box from '@mui/material/Box';
+import Alert from '@mui/material/Alert';
+import RefreshIcon from '@mui/icons-material/Refresh';
 
 // Eigene
 import Category from '../../components/Forum/Category';
@@ -24,6 +26,8 @@ const Forum = () => {
     const alertsManagerRef = use(AlertsContext);
     const [categories, setCategories] = useState([]);
     const [loading, setloading] = useState(false);
+    const [error, setError] = useState(null);
+    const [errorStatus, setErrorStatus] = useState(null);
     const [open, setOpen] = useState(false);
     const handleOpen = () => { setOpen(true); };
     const handleClose = () => { setOpen(false); };
@@ -37,9 +41,10 @@ const Forum = () => {
       setUpdateData(prev => !prev);
     }
 
-    // Get all categories
-    useEffect(() => {
+    const fetchCategories = () => {
         setloading(true);
+        setError(null);
+        setErrorStatus(null);
         api.get("/forum/category")
         .then(response => {
             setCategories(response.data);
@@ -47,8 +52,15 @@ const Forum = () => {
         })
         .catch(err => {
             console.error(err);
+            setError(extractErrorMessage(err));
+            setErrorStatus(err.response?.status || 0);
             setloading(false);
         });
+    };
+
+    // Get all categories
+    useEffect(() => {
+        fetchCategories();
     }, [updateData]);
 
     const handleDelete = (deletedCategory) => {
@@ -174,15 +186,30 @@ const Forum = () => {
             </Box>
 
             <Stack spacing={2} sx={{ mt: { xs: 0, md: 2 } }}>
-                {categories.length ? (
+                {error && (
+                    <Alert
+                        severity={errorStatus === 429 ? 'warning' : 'error'}
+                        action={
+                            <Button color="inherit" size="small" startIcon={<RefreshIcon />} onClick={fetchCategories}>
+                                Erneut versuchen
+                            </Button>
+                        }
+                        sx={{ mb: 2 }}
+                    >
+                        {errorStatus === 429
+                            ? 'Zu viele Anfragen — bitte warte einen Moment.'
+                            : `Fehler beim Laden der Kategorien: ${error}`}
+                    </Alert>
+                )}
+                {!error && categories.length ? (
                     categoryComponents
-                ) : loading ? (
+                ) : !error && loading ? (
                     <Skeleton_Category />
-                ) : (
+                ) : !error ? (
                     <Box sx={{ textAlign: 'center', py: 8, bgcolor: 'background.paper', borderRadius: 2 }}>
                         <Typography color="text.secondary">Keine Kategorien vorhanden. Erstelle die erste!</Typography>
                     </Box>
-                )}
+                ) : null}
             </Stack>
 
             <Modal

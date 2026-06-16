@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import api from '../../helper/api';
+import api, { extractErrorMessage } from '../../helper/api';
 
 // Mui
 import Typography from '@mui/material/Typography';
@@ -58,7 +58,7 @@ export default function RegestrationSucessfull() {
             }
         } catch (error) {
             console.error("Verification error:", error);
-            setErrorMsg(error.response?.data?.message || error.response?.data || "Ein Fehler ist aufgetreten. Bitte versuche es erneut.");
+            setErrorMsg(extractErrorMessage(error));
         } finally {
             setLoading(false);
         }

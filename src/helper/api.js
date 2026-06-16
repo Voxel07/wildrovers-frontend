@@ -88,10 +88,20 @@ api.interceptors.request.use(
 // Response interceptor — retry on 401 by refreshing token (OIDC sessions only)
 // Local-JWT sessions (no refreshToken) are NOT cleared on 401 — only OIDC refresh failures clear auth.
 // On 403, the user is blocked — terminate the session immediately.
+// On 429, dispatch a global event so the UI can show a rate-limit warning.
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
+    // Rate-limited: dispatch global event for the UI to display
+    if (error.response?.status === 429) {
+      const msg = extractErrorMessage(error);
+      window.dispatchEvent(new CustomEvent('api-ratelimited', {
+        detail: { message: msg, url: originalRequest?.url }
+      }));
+      return Promise.reject(error);
+    }
 
     // Blocked user: end the session immediately
     if (error.response?.status === 403) {
@@ -167,5 +177,20 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+/**
+ * Extract a human-readable error message from an Axios error response.
+ * Handles the backend's JSON format: {"status":"error","message":"..."}
+ * as well as plain strings and objects.
+ */
+export function extractErrorMessage(error) {
+  const data = error?.response?.data;
+  if (!data) return error?.message || 'Unbekannter Fehler';
+  if (typeof data === 'string') return data;
+  if (typeof data === 'object') {
+    return data.message || data.details || data.error || JSON.stringify(data);
+  }
+  return String(data);
+}
 
 export default api;

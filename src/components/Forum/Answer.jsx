@@ -1,6 +1,6 @@
 import React, { useState, use } from 'react';
 import PropTypes from 'prop-types';
-import api from '../../helper/api';
+import api, { extractErrorMessage } from '../../helper/api';
 
 // Mui
 import Card from '@mui/material/Card';
@@ -58,7 +58,7 @@ export default function Answer(props) {
       .catch(error => {
         console.error(error);
         const status = error.response?.status || 500;
-        const msg = error.response?.data || 'Fehler beim Löschen';
+        const msg = extractErrorMessage(error);
         alertsManagerRef.current.showAlert('error', `${status}: ${msg}`);
       });
     }
@@ -83,7 +83,7 @@ export default function Answer(props) {
     .catch(error => {
       console.error(error);
       const status = error.response?.status || 500;
-      const msg = error.response?.data || 'Fehler beim Speichern';
+      const msg = extractErrorMessage(error);
       alertsManagerRef.current.showAlert('error', `${status}: ${msg}`);
     })
     .finally(() => {

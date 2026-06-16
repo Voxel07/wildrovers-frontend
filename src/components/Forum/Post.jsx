@@ -1,6 +1,6 @@
 import React, { useState, use, useReducer } from 'react';
 import PropTypes from 'prop-types';
-import api from '../../helper/api';
+import api, { extractErrorMessage } from '../../helper/api';
 
 // Mui
 import Grid from '@mui/material/Grid';
@@ -166,10 +166,7 @@ export default function Post({ post, onUpdate, onDelete, onAddPoll, pollsVisible
             })
             .catch(err => {
                 const status = err.response?.status || 500;
-                const rawData = err.response?.data;
-                const msg = typeof rawData === 'object'
-                    ? (rawData.message || rawData.details || JSON.stringify(rawData))
-                    : (rawData || 'Fehler beim Speichern');
+                const msg = extractErrorMessage(err);
                 alertsManagerRef.current.showAlert('error', `${status}: ${msg}`);
             })
             .finally(() => setSaving(false));
@@ -186,10 +183,7 @@ export default function Post({ post, onUpdate, onDelete, onAddPoll, pollsVisible
             })
             .catch(err => {
                 const status = err.response?.status || 500;
-                const rawData = err.response?.data;
-                const msg = typeof rawData === 'object'
-                    ? (rawData.message || rawData.details || JSON.stringify(rawData))
-                    : (rawData || 'Fehler beim Löschen');
+                const msg = extractErrorMessage(err);
                 alertsManagerRef.current.showAlert('error', `${status}: ${msg}`);
             })
             .finally(() => setSaving(false));

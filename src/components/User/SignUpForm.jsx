@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import api from '../../helper/api';
+import api, { extractErrorMessage } from '../../helper/api';
 
 // MUI
 import Button from '@mui/material/Button';
@@ -43,9 +43,8 @@ function SignUpForm() {
         })
         .catch(error => {
             console.log("Error during registration:", error.response);
-            const status = error.response?.status || 500;
-            const data = error.response?.data || error.message || "Registrierung fehlgeschlagen.";
-            setState({ resCode: status, resData: data });
+            const data = extractErrorMessage(error);
+            setState({ resCode: error.response?.status || 500, resData: data });
         });
     };
 
@@ -186,8 +185,8 @@ function SignUpForm() {
                 <Grid size={12}>
                     <Stack spacing={2} sx={{ mt: 1 }}>
                         {!!resData && resCode > 200 ? (
-                            <Alert severity="error">
-                                {typeof resData === 'object' ? (resData.message || JSON.stringify(resData)) : resData}
+                            <Alert severity={resCode === 429 ? 'warning' : 'error'}>
+                                {resData}
                             </Alert>
                         ) : null}
                     </Stack>

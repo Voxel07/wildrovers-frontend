@@ -1,6 +1,6 @@
 import React, { useEffect, useState, use } from "react";
 import { useNavigate } from "react-router-dom";
-import api from '../../helper/api';
+import api, { extractErrorMessage } from '../../helper/api';
 
 // Mui
 import Grid from '@mui/material/Grid';
@@ -125,9 +125,9 @@ export default function Topic(props) {
       })
       .catch(error => {
         console.error(error);
-        const resCode = error.response?.status || 500;
-        const resData = error.response?.data || "Fehler beim Löschen";
-        alertsManagerRef.current.showAlert('error', `${resCode}: ${resData}`);
+        const status = error.response?.status || 500;
+        const msg = extractErrorMessage(error);
+        alertsManagerRef.current.showAlert('error', `${status}: ${msg}`);
       });
   }
 

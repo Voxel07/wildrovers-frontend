@@ -7,6 +7,17 @@ import  LinearProgress  from '@mui/material/LinearProgress';
 import './AlertsManager.css';
 const AlertsContext = createContext();
 
+/**
+ * Format alert messages: handle strings, objects with .message, and fallback to JSON.
+ */
+function formatAlertMessage(msg) {
+  if (typeof msg === 'string') return msg;
+  if (typeof msg === 'object' && msg !== null) {
+    return msg.message || msg.error || msg.details || JSON.stringify(msg);
+  }
+  return String(msg);
+}
+
 const AlertsManager = ({ ref, ...props }) => {
     const [alerts, setAlerts] = useState([]);
 
@@ -66,7 +77,7 @@ const AlertsManager = ({ ref, ...props }) => {
           onClose={() => removeAlert(alert.id)}
           sx={{ mb: 1 }}
         >
-          {typeof alert.message === 'object' ? (alert.message.message || JSON.stringify(alert.message)) : alert.message}
+          {formatAlertMessage(alert.message)}
         </Alert>
             <LinearProgress
               variant="determinate"

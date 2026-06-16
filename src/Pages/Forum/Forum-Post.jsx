@@ -1,6 +1,6 @@
 import React, { useEffect, useState, use, useCallback, useReducer } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import api from '../../helper/api';
+import api, { extractErrorMessage } from '../../helper/api';
 
 // Mui
 import Container from '@mui/material/Container';
@@ -206,10 +206,7 @@ export default function Forum_Post() {
       .catch(error => {
         console.error("Failed to create poll", error);
         const status = error.response?.status || 500;
-        const rawData = error.response?.data;
-        const msg = typeof rawData === 'object'
-          ? (rawData.message || rawData.details || JSON.stringify(rawData))
-          : (rawData || 'Fehler beim Erstellen der Umfrage');
+        const msg = extractErrorMessage(error);
         alertsManagerRef.current.showAlert('error', `${status}: ${msg}`);
       })
       .finally(() => {
@@ -234,10 +231,7 @@ export default function Forum_Post() {
       .catch(error => {
         console.error("Failed to delete poll", error);
         const status = error.response?.status || 500;
-        const rawData = error.response?.data;
-        const msg = typeof rawData === 'object'
-          ? (rawData.message || rawData.details || JSON.stringify(rawData))
-          : (rawData || 'Fehler beim Löschen der Umfrage');
+        const msg = extractErrorMessage(error);
         alertsManagerRef.current.showAlert('error', `${status}: ${msg}`);
       });
   };
@@ -265,7 +259,13 @@ export default function Forum_Post() {
       })
       .catch(error => {
         console.error("Error fetching post/answers", error);
-        alertsManagerRef.current.showAlert('error', 'Fehler beim Laden des Posts');
+        const status = error.response?.status || 0;
+        const msg = extractErrorMessage(error);
+        if (status === 429) {
+          alertsManagerRef.current.showAlert('warning', 'Zu viele Anfragen — bitte warte einen Moment.');
+        } else {
+          alertsManagerRef.current.showAlert('error', `Fehler beim Laden des Posts: ${msg}`);
+        }
         dispatch({ type: 'FETCH_FAILURE' });
       });
   }, [id, alertsManagerRef]);
@@ -293,10 +293,7 @@ export default function Forum_Post() {
       .catch(error => {
         console.error(error);
         const status = error.response?.status || 500;
-        const rawData = error.response?.data;
-        const data = typeof rawData === 'object'
-          ? (rawData.message || rawData.details || JSON.stringify(rawData))
-          : (rawData || 'Fehler beim Senden');
+        const data = extractErrorMessage(error);
         alertsManagerRef.current.showAlert('error', `${status}: ${data}`);
       })
       .finally(() => {

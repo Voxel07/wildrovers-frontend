@@ -1,6 +1,6 @@
-import React, { useReducer, useState, useEffect } from 'react';
+import React, { useReducer, useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import api from '../../helper/api';
+import api, { extractErrorMessage } from '../../helper/api';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
@@ -11,6 +11,8 @@ import Divider from '@mui/material/Divider';
 import TableSortLabel from '@mui/material/TableSortLabel';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
+import RefreshIcon from '@mui/icons-material/Refresh';
 
 import PersonOutlineIcon from '@mui/icons-material/PersonOutlined';
 import ForumIcon from '@mui/icons-material/Forum';
@@ -28,13 +30,13 @@ import { convertTimestamp } from '../../helper/converter';
 import ForumBreadcrumbs from '../../components/Forum/ForumBreadcrumbs';
 import ForumChips from '../../components/Forum/ForumChips';
 
-const initialFetchState = { posts: [], topicData: null, loading: true };
+const initialFetchState = { posts: [], topicData: null, loading: true, error: null, errorStatus: null };
 
 function fetchReducer(state, action) {
   switch (action.type) {
-    case 'FETCH_START': return { ...state, loading: true };
-    case 'FETCH_SUCCESS': return { posts: action.posts, topicData: action.topicData, loading: false };
-    case 'FETCH_ERROR': return { ...state, loading: false };
+    case 'FETCH_START': return { ...state, loading: true, error: null, errorStatus: null };
+    case 'FETCH_SUCCESS': return { posts: action.posts, topicData: action.topicData, loading: false, error: null, errorStatus: null };
+    case 'FETCH_ERROR': return { ...state, loading: false, error: action.payload, errorStatus: action.status };
     default: return state;
   }
 }
@@ -43,10 +45,10 @@ export default function Forum_Topic() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [fetchState, dispatch] = useReducer(fetchReducer, initialFetchState);
-  const { posts, topicData, loading } = fetchState;
+  const { posts, topicData, loading, error, errorStatus } = fetchState;
   const [sort, setSort] = useState({ field: 'creationDate', direction: 'asc' });
 
-  useEffect(() => {
+  const fetchTopicData = useCallback(() => {
     const controller = new AbortController();
     dispatch({ type: 'FETCH_START' });
 
@@ -70,13 +72,22 @@ export default function Forum_Topic() {
       .catch(error => {
         if (error.code === 'ERR_CANCELED') return;
         console.error(error);
-        dispatch({ type: 'FETCH_ERROR' });
+        dispatch({
+          type: 'FETCH_ERROR',
+          payload: extractErrorMessage(error),
+          status: error.response?.status || 0,
+        });
       });
 
     return () => {
       controller.abort();
     };
   }, [id]);
+
+  useEffect(() => {
+    const cleanup = fetchTopicData();
+    return cleanup;
+  }, [fetchTopicData]);
 
   const handleSort = (field) => {
     setSort(prev => ({
@@ -98,6 +109,30 @@ export default function Forum_Topic() {
     return (
       <Container sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
         <CircularProgress color="primary" />
+      </Container>
+    );
+  }
+
+  if (error) {
+    const isRateLimit = errorStatus === 429;
+    return (
+      <Container maxWidth="sm" sx={{ py: 8, textAlign: 'center' }}>
+        <Alert
+          severity={isRateLimit ? 'warning' : 'error'}
+          sx={{ mb: 3 }}
+          action={
+            <Button color="inherit" size="small" startIcon={<RefreshIcon />} onClick={fetchTopicData}>
+              Erneut versuchen
+            </Button>
+          }
+        >
+          {isRateLimit
+            ? 'Zu viele Anfragen — bitte warte einen Moment.'
+            : `Fehler beim Laden des Themas: ${error}`}
+        </Alert>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} sx={{ mt: 1 }}>
+          Zurück
+        </Button>
       </Container>
     );
   }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useReducer, use } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../../helper/api';
+import api, { extractErrorMessage } from '../../helper/api';
 import { convertTimestamp } from '../../helper/converter';
 import useAuth from '../../context/useAuth';
 import { AlertsContext } from '../../components/utils/AlertsManager';
@@ -309,7 +309,7 @@ export default function Profile() {
       })
       .catch(err => {
         console.error("Error updating profile", err);
-        alertsManagerRef.current.showAlert('error', err.response?.data || 'Profilaktualisierung fehlgeschlagen.');
+        alertsManagerRef.current.showAlert('error', extractErrorMessage(err) || 'Profilaktualisierung fehlgeschlagen.');
       })
       .finally(() => {
         setSaving(false);

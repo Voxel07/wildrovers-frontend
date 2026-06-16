@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useReducer } from 'react';
 import useAuth from '../../context/useAuth';
-import api from '../../helper/api';
+import api, { extractErrorMessage } from '../../helper/api';
 
 // Material UI
 import {
@@ -167,7 +167,7 @@ export default function Gallery() {
       })
       .catch(err => {
         console.error("Error deleting album", err);
-        alert(err.response?.data || "Löschen fehlgeschlagen.");
+        alert(extractErrorMessage(err) || 'Löschen fehlgeschlagen.');
       });
   };
 
@@ -211,12 +211,9 @@ export default function Gallery() {
       })
       .catch(err => {
         console.error("Error saving gallery", err);
-        const errMsg = typeof err.response?.data === 'string'
-          ? err.response.data
-          : (err.response?.data?.message || 'Fehler beim Speichern. Bitte Eingaben überprüfen.');
         dispatchModal({
           type: 'SET_FORM_ERROR',
-          payload: errMsg
+          payload: extractErrorMessage(err),
         });
       });
   };

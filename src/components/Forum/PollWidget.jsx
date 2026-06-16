@@ -1,6 +1,6 @@
 import React, { useState, useEffect, use } from 'react';
 import PropTypes from 'prop-types';
-import api from '../../helper/api';
+import api, { extractErrorMessage } from '../../helper/api';
 
 // Mui
 import Card from '@mui/material/Card';
@@ -84,7 +84,7 @@ export default function PollWidget(props) {
       .catch(error => {
         console.error("Voting failed", error);
         const status = error.response?.status || 500;
-        const data = error.response?.data || 'Fehler beim Abstimmen';
+        const data = extractErrorMessage(error);
         alertsManagerRef.current.showAlert('error', `${status}: ${data}`);
       })
       .finally(() => {

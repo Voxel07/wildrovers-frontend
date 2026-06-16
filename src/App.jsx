@@ -67,6 +67,18 @@ function App() {
   const stateValue = useMemo(() => ({ user, setUser }), [user, setUser]);
   const alertsManagerRef = useRef();
 
+  // Listen for global rate-limit events dispatched by api.js interceptor
+  useEffect(() => {
+    const handler = (e) => {
+      if (alertsManagerRef.current) {
+        const msg = e.detail?.message || 'Zu viele Anfragen. Bitte warte einen Moment.';
+        alertsManagerRef.current.showAlert('warning', msg);
+      }
+    };
+    window.addEventListener('api-ratelimited', handler);
+    return () => window.removeEventListener('api-ratelimited', handler);
+  }, []);
+
   return (
     <UserContext.Provider value={stateValue}>
       <AlertsContext.Provider value={alertsManagerRef}>

@@ -102,8 +102,11 @@ const AddTopic = ({ ref, ...props }) => {
                 resData = "Nicht angemeldet!";
             } else if (resCode === 403 || resCode === 406) {
                 resData = error.response.data || "Du bist für diese Aktion nicht berechtigt!";
+            } else if (resCode === 429) {
+                resData = "Zu viele Anfragen — bitte warte einen Moment.";
+                alertsManagerRef.current.showAlert('warning', resData);
             } else {
-                resData = error.response.data || "Ein Fehler ist aufgetreten.";
+                resData = error.response?.data?.message || error.response?.data || "Ein Fehler ist aufgetreten.";
             }
 
             setState({ resCode, resData });

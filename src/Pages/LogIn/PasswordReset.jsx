@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import api from '../../helper/api';
+import api, { extractErrorMessage } from '../../helper/api';
 
 // Mui
 import Container from '@mui/material/Container';
@@ -67,7 +67,7 @@ export default function PasswordReset() {
       }
     } catch (error) {
       console.error("Reset request error:", error);
-      setErrorMsg(error.response?.data?.message || error.response?.data || "Ein Fehler ist aufgetreten. Bitte versuche es erneut.");
+      setErrorMsg(extractErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -105,7 +105,7 @@ export default function PasswordReset() {
       }
     } catch (error) {
       console.error("Reset password error:", error);
-      setErrorMsg(error.response?.data?.message || error.response?.data || "Ein Fehler ist aufgetreten. Bitte versuche es erneut.");
+      setErrorMsg(extractErrorMessage(error));
     } finally {
       setLoading(false);
     }

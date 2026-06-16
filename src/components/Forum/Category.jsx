@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, use, useReducer } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import api from '../../helper/api';
+import api, { extractErrorMessage } from '../../helper/api';
 
 // MUI
 import Accordion from "@mui/material/Accordion";
@@ -41,6 +41,12 @@ function categoryReducer(state, action) {
         ...state,
         topics: action.payload.topics,
         category: action.payload.category,
+        topicsError: null,
+      };
+    case 'FETCH_ERROR':
+      return {
+        ...state,
+        topicsError: action.payload,
       };
     case 'SET_CATEGORY':
       return {
@@ -109,8 +115,9 @@ export default function Category(props) {
     topics: [],
     category: props.vals || { category: null, id: null, creator: null, creationDate: null, topicCount: null, visibility: null, position: null },
     updateData: false,
+    topicsError: null,
   });
-  const { topics, category, updateData } = state;
+  const { topics, category, updateData, topicsError } = state;
 
   const [editingTopic, setEditingTopic] = useState(null);
 
@@ -168,6 +175,7 @@ export default function Category(props) {
       })
       .catch(error => {
         console.error("Failed to fetch topics", error);
+        dispatch({ type: 'FETCH_ERROR', payload: extractErrorMessage(error) });
         dispatch({ type: 'SET_CATEGORY', payload: props.vals });
       });
   }, [props.vals.id, updateData]);
@@ -190,9 +198,9 @@ export default function Category(props) {
       })
       .catch(error => {
         console.error(error);
-        const resCode = error.response?.status || 500;
-        const resData = error.response?.data || "Serverfehler beim Löschen";
-        alertsManagerRef.current.showAlert('error', `${resCode}: ${resData}`);
+        const status = error.response?.status || 500;
+        const msg = extractErrorMessage(error);
+        alertsManagerRef.current.showAlert('error', `${status}: ${msg}`);
       });
   }
 
@@ -280,8 +288,13 @@ export default function Category(props) {
       </AccordionSummary>
       <Divider />
       <AccordionDetails sx={{ bgcolor: 'rgba(0, 0, 0, 0.1)', p: 0 }}>
-
-        {sortedTopics.length ? (
+        {topicsError ? (
+          <Box sx={{ p: 3, textAlign: 'center' }}>
+            <Typography variant="body2" color="warning.main">
+              Themen konnten nicht geladen werden: {topicsError}
+            </Typography>
+          </Box>
+        ) : sortedTopics.length ? (
           sortedTopics.map(topic => (
             <Topic
               key={topic.id}
