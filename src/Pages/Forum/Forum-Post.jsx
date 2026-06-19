@@ -148,6 +148,7 @@ export default function Forum_Post() {
   const [pollQuestion, setPollQuestion] = useState('');
   const [pollOptions, setPollOptions] = useState(['', '']);
   const [pollAllowMultiple, setPollAllowMultiple] = useState(false);
+  const [pollAnonymous, setPollAnonymous] = useState(false);
   const [submittingPoll, setSubmittingPoll] = useState(false);
   const [deletePollId, setDeletePollId] = useState(null);
 
@@ -158,6 +159,7 @@ export default function Forum_Post() {
     setPollQuestion('');
     setPollOptions(['', '']);
     setPollAllowMultiple(false);
+    setPollAnonymous(false);
   };
 
   const handleAddOption = () => {
@@ -196,6 +198,7 @@ export default function Forum_Post() {
     api.post(`/forum/poll/create?post=${id}`, {
       question: pollQuestion,
       allowMultiple: pollAllowMultiple,
+      anonymous: pollAnonymous,
       options: optionsPayload
     })
       .then(() => {
@@ -772,6 +775,19 @@ export default function Forum_Post() {
                 />
               }
               label="Mehrfachauswahl erlauben"
+            />
+          </Box>
+
+          <Box>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={pollAnonymous}
+                  onChange={(e) => setPollAnonymous(e.target.checked)}
+                  color="primary"
+                />
+              }
+              label="Anonyme Umfrage (Wähler bleiben unsichtbar)"
             />
           </Box>
         </DialogContent>
