@@ -1,16 +1,20 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import Stack from '@mui/material/Stack';
 import Divider from '@mui/material/Divider';
 import Tooltip from '@mui/material/Tooltip';
 import Chip from '@mui/material/Chip';
 
 export default function ForumChips({ items, compact }) {
+  const stackDivider = useMemo(() => (
+    <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255, 255, 255, 0.08)', my: compact ? 0.25 : 0.75 }} />
+  ), [compact]);
+
   if (!items || items.length === 0) return null;
   return (
     <Stack
       direction="row"
       spacing={0}
-      divider={<Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255, 255, 255, 0.08)', my: compact ? 0.25 : 0.75 }} />}
+      divider={stackDivider}
       sx={{
         border: '1px solid rgba(255, 255, 255, 0.08)',
         borderRadius: '20px',

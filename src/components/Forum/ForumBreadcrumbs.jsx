@@ -4,11 +4,13 @@ import { Link as RouterLink } from 'react-router-dom';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import HomeIcon from '@mui/icons-material/Home';
 
+const breadcrumbSeparator = <NavigateNextIcon fontSize="small" />;
+
 export default function ForumBreadcrumbs({ categoryId, categoryName, topicId, topicName, postTitle }) {
   return (
     <Box sx={{ mb: 3 }}>
       <Breadcrumbs 
-        separator={<NavigateNextIcon fontSize="small" />} 
+        separator={breadcrumbSeparator} 
         aria-label="breadcrumb"
         sx={{
           color: 'text.secondary',
