@@ -31,6 +31,7 @@ import LibraryAddIcon from '@mui/icons-material/LibraryAdd';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PersonIcon from '@mui/icons-material/Person';
+import WarningIcon from '@mui/icons-material/Warning';
 
 const initialModalState = {
   openModal: false,
@@ -90,6 +91,7 @@ export default function Gallery() {
   const isLoggedIn = !!auth?.JWT;
   const isAdmin = auth?.roles === 'Admin';
   const currentUsername = auth?.user;
+  const isTeamMember = isLoggedIn && ['Frischling', 'Mitglied', 'Vorstand', 'Admin'].includes(auth?.roles);
 
   const proxyUrl = import.meta.env.VITE_IMMICH_PROXY_URL || "";
   const dropUrl = import.meta.env.VITE_IMMICH_DROP_URL || "";
@@ -239,37 +241,31 @@ export default function Gallery() {
         </Typography>
 
         {/* Buttons & Actions */}
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'center', alignItems: 'center', mb: 6 }}>
-          {isLoggedIn ? (
-            <>
-              <Button
-                variant="contained"
-                color="secondary"
-                startIcon={<AddPhotoAlternateIcon />}
-                onClick={() => setShowUpload(!showUpload)}
-                sx={{ px: 3, py: 1.2 }}
-              >
-                {showUpload ? "Upload ausblenden" : "Neue Bilder hochladen"}
-              </Button>
-              <Button
-                variant="outlined"
-                color="primary"
-                startIcon={<LibraryAddIcon />}
-                onClick={handleOpenAdd}
-                sx={{ px: 3, py: 1.2 }}
-              >
-                Album hinzufügen
-              </Button>
-            </>
-          ) : (
-            <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', border: '1px solid rgba(255, 255, 255, 0.08)', p: 2, borderRadius: 2, bgcolor: 'rgba(0,0,0,0.2)' }}>
-              🔒 Bitte einloggen, um Bilder hochzuladen oder Alben hinzuzufügen.
-            </Typography>
-          )}
-        </Stack>
+        {isTeamMember && (
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'center', alignItems: 'center', mb: 6 }}>
+            <Button
+              variant="contained"
+              color="secondary"
+              startIcon={<AddPhotoAlternateIcon />}
+              onClick={() => setShowUpload(!showUpload)}
+              sx={{ px: 3, py: 1.2 }}
+            >
+              {showUpload ? "Upload ausblenden" : "Neue Bilder hochladen"}
+            </Button>
+            <Button
+              variant="outlined"
+              color="primary"
+              startIcon={<LibraryAddIcon />}
+              onClick={handleOpenAdd}
+              sx={{ px: 3, py: 1.2 }}
+            >
+              Album hinzufügen
+            </Button>
+          </Stack>
+        )}
 
         {/* Immich Drop Upload Iframe */}
-        {isLoggedIn && showUpload && (
+        {isTeamMember && showUpload && (
           <Box sx={{
             width: '100%',
             height: 500,
@@ -290,7 +286,7 @@ export default function Gallery() {
         )}
 
         {/* Timeline of DB Galleries */}
-        {dbAlbums.length > 0 && (
+        {isTeamMember && dbAlbums.length > 0 && (
           <Box sx={{ mb: 8 }}>
             <Typography variant="h4" sx={{ borderBottom: '2px solid', borderColor: 'primary.main', pb: 1, mb: 4, fontWeight: 'bold' }}>
               Events-Timeline & Alben
@@ -346,7 +342,7 @@ export default function Gallery() {
 
                 return sortedAlbums.map((album) => {
                   const isCreator = album.creatorName === currentUsername;
-                  const canModify = isLoggedIn && (isCreator || isAdmin);
+                  const canModify = isTeamMember && (isCreator || isAdmin);
 
                   return (
                     <Grid size={{ xs: 12, sm: 6, md: 4 }} key={album.id} sx={{ display: 'flex' }}>
@@ -509,8 +505,9 @@ export default function Gallery() {
 
       {/* Custom dialog for deleting album */}
       <Dialog open={deleteDialogOpen} onClose={handleCloseDelete} fullWidth maxWidth="xs">
-        <DialogTitle sx={{ fontWeight: 'bold', borderBottom: '1px solid rgba(255,255,255,0.08)', color: 'error.main' }}>
-          ⚠️ Album löschen?
+        <DialogTitle sx={{ fontWeight: 'bold', borderBottom: '1px solid rgba(255,255,255,0.08)', color: 'error.main', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <WarningIcon color="error" />
+          Album löschen?
         </DialogTitle>
         <DialogContent sx={{ p: 3, mt: 1 }}>
           <Typography variant="body1" sx={{ mb: 2 }}>

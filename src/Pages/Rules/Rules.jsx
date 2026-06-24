@@ -14,26 +14,25 @@ import TextField from '@mui/material/TextField';
 import InputAdornment from '@mui/material/InputAdornment';
 import IconButton from '@mui/material/IconButton';
 import GavelIcon from '@mui/icons-material/Gavel';
-import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
 
 const generalRules = [
   {
     title: 'Mindestalter',
-    text: '18 Jahre. Diese Grenze ist so gesetzt, da es für uns einfach vieles einfacher macht. Zudem sind die meisten Großevents erst ab 18 Jahren zugänglich.'
+    text: '18 Jahre. Diese Grenze ist so gesetzt, da es vieles für uns einfacher macht. Zudem sind die meisten Großevents erst ab 18 Jahren zugänglich.'
   },
   {
     title: 'Teamtarn',
-    text: 'Atacs-FG. Bei uns gibt es keine strikte Kleider- oder Ausrüstungsordnung. Grob gesagt, kann jeder spielen wie er möchte (Schutzbrille ausgenommen). Wenn wir als Gruppe bei größeren Events unterwegs sind, ist es gewünscht, dass alle im Teamtarn auftreten. Auf kleineren Events oder frei organisierten Spielen ist es jedem freigestellt, was er anzieht.'
+    text: 'A-TACS FG. Bei uns gibt es keine strikte Kleider- oder Ausrüstungsordnung. Grob gesagt, kann jeder spielen, wie er möchte (Schutzbrille ausgenommen). Wenn wir als Gruppe bei größeren Events unterwegs sind, ist es gewünscht, dass alle im Teamtarn auftreten. Auf kleineren Events oder frei organisierten Spielen ist es jedem freigestellt, was er anzieht.'
   },
   {
     title: 'Spielstil',
-    text: 'Hauptsächlich sind wir auf von uns oder Freunden organisierten Spielen unterwegs, egal ob in Frankreich, Tschechien oder Österreich. Diese Spiele gehen dann meistens in Richtung Speedsoft. Wir sind aber auch sehr gerne auf großen Events wie der Beerzone oder Borderwar unterwegs. Dort fügen wir uns den örtlichen Gegebenheiten und arbeiten strategisch in großen Gruppen. Auch die Events der Airsofthelden besuchen wir regelmäßig (Miliz auf der DE oder Tschernobyl).'
+    text: 'Hauptsächlich sind wir auf von uns oder Freunden organisierten Spielen unterwegs, egal ob in Frankreich, Tschechien oder Österreich. Diese Spiele gehen dann meistens in Richtung Speedsoft. Wir sind aber auch sehr gerne auf großen Events wie der Beerzone oder Borderwar unterwegs. Dort passen wir uns den örtlichen Gegebenheiten an und arbeiten strategisch in großen Gruppen. Auch die Events der Airsofthelden besuchen wir regelmäßig (Miliz auf der DE oder Tschernobyl).'
   },
   {
     title: 'Mitgliedsbeitrag',
-    text: 'Die Mitgliedschaft kostet bei uns 40 Euro pro Jahr. Dieser Betrag wird unter anderem für das Hosten der Webseite benutzt. Außerdem werden gemeinsame Feste und Investitionen aus der Teamkasse bezahlt.'
+    text: 'Die Mitgliedschaft kostet bei uns 40 Euro pro Jahr. Dieser Betrag wird unter anderem für das Hosten der Webseite verwendet. Außerdem werden gemeinsame Feste und Investitionen aus der Teamkasse bezahlt.'
   }
 ];
 
@@ -45,7 +44,7 @@ const bylaws = [
   {
     section: '§2 Zweck, Aufgabe',
     content: [
-      'Das Team bezweckt das Ausüben des Softairsports in Deutschland auf gesichertem Gelände / Gebiet und/oder anderen Ländern.',
+      'Das Team bezweckt die Ausübung des Softairsports auf gesichertem Gelände / Gebiet in Deutschland und/oder in anderen Ländern.',
       'Der Zweck wird insbesondere verwirklicht durch die Errichtung eines Geländes zur Ausübung des taktischen Sports für Übungen und taktische Wettkämpfe. Das Team gibt allen deutschen und ausländischen Softairspielern die Möglichkeit, sich zu treffen und den Softairsport legal auszuüben.',
       'Das Team ist selbstlos tätig; es verfolgt nicht in erster Linie eigenwirtschaftliche Zwecke. Mittel des Teams dürfen nur für satzungsmäßige Zwecke verwendet werden.'
     ]
@@ -56,7 +55,7 @@ const bylaws = [
   },
   {
     section: '§4 Beendigung der Mitgliedschaft',
-    content: 'Die Mitgliedschaft endet durch Tod, Ausschluss oder durch Austritt aus dem Team. Der Austritt erfolgt durch schriftliche Erklärung gegenüber dem Vorstand. Kündigungsfristen gibt es keine, sofern alle dem Mitglied übertragenen Aufgaben erledigt sind.'
+    content: 'Die Mitgliedschaft endet durch Tod, Ausschluss oder durch Austritt aus dem Team. Der Austritt erfolgt durch schriftliche Erklärung gegenüber dem Vorstand. Es gibt keine Kündigungsfristen, sofern alle dem Mitglied übertragenen Aufgaben erledigt sind.'
   },
   {
     section: '§5 Aufnahmebeitrag, Mitgliedsbeitrag, Umlagen',
@@ -64,7 +63,7 @@ const bylaws = [
   },
   {
     section: '§6 Rechte und Pflichten der Mitglieder',
-    content: 'Die Mitglieder sind berechtigt, die Einrichtungen und Anlagen des Teams zu benutzen und an den Veranstaltungen teilzunehmen. Sie verpflichten sich zur Einhaltung der Ordnungsvorschriften und zur Förderung des gemeinsamen Vereinszwecks.'
+    content: 'Die Mitglieder sind berechtigt, die Einrichtungen und Anlagen des Teams zu benutzen und an den Veranstaltungen teilzunehmen. Sie verpflichten sich zur Einhaltung der Ordnungsvorschriften und zur Förderung des gemeinsamen Teamzwecks.'
   },
   {
     section: '§7 Organe des Teams',
@@ -84,11 +83,11 @@ const bylaws = [
   },
   {
     section: '§11 Vorstände',
-    content: 'Das Team hat drei gleichberechtigte Vorstände, von denen einer die Teamkasse verwaltet und ein Weiterer die Schrift führt.'
+    content: 'Das Team hat drei gleichberechtigte Vorstände, von denen einer die Teamkasse verwaltet und ein weiterer die Schrift führt.'
   },
   {
     section: '§12 Zuständigkeit des Vorstandes',
-    content: 'Der Vorstand führt die Geschäfte des Vereins und führt Beschlüsse der Mitgliederversammlung aus.'
+    content: 'Der Vorstand führt die Geschäfte des Teams und setzt Beschlüsse der Mitgliederversammlung aus.'
   },
   {
     section: '§13 Wahl und Amtsdauer des Vorstands',
@@ -111,7 +110,7 @@ const bylaws = [
     content: 'Jedes Mitglied und jeder Gastspieler hat sich an die Satzung sowie die Spielregeln auf den Spielfeldern zu halten.'
   },
   {
-    section: '§18 Beschluss und Inkrafttretung',
+    section: '§18 Beschluss und Inkrafttreten',
     content: 'Dieses Regelwerk wurde am 14.12.2013 beschlossen und trat am 01.01.2014 in Kraft. Am 23.07.2019 wurde es überarbeitet und auf den aktuellen Teamnamen angepasst.'
   }
 ];
@@ -168,7 +167,6 @@ export default function Rules() {
 
       {/* Header Info */}
       <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", mb: 3 }}>
-        <LibraryBooksIcon color="primary" sx={{ fontSize: '2.5rem' }} />
         <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
           Regeln & Satzung
         </Typography>
@@ -259,7 +257,7 @@ export default function Rules() {
               <Typography variant="h6" color="primary.main" sx={{ fontWeight: 'bold', mb: 1.5 }}>
                 {highlightText(item.section, searchQuery)}
               </Typography>
-              
+
               {Array.isArray(item.content) ? (
                 item.content.map((paragraph, pIdx) => (
                   <Typography key={pIdx} variant="body2" sx={{ mb: pIdx < item.content.length - 1 ? 1.5 : 0, lineHeight: 1.6, color: 'text.secondary' }}>

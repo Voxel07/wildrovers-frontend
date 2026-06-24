@@ -30,6 +30,8 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import ForumIcon from '@mui/icons-material/Forum';
 import AddBoxIcon from '@mui/icons-material/AddBox';
+import WarningIcon from '@mui/icons-material/Warning';
+import LockIcon from '@mui/icons-material/Lock';
 
 const initialModalState = {
   openModal: false,
@@ -83,6 +85,29 @@ function modalReducer(state, action) {
     default:
       return state;
   }
+}
+
+function PermissionNotice({ icon: Icon, text }) {
+  return (
+    <Stack
+      direction="row"
+      spacing={1.5}
+      sx={{
+        alignItems: 'center',
+        justifyContent: 'center',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        p: 2,
+        borderRadius: 2,
+        bgcolor: 'rgba(0,0,0,0.2)',
+        color: 'text.secondary',
+        fontStyle: 'italic',
+        mx: 'auto'
+      }}
+    >
+      <Icon sx={{ fontSize: '1.2rem', color: 'primary.main' }} />
+      <Typography variant="body2">{text}</Typography>
+    </Stack>
+  );
 }
 
 export default function Events() {
@@ -308,7 +333,7 @@ export default function Events() {
           Anstehende Events
         </Typography>
 
-        {isLoggedIn ? (
+        {isTeamMember ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', mb: 6 }}>
             <Button
               variant="contained"
@@ -322,9 +347,13 @@ export default function Events() {
           </Box>
         ) : (
           <Box sx={{ display: 'flex', justifyContent: 'center', mb: 6 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', border: '1px solid rgba(255, 255, 255, 0.08)', p: 2, borderRadius: 2, bgcolor: 'rgba(0,0,0,0.2)' }}>
-              🔒 Bitte einloggen, um Events zu erstellen oder zu bearbeiten.
-            </Typography>
+            <PermissionNotice
+              icon={LockIcon}
+              text={!isLoggedIn 
+                ? "Bitte einloggen, um Events zu erstellen oder zu bearbeiten." 
+                : "Mindestens Rang 'Frischling' benötigt, um Events zu erstellen oder zu bearbeiten."
+              }
+            />
           </Box>
         )}
 
@@ -385,7 +414,7 @@ export default function Events() {
             <Box sx={{ position: 'relative' }}>
               {sortedEvents.map((event, index) => {
                 const isCreator = event.creatorName === currentUsername;
-                const canModify = isLoggedIn && (isCreator || isAdmin);
+                const canModify = isTeamMember && (isCreator || isAdmin);
                 const isFuture = new Date(event.eventDate) >= today;
                 const isNextEvent = nextEvent && nextEvent.id === event.id;
                 const daysToNext = isNextEvent ? Math.ceil((new Date(event.eventDate) - today) / (1000 * 60 * 60 * 24)) : 0;
@@ -711,7 +740,8 @@ export default function Events() {
       {/* Custom dialog for deleting event */}
       <Dialog open={deleteDialogOpen} onClose={handleCloseDelete} fullWidth maxWidth="xs">
         <DialogTitle sx={{ fontWeight: 'bold', borderBottom: '1px solid rgba(255,255,255,0.08)', color: 'error.main', display: 'flex', alignItems: 'center', gap: 1 }}>
-          ⚠️ Termin löschen?
+          <WarningIcon color="error" />
+          Termin löschen?
         </DialogTitle>
         <DialogContent sx={{ p: 3, mt: 1 }}>
           <Typography variant="body1" sx={{ mb: 2 }}>
