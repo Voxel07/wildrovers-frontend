@@ -10,7 +10,6 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
 import Tooltip from '@mui/material/Tooltip';
-import Chip from '@mui/material/Chip';
 import TopicIcon from '@mui/icons-material/Topic';
 import Button from '@mui/material/Button';
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
@@ -24,7 +23,9 @@ import Modal from '@mui/material/Modal';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import EditIcon from '@mui/icons-material/Edit';
 import Box from '@mui/material/Box';
-import TableSortLabel from '@mui/material/TableSortLabel';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
 
 // Eigene
 import Topic from "./Topic";
@@ -120,6 +121,18 @@ export default function Category(props) {
   const { topics, category, updateData, topicsError } = state;
 
   const [editingTopic, setEditingTopic] = useState(null);
+  const [menuAnchorEl, setMenuAnchorEl] = useState(null);
+  const menuOpen = Boolean(menuAnchorEl);
+
+  const handleMenuOpen = (e) => {
+    e.stopPropagation();
+    setMenuAnchorEl(e.currentTarget);
+  };
+
+  const handleMenuClose = (e) => {
+    if (e) e.stopPropagation();
+    setMenuAnchorEl(null);
+  };
 
   const handleEditTopic = (topicToEdit) => {
     setEditingTopic(topicToEdit);
@@ -260,31 +273,75 @@ export default function Category(props) {
           },
           '& .MuiAccordionSummary-expandIconWrapper': {
             position: 'absolute',
-            top: 4,
+            top: 0,
+            bottom: 0,
             right: 8,
-            transform: 'none !important',
+            display: 'flex',
+            alignItems: 'center',
           },
           '&:hover': {
             backgroundColor: 'rgba(255, 255, 255, 0.02)'
           }
         }}
       >
-        <Grid container spacing={1} sx={{ flexDirection: 'row', alignItems: 'center', width: '100%' }}>
-          <Grid size={{ xs: 12, md: 3 }} onClick={redirectToCategory} sx={{ cursor: 'pointer' }}>
+        <Grid 
+          container 
+          spacing={1} 
+          sx={{ 
+            flexDirection: 'row', 
+            alignItems: 'center', 
+            width: '100%',
+            pr: isCreatorOrAdmin ? { xs: 10, sm: 14 } : 5
+          }}
+        >
+          <Grid size={{ xs: 12, sm: 4, md: 3 }} onClick={redirectToCategory} sx={{ cursor: 'pointer' }}>
             <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'primary.main', display: 'inline-block' }}>
               {category.category}
             </Typography>
           </Grid>
-          <Grid size={{ xs: 12, md: 9 }}>
+          <Grid size={{ xs: 12, sm: 8, md: 9 }}>
             <Box sx={{ display: { xs: 'none', sm: 'block' }, mx: 'auto', width: 'fit-content' }}>
               <ForumChips items={categoryChipsDesktop} />
             </Box>
-            {/* <Box sx={{ display: { xs: 'block', sm: 'none' }, mx: 'auto', width: 'fit-content' }}>
-              <ForumChips items={categoryChipsMobile} />
-            </Box> */}
           </Grid>
-
         </Grid>
+
+        {/* Action Controls (Edit/Delete or Burger Menu) */}
+        {isCreatorOrAdmin && (
+          <Box
+            onClick={(e) => e.stopPropagation()}
+            sx={{
+              position: 'absolute',
+              top: 0,
+              bottom: 0,
+              right: 40,
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            {/* Desktop edit/delete buttons */}
+            <Box sx={{ display: { xs: 'none', sm: 'flex' } }}>
+              <Stack direction="row" spacing={0.5}>
+                <Tooltip title="Kategorie editieren">
+                  <IconButton size="small" onClick={handleEdit} color="primary">
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Kategorie löschen">
+                  <IconButton size="small" onClick={handleDelete} color="error">
+                    <DeleteForeverIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Stack>
+            </Box>
+            {/* Mobile burger menu */}
+            <Box sx={{ display: { xs: 'flex', sm: 'none' } }}>
+              <IconButton size="small" onClick={handleMenuOpen} color="inherit">
+                <MoreVertIcon fontSize="small" />
+              </IconButton>
+            </Box>
+          </Box>
+        )}
       </AccordionSummary>
       <Divider />
       <AccordionDetails sx={{ bgcolor: 'rgba(0, 0, 0, 0.1)', p: 0 }}>
@@ -323,20 +380,6 @@ export default function Category(props) {
             </Button>
           )}
         </Box>
-        {isCreatorOrAdmin && (
-          <Stack direction="row" spacing={0.5}>
-            <Tooltip title="Kategorie editieren">
-              <IconButton size="small" onClick={handleEdit} color="primary">
-                <EditIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Kategorie löschen">
-              <IconButton size="small" onClick={handleDelete} color="error">
-                <DeleteForeverIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Stack>
-        )}
       </Box>
 
       <Modal
@@ -345,7 +388,7 @@ export default function Category(props) {
         onClose={handleClose}
       >
         <Box>
-          <AddTopic 
+          <AddTopic
             onOptimisticAdd={(topicName) => {
               const tempTopic = {
                 id: 'temp-' + Date.now(),
@@ -370,10 +413,10 @@ export default function Category(props) {
             onAddTopicFailure={() => {
               dispatch({ type: 'ADD_TOPIC_FAILURE' });
             }}
-            onAddTopic={handleUpdate} 
-            callback={handleClose} 
-            topics={topics} 
-            category={{ id: category.id, name: category.category }} 
+            onAddTopic={handleUpdate}
+            callback={handleClose}
+            topics={topics}
+            category={{ id: category.id, name: category.category }}
           />
         </Box>
       </Modal>
@@ -395,6 +438,25 @@ export default function Category(props) {
           />
         </Box>
       </Modal>
+
+      {/* Mobile burger menu */}
+      <Menu
+        anchorEl={menuAnchorEl}
+        open={menuOpen}
+        onClose={handleMenuClose}
+        onClick={handleMenuClose}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+      >
+        <MenuItem onClick={handleEdit}>
+          <EditIcon fontSize="small" sx={{ mr: 1 }} />
+          Kategorie editieren
+        </MenuItem>
+        <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
+          <DeleteForeverIcon fontSize="small" sx={{ mr: 1 }} />
+          Kategorie löschen
+        </MenuItem>
+      </Menu>
     </Accordion>
   );
 }

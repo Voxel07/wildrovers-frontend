@@ -1,20 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 // Mui
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
-import Accordion from '@mui/material/Accordion';
-import AccordionSummary from '@mui/material/AccordionSummary';
-import AccordionDetails from '@mui/material/AccordionDetails';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import CardContent from '@mui/material/CardContent';
 import Stack from '@mui/material/Stack';
 import Divider from '@mui/material/Divider';
+import Paper from '@mui/material/Paper';
+import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
+import IconButton from '@mui/material/IconButton';
 import GavelIcon from '@mui/icons-material/Gavel';
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
+import SearchIcon from '@mui/icons-material/Search';
+import ClearIcon from '@mui/icons-material/Clear';
 
 const generalRules = [
   {
@@ -42,19 +44,11 @@ const bylaws = [
   },
   {
     section: '§2 Zweck, Aufgabe',
-    content: (
-      <Box component="div">
-        <Typography variant="body2" sx={{ mb: 2 }}>
-          Das Team bezweckt das Ausüben des Softairsports in Deutschland auf gesichertem Gelände / Gebiet und/oder anderen Ländern.
-        </Typography>
-        <Typography variant="body2" sx={{ mb: 2 }}>
-          Der Zweck wird insbesondere verwirklicht durch die Errichtung eines Geländes zur Ausübung des taktischen Sports für Übungen und taktische Wettkämpfe. Das Team gibt allen deutschen und ausländischen Softairspielern die Möglichkeit, sich zu treffen und den Softairsport legal auszuüben.
-        </Typography>
-        <Typography variant="body2" sx={{ mb: 2 }}>
-          Das Team ist selbstlos tätig; es verfolgt nicht in erster Linie eigenwirtschaftliche Zwecke. Mittel des Teams dürfen nur für satzungsmäßige Zwecke verwendet werden.
-        </Typography>
-      </Box>
-    )
+    content: [
+      'Das Team bezweckt das Ausüben des Softairsports in Deutschland auf gesichertem Gelände / Gebiet und/oder anderen Ländern.',
+      'Der Zweck wird insbesondere verwirklicht durch die Errichtung eines Geländes zur Ausübung des taktischen Sports für Übungen und taktische Wettkämpfe. Das Team gibt allen deutschen und ausländischen Softairspielern die Möglichkeit, sich zu treffen und den Softairsport legal auszuüben.',
+      'Das Team ist selbstlos tätig; es verfolgt nicht in erster Linie eigenwirtschaftliche Zwecke. Mittel des Teams dürfen nur für satzungsmäßige Zwecke verwendet werden.'
+    ]
   },
   {
     section: '§3 Erwerb der Mitgliedschaft',
@@ -122,14 +116,58 @@ const bylaws = [
   }
 ];
 
-export default function Rules() {
+function escapeRegExp(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
+function highlightText(text, highlight) {
+  if (!highlight || !highlight.trim()) {
+    return text;
+  }
+  const escapedHighlight = escapeRegExp(highlight.trim());
+  const parts = text.split(new RegExp(`(${escapedHighlight})`, 'gi'));
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.toLowerCase() === highlight.trim().toLowerCase() ? (
+          <Box
+            component="span"
+            key={i}
+            sx={{
+              backgroundColor: 'rgba(255, 152, 0, 0.25)',
+              color: '#ffb74d',
+              fontWeight: 'bold',
+              borderRadius: '2px',
+              px: 0.5,
+            }}
+          >
+            {part}
+          </Box>
+        ) : (
+          part
+        )
+      )}
+    </>
+  );
+}
+
+export default function Rules() {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredBylaws = bylaws.filter(item => {
+    const sectionText = item.section.toLowerCase();
+    const contentText = Array.isArray(item.content)
+      ? item.content.join(' ').toLowerCase()
+      : item.content.toLowerCase();
+    const query = searchQuery.toLowerCase();
+    return sectionText.includes(query) || contentText.includes(query);
+  });
 
   return (
     <Container maxWidth="md" sx={{ mt: 5, mb: 8, px: { xs: 1, md: 3 } }}>
 
       {/* Header Info */}
-      <Stack direction="row" sx={{ spacing: 1.5, alignItems: "center", mb: 3 }}>
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", mb: 3 }}>
         <LibraryBooksIcon color="primary" sx={{ fontSize: '2.5rem' }} />
         <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
           Regeln & Satzung
@@ -161,68 +199,90 @@ export default function Rules() {
         ))}
       </Grid>
 
-      {/* Detailed Bylaws (Accordions) */}
-      <Stack direction="row" sx={{ spacing: 1.5, alignItems: "center", mb: 3 }}>
+      {/* Detailed Bylaws Section */}
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", mb: 3 }}>
         <GavelIcon color="primary" />
         <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
           Das Regelwerk
         </Typography>
       </Stack>
 
-      <Box sx={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden' }}>
-        {bylaws.map((item, idx) => (
-          <Accordion
-            key={item.section}
-            disableGutters
-            sx={{
-              boxShadow: 'none',
-              '&:before': {
-                display: 'none',
-              },
-              border: 'none',
-              borderBottom: idx < bylaws.length - 1 ? '1px solid rgba(255,255,255,0.08)' : 'none',
-              borderRadius: 0,
-              '&.Mui-expanded': {
-                margin: 0,
-              },
-              ...(idx === 0 && {
-                borderTopLeftRadius: '8px',
-                borderTopRightRadius: '8px',
-                '&.Mui-expanded': {
-                  borderTopLeftRadius: '8px',
-                  borderTopRightRadius: '8px',
-                },
-              }),
-              ...(idx === bylaws.length - 1 && {
-                borderBottomLeftRadius: '8px',
-                borderBottomRightRadius: '8px',
-                '&.Mui-expanded': {
-                  borderBottomLeftRadius: '8px',
-                  borderBottomRightRadius: '8px',
-                },
-              }),
-            }}
-          >
-            <AccordionSummary
-              expandIcon={<ExpandMoreIcon />}
-              aria-controls={`rules-panel-${idx}-content`}
-              id={`rules-panel-${idx}-header`}
-              sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.02)' } }}
-            >
-              <Typography sx={{ fontWeight: 'bold' }}>{item.section}</Typography>
-            </AccordionSummary>
-            <AccordionDetails sx={{ bgcolor: 'rgba(0,0,0,0.1)', px: 3, py: 2 }}>
-              {typeof item.content === 'string' ? (
-                <Typography variant="body2" sx={{ lineHeight: 1.6, color: 'text.secondary' }}>
-                  {item.content}
-                </Typography>
-              ) : (
-                item.content
-              )}
-            </AccordionDetails>
-          </Accordion>
-        ))}
+      {/* Search Input */}
+      <Box sx={{ mb: 4 }}>
+        <TextField
+          fullWidth
+          variant="outlined"
+          placeholder="Regelwerk durchsuchen..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon color="action" />
+              </InputAdornment>
+            ),
+            endAdornment: searchQuery && (
+              <InputAdornment position="end">
+                <IconButton onClick={() => setSearchQuery('')} edge="end" size="small">
+                  <ClearIcon />
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+          sx={{
+            bgcolor: 'rgba(255, 255, 255, 0.02)',
+            borderRadius: 2,
+            '& fieldset': {
+              borderColor: 'rgba(255, 255, 255, 0.08)',
+            },
+            '&:hover fieldset': {
+              borderColor: 'primary.main',
+            },
+            '&.Mui-focused fieldset': {
+              borderColor: 'primary.main',
+            }
+          }}
+        />
       </Box>
+
+      {/* Unified Bylaws Document */}
+      <Paper sx={{
+        p: { xs: 3, md: 5 },
+        bgcolor: 'rgba(255,255,255,0.01)',
+        border: '1px solid rgba(255,255,255,0.05)',
+        borderRadius: 3,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
+      }}>
+        {filteredBylaws.length > 0 ? (
+          filteredBylaws.map((item, idx) => (
+            <Box key={item.section} sx={{ mb: idx < filteredBylaws.length - 1 ? 4 : 0 }}>
+              <Typography variant="h6" color="primary.main" sx={{ fontWeight: 'bold', mb: 1.5 }}>
+                {highlightText(item.section, searchQuery)}
+              </Typography>
+              
+              {Array.isArray(item.content) ? (
+                item.content.map((paragraph, pIdx) => (
+                  <Typography key={pIdx} variant="body2" sx={{ mb: pIdx < item.content.length - 1 ? 1.5 : 0, lineHeight: 1.6, color: 'text.secondary' }}>
+                    {highlightText(paragraph, searchQuery)}
+                  </Typography>
+                ))
+              ) : (
+                <Typography variant="body2" sx={{ lineHeight: 1.6, color: 'text.secondary' }}>
+                  {highlightText(item.content, searchQuery)}
+                </Typography>
+              )}
+
+              {idx < filteredBylaws.length - 1 && <Divider sx={{ mt: 4, borderColor: 'rgba(255,255,255,0.05)' }} />}
+            </Box>
+          ))
+        ) : (
+          <Box sx={{ py: 6, textAlign: 'center' }}>
+            <Typography variant="body1" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+              Keine Absätze gefunden, die "{searchQuery}" entsprechen.
+            </Typography>
+          </Box>
+        )}
+      </Paper>
 
     </Container>
   );

@@ -17,7 +17,7 @@ export default function ForumChips({ items, compact }) {
       divider={stackDivider}
       sx={{
         border: '1px solid rgba(255, 255, 255, 0.08)',
-        borderRadius: '20px',
+        borderRadius: '10px',
         overflow: 'hidden',
         bgcolor: 'rgba(255, 255, 255, 0.01)',
         width: 'fit-content'

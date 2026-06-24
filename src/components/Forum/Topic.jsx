@@ -154,6 +154,8 @@ export default function Topic(props) {
           px: 3,
           py: 1,
           minHeight: 70,
+          position: 'relative',
+          pr: isCreatorOrAdmin ? { xs: 10, sm: 14 } : 3,
           '&:hover': {
             backgroundColor: 'rgba(255, 255, 255, 0.01)'
           }
@@ -174,22 +176,14 @@ export default function Topic(props) {
                 Erstellt am {convertTimestamp(creationDate, true)} von {creator}
               </Typography>
             </Box>
-            {/* Burger menu – only on mobile */}
-            {isCreatorOrAdmin && (
-              <Box sx={{ display: { xs: 'flex', sm: 'none' }, flexShrink: 0 }}>
-                <IconButton size="small" onClick={handleMenuOpen} color="inherit">
-                  <MoreVertIcon fontSize="small" />
-                </IconButton>
-              </Box>
-            )}
           </Stack>
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 3, md: 3, lg: 2 }} sx={{ display: { xs: 'none', sm: 'block' } }}>
+        <Grid size={{ xs: 12, sm: 3, md: 3, lg: 3 }} sx={{ display: { xs: 'none', sm: 'block' } }}>
           <ForumChips items={topicChipsDesktop} />
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 3, md: 3, lg: 3 }} sx={{ display: { xs: 'none', sm: 'block' } }}>
+        <Grid size={{ xs: 12, sm: 3, md: 4, lg: 3 }} sx={{ display: { xs: 'none', sm: 'block' } }}>
           {postCount > 0 && post ? lastEntry() : (
             <Typography variant="caption" color="text.secondary">
               Keine Beiträge
@@ -197,22 +191,42 @@ export default function Topic(props) {
           )}
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 12, md: 1, lg: 1 }} sx={{ display: { xs: 'none', sm: 'flex' }, justifyContent: 'flex-end' }}>
-          {isCreatorOrAdmin && (
-            <Stack direction="row" spacing={0.5}>
-              <Tooltip title="Thema editieren">
-                <IconButton size="small" onClick={handleEdit} color="primary">
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Thema löschen">
-                <IconButton size="small" onClick={handleDelete} color="error">
-                  <DeleteForeverIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Stack>
-          )}
-        </Grid>
+        {/* Action Controls (Edit/Delete or Burger Menu) */}
+        {isCreatorOrAdmin && (
+          <Box
+            onClick={(e) => e.stopPropagation()}
+            sx={{
+              position: 'absolute',
+              top: 0,
+              bottom: 0,
+              right: 40,
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            {/* Desktop edit/delete buttons */}
+            <Box sx={{ display: { xs: 'none', sm: 'flex' } }}>
+              <Stack direction="row" spacing={0.5}>
+                <Tooltip title="Thema editieren">
+                  <IconButton size="small" onClick={handleEdit} color="primary">
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Thema löschen">
+                  <IconButton size="small" onClick={handleDelete} color="error">
+                    <DeleteForeverIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Stack>
+            </Box>
+            {/* Mobile burger menu */}
+            <Box sx={{ display: { xs: 'flex', sm: 'none' } }}>
+              <IconButton size="small" onClick={handleMenuOpen} color="inherit">
+                <MoreVertIcon fontSize="small" />
+              </IconButton>
+            </Box>
+          </Box>
+        )}
       </Grid>
 
       {/* Mobile burger menu */}

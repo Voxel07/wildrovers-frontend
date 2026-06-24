@@ -170,13 +170,7 @@ export default function LandingPage() {
               boxShadow: '0 0 30px rgba(255, 152, 0, 0.15)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.5s ease',
-              '&:hover': {
-                transform: 'rotate(5deg) scale(1.05)',
-                borderColor: 'primary.main',
-                boxShadow: '0 0 40px rgba(255, 152, 0, 0.3)',
-              }
+              justifyContent: 'center'
             }}>
               <img
                 src={LogoHellImage}
@@ -406,7 +400,7 @@ export default function LandingPage() {
       )}
 
       {/* Partners & Shops Section */}
-      <Container maxWidth="lg" sx={{ py: 10 }}>
+      {/* <Container maxWidth="lg" sx={{ py: 10 }}>
         <Grid container spacing={4} sx={{ alignItems: 'center' }}>
           <Grid size={{ xs: 12, md: 6 }}>
             <Typography variant="h4" component="h2" sx={{ fontWeight: 'bold', mb: 3 }}>
@@ -479,7 +473,7 @@ export default function LandingPage() {
             </Grid>
           </Grid>
         </Grid>
-      </Container>
+      </Container> */}
     </Box>
   );
 }
