@@ -14,7 +14,7 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import SendIcon from '@mui/icons-material/Send';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import BackButton from '../../components/Navigation/BackButton';
 
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
@@ -351,9 +351,7 @@ export default function Forum_Post() {
     return (
       <Container sx={{ py: 8, textAlign: 'center' }}>
         <Typography variant="h5" color="error">Dieser Post existiert nicht oder Sie haben keine Berechtigung, ihn anzusehen.</Typography>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} sx={{ mt: 3 }}>
-          Zurück
-        </Button>
+        <BackButton sx={{ mt: 3 }} />
       </Container>
     );
   }
@@ -375,14 +373,10 @@ export default function Forum_Post() {
         postTitle={post.title}
       />
 
-      <Button
-        startIcon={<ArrowBackIcon />}
-        onClick={() => navigate(-1)}
+      <BackButton
         sx={{ mb: 3 }}
         variant="text"
-      >
-        Zurück
-      </Button>
+      />
 
       {/* Post content styled as Accordion (same as topics) */}
       <Accordion expanded sx={{ mb: 4, border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -446,147 +440,147 @@ export default function Forum_Post() {
               </Tooltip>
             </Stack>
             <Collapse in={eventVisible}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5, mt: 1 }}>
-              Ort: <strong>{associatedEvent.location}</strong> | Datum: <strong>{(() => {
-                if (!associatedEvent.eventDate) return '';
-                try {
-                  const start = new Date(associatedEvent.eventDate);
-                  let dateText = start.toLocaleDateString("de-DE", {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  }) + ' Uhr';
-                  if (associatedEvent.eventEndDate) {
-                    const end = new Date(associatedEvent.eventEndDate);
-                    if (start.toDateString() === end.toDateString()) {
-                      dateText += ' bis ' + end.toLocaleTimeString("de-DE", { hour: '2-digit', minute: '2-digit' }) + ' Uhr';
-                    } else {
-                      dateText += ' bis ' + end.toLocaleDateString("de-DE", {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      }) + ' Uhr';
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5, mt: 1 }}>
+                Ort: <strong>{associatedEvent.location}</strong> | Datum: <strong>{(() => {
+                  if (!associatedEvent.eventDate) return '';
+                  try {
+                    const start = new Date(associatedEvent.eventDate);
+                    let dateText = start.toLocaleDateString("de-DE", {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    }) + ' Uhr';
+                    if (associatedEvent.eventEndDate) {
+                      const end = new Date(associatedEvent.eventEndDate);
+                      if (start.toDateString() === end.toDateString()) {
+                        dateText += ' bis ' + end.toLocaleTimeString("de-DE", { hour: '2-digit', minute: '2-digit' }) + ' Uhr';
+                      } else {
+                        dateText += ' bis ' + end.toLocaleDateString("de-DE", {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }) + ' Uhr';
+                      }
                     }
+                    return dateText;
+                  } catch (e) {
+                    return associatedEvent.eventDate;
                   }
-                  return dateText;
-                } catch (e) {
-                  return associatedEvent.eventDate;
-                }
-              })()}</strong>
-            </Typography>
+                })()}</strong>
+              </Typography>
 
-            <Grid container spacing={2} sx={{ mt: 2.5 }}>
-              {/* YES / Zusagen */}
-              <Grid size={{ xs: 12, sm: 3 }}>
-                <Box
-                  onClick={isLoggedIn ? () => handleAttendance('YES') : undefined}
-                  sx={{
-                    p: 2,
-                    borderRadius: 2,
-                    bgcolor: userStatus === 'YES' ? 'rgba(76, 175, 80, 0.12)' : 'rgba(76, 175, 80, 0.03)',
-                    border: '2px solid',
-                    borderColor: userStatus === 'YES' ? 'rgba(76, 175, 80, 0.5)' : 'rgba(76, 175, 80, 0.12)',
-                    height: '100%',
-                    cursor: isLoggedIn ? 'pointer' : 'default',
-                    transition: 'all 0.2s ease-in-out',
-                    '&:hover': isLoggedIn ? {
-                      bgcolor: userStatus === 'YES' ? 'rgba(76, 175, 80, 0.18)' : 'rgba(76, 175, 80, 0.08)',
-                      borderColor: 'rgba(76, 175, 80, 0.35)',
-                      transform: 'translateY(-2px)'
-                    } : {}
-                  }}
-                >
-                  <Typography variant="subtitle2" color="success.main" sx={{ fontWeight: 'bold', mb: 1 }}>
-                    🟢 Zusagen ({associatedEvent.attendances?.filter(a => a.status === 'YES').length || 0})
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
-                    {isTeamMember 
-                      ? (associatedEvent.attendances?.filter(a => a.status === 'YES').map(a => a.userName).join(', ') || 'Keine Zusagen')
-                      : '🔒 Nur für Teammitglieder sichtbar'}
-                  </Typography>
-                </Box>
-              </Grid>
+              <Grid container spacing={2} sx={{ mt: 2.5 }}>
+                {/* YES / Zusagen */}
+                <Grid size={{ xs: 12, sm: 3 }}>
+                  <Box
+                    onClick={isLoggedIn ? () => handleAttendance('YES') : undefined}
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      bgcolor: userStatus === 'YES' ? 'rgba(76, 175, 80, 0.12)' : 'rgba(76, 175, 80, 0.03)',
+                      border: '2px solid',
+                      borderColor: userStatus === 'YES' ? 'rgba(76, 175, 80, 0.5)' : 'rgba(76, 175, 80, 0.12)',
+                      height: '100%',
+                      cursor: isLoggedIn ? 'pointer' : 'default',
+                      transition: 'all 0.2s ease-in-out',
+                      '&:hover': isLoggedIn ? {
+                        bgcolor: userStatus === 'YES' ? 'rgba(76, 175, 80, 0.18)' : 'rgba(76, 175, 80, 0.08)',
+                        borderColor: 'rgba(76, 175, 80, 0.35)',
+                        transform: 'translateY(-2px)'
+                      } : {}
+                    }}
+                  >
+                    <Typography variant="subtitle2" color="success.main" sx={{ fontWeight: 'bold', mb: 1 }}>
+                      🟢 Zusagen ({associatedEvent.attendances?.filter(a => a.status === 'YES').length || 0})
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
+                      {isTeamMember
+                        ? (associatedEvent.attendances?.filter(a => a.status === 'YES').map(a => a.userName).join(', ') || 'Keine Zusagen')
+                        : '🔒 Nur für Teammitglieder sichtbar'}
+                    </Typography>
+                  </Box>
+                </Grid>
 
-              {/* NO / Absagen */}
-              <Grid size={{ xs: 12, sm: 3 }}>
-                <Box
-                  onClick={isLoggedIn ? () => handleAttendance('NO') : undefined}
-                  sx={{
-                    p: 2,
-                    borderRadius: 2,
-                    bgcolor: userStatus === 'NO' ? 'rgba(244, 67, 54, 0.12)' : 'rgba(244, 67, 54, 0.03)',
-                    border: '2px solid',
-                    borderColor: userStatus === 'NO' ? 'rgba(244, 67, 54, 0.5)' : 'rgba(244, 67, 54, 0.12)',
-                    height: '100%',
-                    cursor: isLoggedIn ? 'pointer' : 'default',
-                    transition: 'all 0.2s ease-in-out',
-                    '&:hover': isLoggedIn ? {
-                      bgcolor: userStatus === 'NO' ? 'rgba(244, 67, 54, 0.18)' : 'rgba(244, 67, 54, 0.08)',
-                      borderColor: 'rgba(244, 67, 54, 0.35)',
-                      transform: 'translateY(-2px)'
-                    } : {}
-                  }}
-                >
-                  <Typography variant="subtitle2" color="error.main" sx={{ fontWeight: 'bold', mb: 1 }}>
-                    🔴 Absagen ({associatedEvent.attendances?.filter(a => a.status === 'NO').length || 0})
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
-                    {isTeamMember 
-                      ? (associatedEvent.attendances?.filter(a => a.status === 'NO').map(a => a.userName).join(', ') || 'Keine Absagen')
-                      : '🔒 Nur für Teammitglieder sichtbar'}
-                  </Typography>
-                </Box>
-              </Grid>
+                {/* NO / Absagen */}
+                <Grid size={{ xs: 12, sm: 3 }}>
+                  <Box
+                    onClick={isLoggedIn ? () => handleAttendance('NO') : undefined}
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      bgcolor: userStatus === 'NO' ? 'rgba(244, 67, 54, 0.12)' : 'rgba(244, 67, 54, 0.03)',
+                      border: '2px solid',
+                      borderColor: userStatus === 'NO' ? 'rgba(244, 67, 54, 0.5)' : 'rgba(244, 67, 54, 0.12)',
+                      height: '100%',
+                      cursor: isLoggedIn ? 'pointer' : 'default',
+                      transition: 'all 0.2s ease-in-out',
+                      '&:hover': isLoggedIn ? {
+                        bgcolor: userStatus === 'NO' ? 'rgba(244, 67, 54, 0.18)' : 'rgba(244, 67, 54, 0.08)',
+                        borderColor: 'rgba(244, 67, 54, 0.35)',
+                        transform: 'translateY(-2px)'
+                      } : {}
+                    }}
+                  >
+                    <Typography variant="subtitle2" color="error.main" sx={{ fontWeight: 'bold', mb: 1 }}>
+                      🔴 Absagen ({associatedEvent.attendances?.filter(a => a.status === 'NO').length || 0})
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
+                      {isTeamMember
+                        ? (associatedEvent.attendances?.filter(a => a.status === 'NO').map(a => a.userName).join(', ') || 'Keine Absagen')
+                        : '🔒 Nur für Teammitglieder sichtbar'}
+                    </Typography>
+                  </Box>
+                </Grid>
 
-              {/* MAYBE / Vielleicht */}
-              <Grid size={{ xs: 12, sm: 3 }}>
-                <Box
-                  onClick={isLoggedIn ? () => handleAttendance('MAYBE') : undefined}
-                  sx={{
-                    p: 2,
-                    borderRadius: 2,
-                    bgcolor: userStatus === 'MAYBE' ? 'rgba(255, 152, 0, 0.12)' : 'rgba(255, 152, 0, 0.03)',
-                    border: '2px solid',
-                    borderColor: userStatus === 'MAYBE' ? 'rgba(255, 152, 0, 0.5)' : 'rgba(255, 152, 0, 0.12)',
-                    height: '100%',
-                    cursor: isLoggedIn ? 'pointer' : 'default',
-                    transition: 'all 0.2s ease-in-out',
-                    '&:hover': isLoggedIn ? {
-                      bgcolor: userStatus === 'MAYBE' ? 'rgba(255, 152, 0, 0.18)' : 'rgba(255, 152, 0, 0.08)',
-                      borderColor: 'rgba(255, 152, 0, 0.35)',
-                      transform: 'translateY(-2px)'
-                    } : {}
-                  }}
-                >
-                  <Typography variant="subtitle2" color="warning.main" sx={{ fontWeight: 'bold', mb: 1 }}>
-                    🟡 Vielleicht ({associatedEvent.attendances?.filter(a => a.status === 'MAYBE').length || 0})
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
-                    {isTeamMember 
-                      ? (associatedEvent.attendances?.filter(a => a.status === 'MAYBE').map(a => a.userName).join(', ') || 'Keine Einträge')
-                      : '🔒 Nur für Teammitglieder sichtbar'}
-                  </Typography>
-                </Box>
-              </Grid>
+                {/* MAYBE / Vielleicht */}
+                <Grid size={{ xs: 12, sm: 3 }}>
+                  <Box
+                    onClick={isLoggedIn ? () => handleAttendance('MAYBE') : undefined}
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      bgcolor: userStatus === 'MAYBE' ? 'rgba(255, 152, 0, 0.12)' : 'rgba(255, 152, 0, 0.03)',
+                      border: '2px solid',
+                      borderColor: userStatus === 'MAYBE' ? 'rgba(255, 152, 0, 0.5)' : 'rgba(255, 152, 0, 0.12)',
+                      height: '100%',
+                      cursor: isLoggedIn ? 'pointer' : 'default',
+                      transition: 'all 0.2s ease-in-out',
+                      '&:hover': isLoggedIn ? {
+                        bgcolor: userStatus === 'MAYBE' ? 'rgba(255, 152, 0, 0.18)' : 'rgba(255, 152, 0, 0.08)',
+                        borderColor: 'rgba(255, 152, 0, 0.35)',
+                        transform: 'translateY(-2px)'
+                      } : {}
+                    }}
+                  >
+                    <Typography variant="subtitle2" color="warning.main" sx={{ fontWeight: 'bold', mb: 1 }}>
+                      🟡 Vielleicht ({associatedEvent.attendances?.filter(a => a.status === 'MAYBE').length || 0})
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
+                      {isTeamMember
+                        ? (associatedEvent.attendances?.filter(a => a.status === 'MAYBE').map(a => a.userName).join(', ') || 'Keine Einträge')
+                        : '🔒 Nur für Teammitglieder sichtbar'}
+                    </Typography>
+                  </Box>
+                </Grid>
 
-              {/* NO RESPONSE / Ausstehend */}
-              <Grid size={{ xs: 12, sm: 3 }}>
-                <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(255, 255, 255, 0.02)', border: '2px solid rgba(255, 255, 255, 0.1)', height: '100%' }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
-                    ⚪ Rückmeldung ausstehend ({associatedEvent.nonRespondents?.length || 0})
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
-                    {isTeamMember 
-                      ? (associatedEvent.nonRespondents?.join(', ') || 'Keine Ausstehenden')
-                      : '🔒 Nur für Teammitglieder sichtbar'}
-                  </Typography>
-                </Box>
+                {/* NO RESPONSE / Ausstehend */}
+                <Grid size={{ xs: 12, sm: 3 }}>
+                  <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(255, 255, 255, 0.02)', border: '2px solid rgba(255, 255, 255, 0.1)', height: '100%' }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
+                      ⚪ Rückmeldung ausstehend ({associatedEvent.nonRespondents?.length || 0})
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
+                      {isTeamMember
+                        ? (associatedEvent.nonRespondents?.join(', ') || 'Keine Ausstehenden')
+                        : '🔒 Nur für Teammitglieder sichtbar'}
+                    </Typography>
+                  </Box>
+                </Grid>
               </Grid>
-            </Grid>
             </Collapse>
           </CardContent>
         </Card>

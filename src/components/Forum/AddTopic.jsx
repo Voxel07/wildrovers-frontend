@@ -46,7 +46,7 @@ const AddTopic = ({ ref, ...props }) => {
     const alertsManagerRef = use(AlertsContext);
 
     const validationSchema = yup.object({
-        Topic: yup.string().required("Name des Themas ist erforderlich").min(3, "Name muss min. 3 Zeichen haben").max(20, "Name darf max. 20 Zeichen haben"),
+        Topic: yup.string().required("Name des Themas ist erforderlich").min(3, "Name muss min. 3 Zeichen haben").max(35, "Name darf max. 35 Zeichen haben"),
     });
 
     const { register, handleSubmit: handleFormSubmit, reset, watch, formState: { errors, isSubmitting } } = useForm({
@@ -136,8 +136,8 @@ const AddTopic = ({ ref, ...props }) => {
                         variant="outlined"
                         label="Name des Themas"
                         error={!!errors.Topic}
-                        helperText={errors.Topic ? `${errors.Topic.message} (${topicName.length}/20)` : `${topicName.length}/20`}
-                        inputProps={{ maxLength: 20 }}
+                        helperText={errors.Topic ? `${errors.Topic.message} (${topicName.length}/35)` : `${topicName.length}/35`}
+                        inputProps={{ maxLength: 35 }}
                         {...register("Topic")}
                         sx={{ mb: 3, width: '100%' }}
                     />

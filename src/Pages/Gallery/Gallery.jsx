@@ -237,7 +237,7 @@ export default function Gallery() {
           Event-Galerie
         </Typography>
         <Typography variant="subtitle1" color="text.secondary" align="center" sx={{ mb: 6, maxWidth: 800, mx: 'auto' }}>
-          Impressionen und Bilder unserer vergangenen Operationen in einer großen Sammlung.
+          Impressionen und Bilder unserer vergangenen Events in einer großen Sammlung.
         </Typography>
 
         {/* Buttons & Actions */}

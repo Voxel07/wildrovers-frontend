@@ -73,7 +73,7 @@ const AddCategory = ({ ref, ...props }) => {
             .string()
             .required("Du musst dem Ding schon einen Namen geben")
             .min(4, "Name muss min. 3 Zeichen haben")
-            .max(20, "Name darf max. 20 Zeichen haben"),
+            .max(35, "Name darf max. 35 Zeichen haben"),
     });
 
     const { register, handleSubmit: handleFormSubmit, reset, watch, formState: { errors, isSubmitting } } = useForm({
@@ -166,8 +166,8 @@ const AddCategory = ({ ref, ...props }) => {
                         variant="outlined"
                         label="Name der Kategorie"
                         error={!!errors.Name}
-                        helperText={errors.Name ? `${errors.Name.message} (${categoryName.length}/20)` : `${categoryName.length}/20`}
-                        inputProps={{ maxLength: 20 }}
+                        helperText={errors.Name ? `${errors.Name.message} (${categoryName.length}/35)` : `${categoryName.length}/35`}
+                        inputProps={{ maxLength: 35 }}
                         {...register("Name")}
                         sx={{ mb: 3, width: '100%' }}
                     />

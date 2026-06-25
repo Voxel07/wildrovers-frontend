@@ -23,7 +23,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import EmailIcon from '@mui/icons-material/Email';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import ShieldIcon from '@mui/icons-material/Shield';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import BackButton from '../../components/Navigation/BackButton';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -330,9 +330,7 @@ export default function Profile() {
         <Typography variant="h5" color="error" gutterBottom>
           {error || "Profil konnte nicht geladen werden"}
         </Typography>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} sx={{ mt: 3 }} variant="outlined">
-          Zurück
-        </Button>
+        <BackButton sx={{ mt: 3 }} variant="outlined" fallbackPath="/" />
       </Container>
     );
   }
@@ -344,14 +342,11 @@ export default function Profile() {
 
   return (
     <Container maxWidth="md" sx={{ mt: 5, mb: 8, px: { xs: 2, md: 3 } }}>
-      <Button 
-        startIcon={<ArrowBackIcon />} 
-        onClick={() => navigate(-1)} 
+      <BackButton 
         sx={{ mb: 4 }}
         variant="text"
-      >
-        Zurück
-      </Button>
+        fallbackPath="/"
+      />
 
       <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>

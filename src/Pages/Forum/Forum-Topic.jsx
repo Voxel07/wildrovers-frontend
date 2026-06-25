@@ -18,7 +18,7 @@ import PersonOutlineIcon from '@mui/icons-material/PersonOutlined';
 import ForumIcon from '@mui/icons-material/Forum';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import Tooltip from '@mui/material/Tooltip';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import BackButton from '../../components/Navigation/BackButton';
 
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
@@ -130,9 +130,7 @@ export default function Forum_Topic() {
             ? 'Zu viele Anfragen — bitte warte einen Moment.'
             : `Fehler beim Laden des Themas: ${error}`}
         </Alert>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} sx={{ mt: 1 }}>
-          Zurück
-        </Button>
+        <BackButton sx={{ mt: 1 }} />
       </Container>
     );
   }
@@ -141,9 +139,7 @@ export default function Forum_Topic() {
     return (
       <Container sx={{ py: 8, textAlign: 'center' }}>
         <Typography variant="h5" color="error">Dieses Thema existiert nicht oder Sie haben keine Berechtigung, es anzusehen.</Typography>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} sx={{ mt: 3 }}>
-          Zurück
-        </Button>
+        <BackButton sx={{ mt: 3 }} />
       </Container>
     );
   }

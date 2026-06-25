@@ -27,11 +27,10 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import SendIcon from '@mui/icons-material/Send';
 import PollIcon from '@mui/icons-material/Poll';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-
 // Feedback & Auth
 import { AlertsContext } from '../../components/utils/AlertsManager';
 import useAuth from '../../context/useAuth';
+import BackButton from '../../components/Navigation/BackButton';
 
 const noModules = { toolbar: false };
 
@@ -101,8 +100,12 @@ export default function TextEditor(props) {
 
   const topicId = location.state?.topicId;
 
-
-
+  useEffect(() => {
+    const isReadOnly = props.readonly === true || props.readonly === 'true';
+    if (!topicId && !isReadOnly) {
+      alertsManagerRef.current?.showAlert('error', 'Fehler: Kein Thema-Kontext gefunden.');
+    }
+  }, [topicId, props.readonly, alertsManagerRef]);
 
   const handleAddOption = () => dispatchPoll({ type: 'ADD_OPTION' });
 
@@ -194,6 +197,20 @@ export default function TextEditor(props) {
     );
   }
 
+  // Block if no topicId context
+  if (!topicId) {
+    return (
+      <Container maxWidth="sm" sx={{ py: 8, textAlign: 'center' }}>
+        <Alert severity="error" sx={{ mb: 3 }}>
+          Fehler: Kein Thema-Kontext gefunden.
+        </Alert>
+        <BackButton variant="contained" color="primary">
+          Zurück zum Forum
+        </BackButton>
+      </Container>
+    );
+  }
+
   // Editor-specific styles: clickable images + resize handle indicator
   const editorStyles = `
     .ql-editor img {
@@ -219,9 +236,7 @@ export default function TextEditor(props) {
     <Container maxWidth="xl" sx={{ px: { xs: 1, md: 3 }, py: 3 }}>
 
       {/* Back */}
-      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} variant="text" sx={{ mb: 2 }}>
-        Zurück
-      </Button>
+      <BackButton variant="text" sx={{ mb: 2 }} />
 
       {/* Page heading */}
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
@@ -325,16 +340,16 @@ export default function TextEditor(props) {
 
             {/* Submit / Cancel */}
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-              <Button
+              <BackButton
                 variant="outlined"
                 color="error"
                 size="large"
-                onClick={() => navigate(-1)}
                 disabled={saving}
                 sx={{ py: 1.5, px: 4 }}
+                startIcon={null}
               >
                 Abbrechen
-              </Button>
+              </BackButton>
               <Button
                 variant="contained"
                 color="primary"

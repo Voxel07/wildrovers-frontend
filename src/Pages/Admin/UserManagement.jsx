@@ -22,7 +22,7 @@ import Switch from '@mui/material/Switch';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import Stack from '@mui/material/Stack';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import BackButton from '../../components/Navigation/BackButton';
 import SaveIcon from '@mui/icons-material/Save';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -57,7 +57,10 @@ export default function UserManagement() {
   // Confirmation dialog state
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
-  const [deleteForumPosts, setDeleteForumPosts] = useState(false);
+  const [deleteAccount, setDeleteAccount] = useState(true);
+  const [deleteEvents, setDeleteEvents] = useState(true);
+  const [deleteForumPosts, setDeleteForumPosts] = useState(true);
+  const [deleteGallery, setDeleteGallery] = useState(true);
 
   const isAuthorized = auth?.JWT && (auth.roles === 'Admin' || auth.roles === 'Vorstand');
 
@@ -127,6 +130,7 @@ export default function UserManagement() {
       lastName: user.lastName,
       role: user.role,
       isActive: activeVal,
+      active: activeVal,
       isBlocked: !!user.isBlocked,
       yearlyFeePaid: user.yearlyFeePaid,
       canCreateCategory: !!user.canCreateCategory
@@ -149,55 +153,53 @@ export default function UserManagement() {
 
   const handleDeleteClick = (user) => {
     setUserToDelete(user);
-    setDeleteForumPosts(false);
+    setDeleteAccount(true);
+    setDeleteEvents(true);
+    setDeleteForumPosts(true);
+    setDeleteGallery(true);
     setConfirmOpen(true);
   };
 
   const handleDeleteCancel = () => {
     setConfirmOpen(false);
     setUserToDelete(null);
-    setDeleteForumPosts(false);
+    setDeleteAccount(true);
+    setDeleteEvents(true);
+    setDeleteForumPosts(true);
+    setDeleteGallery(true);
   };
 
   const handleDeleteConfirm = () => {
     if (!userToDelete) return;
     const user = userToDelete;
-    const shouldDeletePosts = deleteForumPosts;
     setConfirmOpen(false);
     setUserToDelete(null);
-    setDeleteForumPosts(false);
     setDeletingId(user.id);
 
-    const doDelete = () =>
-      api.delete(`/user/${user.id}`)
-        .then(() => {
-          setUsers(prev => prev.filter(u => u.id !== user.id));
-          alertsManagerRef.current.showAlert('success', `Benutzer ${user.userName} erfolgreich gelöscht.`);
-        })
-        .catch(err => {
-          console.error('Error deleting user', err);
-          const msg = err.response?.data || 'Fehler beim Löschen.';
-          alertsManagerRef.current.showAlert('error', `Löschen fehlgeschlagen: ${msg}`);
-        })
-        .finally(() => {
-          setDeletingId(null);
-        });
-
-    if (shouldDeletePosts) {
-      api.delete(`/user/${user.id}/posts`)
-        .then(() => {
-          alertsManagerRef.current.showAlert('info', `Forumsbeiträge von ${user.userName} gelöscht.`);
-        })
-        .catch(err => {
-          console.error('Error deleting posts', err);
-          alertsManagerRef.current.showAlert('error', 'Forumsbeiträge konnten nicht gelöscht werden.');
-        })
-        .finally(() => {
-          doDelete();
-        });
-    } else {
-      doDelete();
-    }
+    api.delete(`/user/${user.id}`, {
+      params: {
+        deleteAccount: !!deleteAccount,
+        deleteEvents: !!deleteEvents,
+        deletePosts: !!deleteForumPosts,
+        deleteGallery: !!deleteGallery
+      }
+    })
+      .then(() => {
+        if (deleteAccount) {
+          alertsManagerRef.current.showAlert('success', `Benutzer ${user.userName} wurde gesperrt und ausgewählte Daten gelöscht.`);
+        } else {
+          alertsManagerRef.current.showAlert('success', `Ausgewählte Daten von ${user.userName} erfolgreich gelöscht.`);
+        }
+        fetchUsers();
+      })
+      .catch(err => {
+        console.error('Error deleting user data', err);
+        const msg = err.response?.data || 'Fehler beim Löschen.';
+        alertsManagerRef.current.showAlert('error', `Löschen fehlgeschlagen: ${msg}`);
+      })
+      .finally(() => {
+        setDeletingId(null);
+      });
   };
 
   const handleSignupToggle = () => {
@@ -248,13 +250,10 @@ export default function UserManagement() {
     <Container maxWidth="xl" sx={{ mt: 4, mb: 6, px: { xs: 1, md: 3 } }}>
       <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
-          <Button
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate(-1)}
+          <BackButton
             variant="text"
-          >
-            Zurück
-          </Button>
+            fallbackPath="/"
+          />
           <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
             Benutzerverwaltung
           </Typography>
@@ -444,43 +443,108 @@ export default function UserManagement() {
               bgcolor: 'background.paper',
               border: '1px solid rgba(255,255,255,0.1)',
               borderRadius: 2,
-              minWidth: 400,
+              minWidth: { xs: '90%', sm: 450 },
             }
           }
         }}
       >
         <DialogTitle sx={{ fontWeight: 'bold', color: 'error.main' }}>
-          Benutzer löschen
+          Daten löschen / Benutzer entfernen
         </DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ color: 'text.secondary', mb: 2 }}>
-            Bist du sicher, dass du den Benutzer{' '}
+            Wähle aus, welche Daten für den Benutzer{' '}
             <Box component="span" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
               {userToDelete?.userName}
             </Box>{' '}
-            unwiderruflich löschen möchtest? Alle zugehörigen Daten werden entfernt.
+            gelöscht werden sollen:
           </DialogContentText>
           <Divider sx={{ mb: 2, borderColor: 'rgba(255,255,255,0.08)' }} />
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={deleteForumPosts}
-                onChange={e => setDeleteForumPosts(e.target.checked)}
-                color="error"
-                id="delete-forum-posts-checkbox"
-              />
-            }
-            label={
-              <Box>
-                <Typography variant="body2" sx={{ fontWeight: 'bold', color: deleteForumPosts ? 'error.main' : 'text.primary' }}>
-                  Alle Forumsbeiträge löschen
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Entfernt sämtliche Posts dieses Benutzers im Forum (z.B. bei Spam-Accounts).
-                </Typography>
-              </Box>
-            }
-          />
+          <Stack spacing={2}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={deleteAccount}
+                  onChange={e => setDeleteAccount(e.target.checked)}
+                  color="error"
+                  id="delete-account-checkbox"
+                />
+              }
+              label={
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: deleteAccount ? 'error.main' : 'text.primary' }}>
+                    Benutzerkonto sperren & Profil anonymisieren
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Sperrt den Account dauerhaft und anonymisiert die Profildaten. Der Benutzer kann sich nicht erneut anmelden.
+                  </Typography>
+                </Box>
+              }
+            />
+
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={deleteEvents}
+                  onChange={e => setDeleteEvents(e.target.checked)}
+                  color="error"
+                  id="delete-events-checkbox"
+                />
+              }
+              label={
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: deleteEvents ? 'error.main' : 'text.primary' }}>
+                    Veranstaltungen & Anmeldungen löschen
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Löscht alle vom Benutzer erstellten Events sowie seine Event-Teilnahmen.
+                  </Typography>
+                </Box>
+              }
+            />
+
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={deleteForumPosts}
+                  onChange={e => setDeleteForumPosts(e.target.checked)}
+                  color="error"
+                  id="delete-forum-posts-checkbox"
+                />
+              }
+              label={
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: deleteForumPosts ? 'error.main' : 'text.primary' }}>
+                    Forumsbeiträge löschen
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Löscht Posts, Antworten und leere Themen. Beiträge mit Antworten anderer Benutzer werden beibehalten (Autor anonymisiert).
+                  </Typography>
+                </Box>
+              }
+            />
+
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={deleteGallery}
+                  onChange={e => setDeleteGallery(e.target.checked)}
+                  color="error"
+                  id="delete-gallery-checkbox"
+                />
+              }
+              label={
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: deleteGallery ? 'error.main' : 'text.primary' }}>
+                    Galerieeinträge löschen
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Löscht alle vom Benutzer erstellten Galerieeinträge.
+                  </Typography>
+                </Box>
+              }
+            />
+          </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
           <Button onClick={handleDeleteCancel} variant="outlined" color="inherit">
@@ -491,9 +555,10 @@ export default function UserManagement() {
             variant="contained"
             color="error"
             startIcon={<DeleteIcon />}
+            disabled={!deleteAccount && !deleteEvents && !deleteForumPosts && !deleteGallery}
             autoFocus
           >
-            {deleteForumPosts ? 'Posts + Account löschen' : 'Endgültig löschen'}
+            Ausgewählte Daten löschen
           </Button>
         </DialogActions>
       </Dialog>
