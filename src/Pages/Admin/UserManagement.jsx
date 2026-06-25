@@ -61,6 +61,7 @@ export default function UserManagement() {
   const [deleteEvents, setDeleteEvents] = useState(true);
   const [deleteForumPosts, setDeleteForumPosts] = useState(true);
   const [deleteGallery, setDeleteGallery] = useState(true);
+  const [hardDelete, setHardDelete] = useState(false);
 
   const isAuthorized = auth?.JWT && (auth.roles === 'Admin' || auth.roles === 'Vorstand');
 
@@ -157,6 +158,7 @@ export default function UserManagement() {
     setDeleteEvents(true);
     setDeleteForumPosts(true);
     setDeleteGallery(true);
+    setHardDelete(false);
     setConfirmOpen(true);
   };
 
@@ -167,6 +169,7 @@ export default function UserManagement() {
     setDeleteEvents(true);
     setDeleteForumPosts(true);
     setDeleteGallery(true);
+    setHardDelete(false);
   };
 
   const handleDeleteConfirm = () => {
@@ -181,12 +184,17 @@ export default function UserManagement() {
         deleteAccount: !!deleteAccount,
         deleteEvents: !!deleteEvents,
         deletePosts: !!deleteForumPosts,
-        deleteGallery: !!deleteGallery
+        deleteGallery: !!deleteGallery,
+        hardDelete: !!hardDelete
       }
     })
       .then(() => {
         if (deleteAccount) {
-          alertsManagerRef.current.showAlert('success', `Benutzer ${user.userName} wurde gesperrt und ausgewählte Daten gelöscht.`);
+          if (hardDelete) {
+            alertsManagerRef.current.showAlert('success', `Benutzer ${user.userName} wurde unwiderruflich gelöscht.`);
+          } else {
+            alertsManagerRef.current.showAlert('success', `Benutzer ${user.userName} wurde gesperrt und ausgewählte Daten gelöscht.`);
+          }
         } else {
           alertsManagerRef.current.showAlert('success', `Ausgewählte Daten von ${user.userName} erfolgreich gelöscht.`);
         }
@@ -481,6 +489,30 @@ export default function UserManagement() {
                 </Box>
               }
             />
+
+            {deleteAccount && (
+              <FormControlLabel
+                sx={{ ml: 3 }}
+                control={
+                  <Checkbox
+                    checked={hardDelete}
+                    onChange={e => setHardDelete(e.target.checked)}
+                    color="error"
+                    id="hard-delete-checkbox"
+                  />
+                }
+                label={
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: hardDelete ? 'error.main' : 'text.primary' }}>
+                      Unwiderruflich löschen (Hard Delete)
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Entfernt den Account komplett aus der Datenbank. Ermöglicht spätere erneute Registrierung mit gleicher E-Mail.
+                    </Typography>
+                  </Box>
+                }
+              />
+            )}
 
             <FormControlLabel
               control={
