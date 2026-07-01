@@ -190,30 +190,7 @@ export default function LandingPage() {
                 style={{ maxWidth: '80%', height: 'auto', marginBottom: '8px' }}
                 onError={(e) => { e.target.style.display = 'none'; }}
               />
-              <Typography variant="h2" sx={{
-                fontWeight: 900,
-                letterSpacing: '.4rem',
-                color: 'primary.main',
-                fontSize: { xs: '2.2rem', md: '3.8rem' },
-                textShadow: '0 0 20px rgba(255,152,0,0.2)',
-                lineHeight: 1.2
-              }}>
-                WILD ROVERS
-              </Typography>
-              <Typography variant="h5" color="text.secondary" sx={{
-                fontWeight: 500,
-                letterSpacing: '.1rem',
-                mt: 1,
-                fontSize: { xs: '1rem', md: '1.4rem' }
-              }}>
-                What The Fuck Airsoftteam — Württemberg
-              </Typography>
             </Box>
-
-            <Typography variant="body1" color="text.secondary" sx={{ maxWidth: '600px', fontSize: '1.1rem' }}>
-              Airsoft ist für uns mehr als nur ein Hobby. Es ist die Leidenschaft für Taktik,
-              starker Teamzusammenhalt und der perfekte Ausgleich zum stressigen Alltag.
-            </Typography>
 
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ width: { xs: '100%', sm: 'auto' }, pt: 2 }}>
               <Button

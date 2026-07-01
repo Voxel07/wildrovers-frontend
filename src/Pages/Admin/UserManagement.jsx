@@ -353,6 +353,12 @@ export default function UserManagement() {
                           onChange={(e) => handleRoleChange(user.id, e.target.value)}
                           size="small"
                           sx={{ minWidth: 120 }}
+                          MenuProps={{
+                            disablePortal: false,
+                            anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
+                            transformOrigin: { vertical: 'top', horizontal: 'left' },
+                            sx: { zIndex: 1400 },
+                          }}
                         >
                           <MenuItem value="Besucher">Besucher</MenuItem>
                           <MenuItem value="Frischling">Frischling</MenuItem>
