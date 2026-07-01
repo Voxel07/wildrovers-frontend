@@ -64,6 +64,7 @@ export default function UserManagement() {
   const [hardDelete, setHardDelete] = useState(false);
 
   const isAuthorized = auth?.JWT && (auth.roles === 'Admin' || auth.roles === 'Vorstand');
+  const isVorstand = auth?.roles === 'Vorstand';
 
   const fetchUsers = () => {
     setLoading(true);
@@ -109,7 +110,7 @@ export default function UserManagement() {
   };
 
   const handleToggleFeePaid = (userId, currentVal) => {
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, yearlyFeePaid: !currentVal } : u));
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, hasPaidCurrentYear: !currentVal } : u));
   };
 
   const handleToggleCanCreateCategory = (userId, currentVal) => {
@@ -133,7 +134,7 @@ export default function UserManagement() {
       isActive: activeVal,
       active: activeVal,
       isBlocked: !!user.isBlocked,
-      yearlyFeePaid: user.yearlyFeePaid,
+      hasPaidCurrentYear: user.hasPaidCurrentYear,
       canCreateCategory: !!user.canCreateCategory
     };
 
@@ -353,6 +354,7 @@ export default function UserManagement() {
                           onChange={(e) => handleRoleChange(user.id, e.target.value)}
                           size="small"
                           sx={{ minWidth: 120 }}
+                          disabled={isVorstand && user.role === 'Admin'}
                           MenuProps={{
                             disablePortal: false,
                             anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
@@ -372,6 +374,7 @@ export default function UserManagement() {
                           checked={user.isActive !== undefined ? user.isActive : (user.active !== undefined ? user.active : true)}
                           onChange={() => handleToggleActive(user.id, user.isActive !== undefined ? user.isActive : (user.active !== undefined ? user.active : true))}
                           color="success"
+                          disabled={isVorstand && user.role === 'Admin'}
                         />
                       </TableCell>
                       <TableCell align="center">
@@ -379,20 +382,22 @@ export default function UserManagement() {
                           checked={!!user.isBlocked}
                           onChange={() => handleToggleBlocked(user.id, !!user.isBlocked)}
                           color="error"
+                          disabled={isVorstand && user.role === 'Admin'}
                         />
                       </TableCell>
                       <TableCell align="center">
                         <Switch
-                          checked={!!user.yearlyFeePaid}
-                          onChange={() => handleToggleFeePaid(user.id, !!user.yearlyFeePaid)}
+                          checked={!!user.hasPaidCurrentYear}
+                          onChange={() => handleToggleFeePaid(user.id, !!user.hasPaidCurrentYear)}
                           color="primary"
+                          disabled={isVorstand && user.role === 'Admin'}
                         />
                       </TableCell>
                       <TableCell align="center">
                         <Switch
                           checked={user.role === 'Besucher' ? !!user.canCreateCategory : true}
                           onChange={() => handleToggleCanCreateCategory(user.id, !!user.canCreateCategory)}
-                          disabled={user.role !== 'Besucher'}
+                          disabled={user.role !== 'Besucher' || (isVorstand && user.role === 'Admin')}
                           color="warning"
                         />
                       </TableCell>
@@ -415,7 +420,7 @@ export default function UserManagement() {
                             size="small"
                             startIcon={savingId === user.id ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
                             onClick={() => handleSaveUser(user)}
-                            disabled={savingId !== null || deletingId === user.id}
+                            disabled={savingId !== null || deletingId === user.id || (isVorstand && user.role === 'Admin')}
                           >
                             Speichern
                           </Button>
@@ -425,7 +430,7 @@ export default function UserManagement() {
                             size="small"
                             startIcon={deletingId === user.id ? <CircularProgress size={16} color="inherit" /> : <DeleteIcon />}
                             onClick={() => handleDeleteClick(user)}
-                            disabled={savingId !== null || deletingId !== null}
+                            disabled={savingId !== null || deletingId !== null || (isVorstand && user.role === 'Admin')}
                           >
                             Löschen
                           </Button>

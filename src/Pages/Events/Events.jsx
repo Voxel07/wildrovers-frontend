@@ -141,9 +141,9 @@ export default function Events() {
     if (events.length > 0) {
       const years = Array.from(
         new Set(events.map(e => e.eventDate ? new Date(e.eventDate).getFullYear() : null).filter(Boolean))
-      ).sort((a, b) => b - a);
+      ).sort((a, b) => a - b);
       if (years.length > 0 && !years.includes(selectedYear)) {
-        setSelectedYear(years[0]);
+        setSelectedYear(years[years.length - 1]);
       }
     }
   }, [events]);
@@ -361,7 +361,7 @@ export default function Events() {
         {(() => {
           const uniqueYears = Array.from(
             new Set(events.map(e => e.eventDate ? new Date(e.eventDate).getFullYear() : null).filter(Boolean))
-          ).sort((a, b) => b - a);
+          ).sort((a, b) => a - b);
           if (uniqueYears.length <= 1) return null;
           return (
             <Stack direction="row" spacing={1.5} sx={{ justifyContent: 'center', mb: 6, flexWrap: 'wrap', gap: 1 }}>

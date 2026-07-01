@@ -289,6 +289,18 @@ export default function Profile() {
       });
   };
 
+  const handleRemovePhoto = () => {
+    api.delete('/user/me/photo')
+      .then(() => {
+        dispatch({ type: 'UPDATE_PHOTO', payload: null });
+        alertsManagerRef.current.showAlert('success', 'Profilbild entfernt.');
+      })
+      .catch(err => {
+        console.error("Error removing photo", err);
+        alertsManagerRef.current.showAlert('error', 'Fehler beim Entfernen des Profilbilds.');
+      });
+  };
+
   const handleEditChange = (e) => {
     setEditData({ ...editData, [e.target.name]: e.target.value });
   };
@@ -457,6 +469,18 @@ export default function Profile() {
                   </Button>
                 </label>
 
+                {profile.photoUrl && (
+                  <Button
+                    variant="text"
+                    size="small"
+                    color="error"
+                    fullWidth
+                    onClick={handleRemovePhoto}
+                  >
+                    Profilbild entfernen
+                  </Button>
+                )}
+
                 <input 
                   type="file" 
                   accept="image/*" 
@@ -593,14 +617,31 @@ export default function Profile() {
 
                 <Box>
                   <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
-                    <WorkspacePremiumIcon color={profile.yearlyFeePaid ? "success" : "action"} />
+                    <WorkspacePremiumIcon color={profile.hasPaidCurrentYear ? "success" : "action"} />
                     <Box>
                       <Typography variant="caption" color="text.secondary" display="block">
-                        Mitgliedsbeitrag bezahlt
+                        Mitgliedsbeitrag {new Date().getFullYear()}
                       </Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 'medium', color: profile.yearlyFeePaid ? 'success.main' : 'error.main' }}>
-                        {profile.yearlyFeePaid ? 'Ja' : 'Nein'}
+                      <Typography variant="body1" sx={{ fontWeight: 'medium', color: profile.hasPaidCurrentYear ? 'success.main' : 'error.main' }}>
+                        {profile.hasPaidCurrentYear ? 'Bezahlt' : 'Nicht bezahlt'}
                       </Typography>
+                      {profile.paidYears && profile.paidYears.length > 0 && (
+                        <Stack spacing={0.3} sx={{ mt: 0.8 }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', fontSize: '0.72rem' }}>
+                            Bezahlte Jahre:
+                          </Typography>
+                          {profile.paidYears.sort((a, b) => b - a).map(y => (
+                            <Chip
+                              key={y}
+                              label={y}
+                              size="small"
+                              color="success"
+                              variant="outlined"
+                              sx={{ fontSize: '0.7rem', height: 20, mr: 0.5, mb: 0.5 }}
+                            />
+                          ))}
+                        </Stack>
+                      )}
                     </Box>
                   </Stack>
                 </Box>

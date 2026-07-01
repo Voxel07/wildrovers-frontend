@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../helper/api';
+import useAuth from '../../context/useAuth';
 import Tilt from 'react-parallax-tilt';
 
 // Material UI
@@ -23,6 +24,8 @@ const roles = {
 };
 
 export default function Team() {
+  const { auth } = useAuth();
+  const isTeamMember = auth?.JWT && ['Frischling', 'Mitglied', 'Vorstand', 'Admin'].includes(auth?.roles);
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -237,7 +240,7 @@ export default function Team() {
                               {member.userName}
                             </Typography>
                             <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: 'bold', mb: 2 }}>
-                              {member.firstName} {member.lastName}
+                              {isTeamMember ? `${member.firstName} ${member.lastName}` : ""}
                             </Typography>
 
                             {/* Mentors info */}
