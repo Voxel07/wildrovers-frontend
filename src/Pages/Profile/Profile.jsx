@@ -28,6 +28,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
+import ForumIcon from '@mui/icons-material/Forum';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import GroupIcon from '@mui/icons-material/Group';
 
@@ -672,6 +673,26 @@ export default function Profile() {
                           </Stack>
                         );
                       })()}
+                    </Box>
+                  </Stack>
+                </Box>
+
+                <Divider />
+
+                {/* Forum Activity */}
+                <Box>
+                  <Stack direction="row" spacing={2} sx={{ alignItems: 'flex-start' }}>
+                    <ForumIcon color="action" sx={{ mt: 0.3 }} />
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        Forum-Aktivität
+                      </Typography>
+                      <Stack direction="row" spacing={1} sx={{ mt: 0.5, flexWrap: 'wrap', gap: 0.5 }}>
+                        <Chip label={`${profile.forumPostCount ?? 0} Posts`} size="small" variant="outlined" />
+                        <Chip label={`${profile.forumAnswerCount ?? 0} Antworten`} size="small" variant="outlined" />
+                        <Chip label={`${profile.forumTopicCount ?? 0} Themen`} size="small" variant="outlined" />
+                        <Chip label={`${profile.forumCategoryCount ?? 0} Kategorien`} size="small" variant="outlined" />
+                      </Stack>
                     </Box>
                   </Stack>
                 </Box>

@@ -9,12 +9,6 @@ import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import Button from '@mui/material/Button';
@@ -36,8 +30,15 @@ import DialogActions from '@mui/material/DialogActions';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
 import Divider from '@mui/material/Divider';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
 import BlockIcon from '@mui/icons-material/Block';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
+import ForumActivityOverview from '../../components/User/ForumActivityOverview';
 
 export default function UserManagement() {
   const { auth } = useAuth();
@@ -440,7 +441,7 @@ export default function UserManagement() {
                   ))}
                   {users.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={10} align="center" sx={{ py: 6 }}>
+                      <TableCell colSpan={11} align="center" sx={{ py: 6 }}>
                         <Typography color="text.secondary">Keine Benutzer gefunden.</Typography>
                       </TableCell>
                     </TableRow>
@@ -451,6 +452,9 @@ export default function UserManagement() {
           )}
         </CardContent>
       </Card>
+
+      {/* Forum Activity Overview */}
+      <ForumActivityOverview users={users} />
 
       {/* Delete Confirmation Dialog */}
       <Dialog

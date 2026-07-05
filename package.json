@@ -16,6 +16,7 @@
     "@hookform/resolvers": "^3.10.0",
     "@mui/icons-material": "^9.2.0",
     "@mui/material": "^9.2.0",
+    "@mui/x-data-grid": "^9.8.0",
     "@openobserve/browser-logs": "^0.3.4",
     "@openobserve/browser-rum": "^0.3.4",
     "axios": "^1.18.1",
