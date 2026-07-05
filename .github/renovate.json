@@ -1,0 +1,56 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "labels": ["dependencies"],
+  "schedule": ["before 9am on Monday"],
+  "packageRules": [
+    {
+      "description": "Group non-major npm updates together",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "all non-major npm dependencies",
+      "groupSlug": "npm-non-major"
+    },
+    {
+      "description": "Group MUI packages together (released in lockstep)",
+      "matchPackageNames": ["/@mui/*/"],
+      "groupName": "MUI packages",
+      "groupSlug": "mui"
+    },
+    {
+      "description": "Group Emotion packages together",
+      "matchPackageNames": ["/@emotion/*/"],
+      "groupName": "Emotion packages",
+      "groupSlug": "emotion"
+    },
+    {
+      "description": "Separate React major updates for careful review",
+      "matchPackageNames": ["react", "react-dom"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "React (major)",
+      "groupSlug": "react-major",
+      "labels": ["breaking-change", "dependencies"]
+    },
+    {
+      "description": "Auto-merge minor/patch devDependencies",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
+    },
+    {
+      "description": "Group GitHub Actions updates",
+      "matchManagers": ["github-actions"],
+      "groupName": "GitHub Actions",
+      "groupSlug": "github-actions"
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "labels": ["security"],
+    "schedule": []
+  }
+}
