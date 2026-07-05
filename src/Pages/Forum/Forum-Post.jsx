@@ -623,12 +623,26 @@ export default function Forum_Post() {
                 <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
                   Antwort verfassen
                 </Typography>
-                <Box sx={{ mb: 2 }}>
+                <Box
+                  sx={{
+                    mb: 2,
+                    height: 200,
+                    minHeight: 150,
+                    resize: 'vertical',
+                    overflow: 'hidden',
+                    borderBottom: '2px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '0 0 4px 4px',
+                    '&:hover': {
+                      borderBottomColor: 'primary.main',
+                    },
+                    transition: 'border-color 0.2s',
+                  }}
+                >
                   <ForumQuill
                     value={replyContent}
                     onChange={setReplyContent}
                     placeholder="Schreibe eine Antwort..."
-                    style={{ height: 200, marginBottom: 50 }}
+                    height="100%"
                   />
                 </Box>
                 <Button
