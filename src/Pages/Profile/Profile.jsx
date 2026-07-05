@@ -24,6 +24,7 @@ import EmailIcon from '@mui/icons-material/Email';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import ShieldIcon from '@mui/icons-material/Shield';
 import BackButton from '../../components/Navigation/BackButton';
+import ProfileActivitySummary from './ProfileActivitySummary';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -89,7 +90,7 @@ function profileReducer(state, action) {
 }
 
 export default function Profile() {
-  const { auth } = useAuth();
+  const { auth, setAuth } = useAuth();
   const navigate = useNavigate();
   const alertsManagerRef = use(AlertsContext);
   const [state, dispatch] = useReducer(profileReducer, initialProfileState);
@@ -103,7 +104,8 @@ export default function Profile() {
     birthday: '',
     firstName: '',
     lastName: '',
-    email: ''
+    email: '',
+    userName: ''
   });
   const [saving, setSaving] = useState(false);
 
@@ -119,7 +121,8 @@ export default function Profile() {
           birthday: response.data.birthday || '',
           firstName: response.data.firstName || '',
           lastName: response.data.lastName || '',
-          email: response.data.email || ''
+          email: response.data.email || '',
+          userName: response.data.userName || ''
         });
       })
       .catch(err => {
@@ -144,18 +147,6 @@ export default function Profile() {
         console.error("Error fetching events for profile breakdown", err);
       });
   }, [auth, navigate]);
-
-  const getVisitedEventsByYearBreakdown = () => {
-    const countsByYear = {};
-    events.forEach(event => {
-      const isAttended = event.attendances?.some(a => a.userName === profile?.userName && a.status === 'YES');
-      if (isAttended && event.eventDate) {
-        const year = new Date(event.eventDate).getFullYear();
-        countsByYear[year] = (countsByYear[year] || 0) + 1;
-      }
-    });
-    return countsByYear;
-  };
 
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
@@ -204,14 +195,14 @@ export default function Profile() {
           api.post('/user/me/photo', uploadFormData, {
             headers: { 'Content-Type': 'multipart/form-data' }
           })
-          .then(res => {
-            dispatch({ type: 'UPDATE_PHOTO', payload: res.data.photoUrl });
-            alertsManagerRef.current.showAlert('success', 'Profilbild erfolgreich aktualisiert.');
-          })
-          .catch(err => {
-            console.error("Error uploading avatar", err);
-            alertsManagerRef.current.showAlert('error', 'Fehler beim Hochladen des Profilbilds.');
-          });
+            .then(res => {
+              dispatch({ type: 'UPDATE_PHOTO', payload: res.data.photoUrl });
+              alertsManagerRef.current.showAlert('success', 'Profilbild erfolgreich aktualisiert.');
+            })
+            .catch(err => {
+              console.error("Error uploading avatar", err);
+              alertsManagerRef.current.showAlert('error', 'Fehler beim Hochladen des Profilbilds.');
+            });
         }, 'image/jpeg', 0.85); // Compress to JPEG with 85% quality
       };
       img.src = event.target.result;
@@ -263,14 +254,14 @@ export default function Profile() {
           api.post('/user/me/background', uploadFormData, {
             headers: { 'Content-Type': 'multipart/form-data' }
           })
-          .then(res => {
-            dispatch({ type: 'UPDATE_BACKGROUND', payload: res.data.backgroundUrl });
-            alertsManagerRef.current.showAlert('success', 'Hintergrundbild erfolgreich aktualisiert.');
-          })
-          .catch(err => {
-            console.error("Error uploading background", err);
-            alertsManagerRef.current.showAlert('error', 'Fehler beim Hochladen des Hintergrundbilds.');
-          });
+            .then(res => {
+              dispatch({ type: 'UPDATE_BACKGROUND', payload: res.data.backgroundUrl });
+              alertsManagerRef.current.showAlert('success', 'Hintergrundbild erfolgreich aktualisiert.');
+            })
+            .catch(err => {
+              console.error("Error uploading background", err);
+              alertsManagerRef.current.showAlert('error', 'Fehler beim Hochladen des Hintergrundbilds.');
+            });
         }, 'image/jpeg', 0.85);
       };
       img.src = event.target.result;
@@ -316,6 +307,9 @@ export default function Profile() {
     api.post('/user/me/profile', cleanedData)
       .then(res => {
         dispatch({ type: 'UPDATE_PROFILE_SUCCESS', payload: res.data });
+        if (res.data.userName && auth?.user !== res.data.userName) {
+          setAuth(prev => ({ ...prev, user: res.data.userName }));
+        }
         setEditMode(false);
         fetchProfile(true);
         alertsManagerRef.current.showAlert('success', 'Profil erfolgreich gespeichert.');
@@ -355,7 +349,7 @@ export default function Profile() {
 
   return (
     <Container maxWidth="md" sx={{ mt: 5, mb: 8, px: { xs: 2, md: 3 } }}>
-      <BackButton 
+      <BackButton
         sx={{ mb: 4 }}
         variant="text"
         fallbackPath="/"
@@ -391,7 +385,8 @@ export default function Profile() {
                   birthday: profile.birthday || '',
                   firstName: profile.firstName || '',
                   lastName: profile.lastName || '',
-                  email: profile.email || ''
+                  email: profile.email || '',
+                  userName: profile.userName || ''
                 });
               }}
               disabled={saving}
@@ -405,13 +400,14 @@ export default function Profile() {
       <Grid container spacing={4}>
         {/* Profile Card Left */}
         <Grid size={{ xs: 12, md: 4 }}>
-          <Card sx={{
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            textAlign: 'center',
-            py: 4,
-            position: 'relative',
-            overflow: 'hidden',
-          }}>
+          <Stack spacing={4}>
+            <Card sx={{
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              textAlign: 'center',
+              py: 4,
+              position: 'relative',
+              overflow: 'hidden',
+            }}>
             {/* Background image */}
             {backgroundUrl && (
               <Box
@@ -430,14 +426,14 @@ export default function Profile() {
               />
             )}
             <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 1 }}>
-              <Avatar 
+              <Avatar
                 src={avatarUrl}
-                sx={{ 
-                  width: 100, 
-                  height: 100, 
-                  fontSize: '2.5rem', 
+                sx={{
+                  width: 100,
+                  height: 100,
+                  fontSize: '2.5rem',
                   fontWeight: 'bold',
-                  bgcolor: 'primary.main', 
+                  bgcolor: 'primary.main',
                   color: 'primary.contrastText',
                   mb: 2,
                   boxShadow: '0 0 20px rgba(255, 152, 0, 0.25)',
@@ -449,19 +445,19 @@ export default function Profile() {
               <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
                 {profile.userName}
               </Typography>
-              <Chip 
-                label={profile.role} 
-                color={roleColors[profile.role] || "default"} 
-                size="small" 
+              <Chip
+                label={profile.role}
+                color={roleColors[profile.role] || "default"}
+                size="small"
                 sx={{ fontWeight: 'bold', px: 1, mb: 3 }}
               />
 
               <Stack spacing={1} sx={{ width: '100%', px: 2 }}>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  id="avatar-upload" 
-                  style={{ display: 'none' }} 
+                <input
+                  type="file"
+                  accept="image/*"
+                  id="avatar-upload"
+                  style={{ display: 'none' }}
                   onChange={handleAvatarChange}
                 />
                 <label htmlFor="avatar-upload">
@@ -482,11 +478,11 @@ export default function Profile() {
                   </Button>
                 )}
 
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  id="background-upload" 
-                  style={{ display: 'none' }} 
+                <input
+                  type="file"
+                  accept="image/*"
+                  id="background-upload"
+                  style={{ display: 'none' }}
                   onChange={handleBackgroundChange}
                 />
                 <label htmlFor="background-upload">
@@ -509,6 +505,8 @@ export default function Profile() {
               </Stack>
             </CardContent>
           </Card>
+          <ProfileActivitySummary profile={profile} events={events} />
+        </Stack>
         </Grid>
 
         {/* Profile Details Right */}
@@ -519,6 +517,34 @@ export default function Profile() {
                 Benutzerinformationen
               </Typography>
               <Stack spacing={3}>
+                <Box>
+                  <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+                    <PersonIcon color="action" />
+                    <Box sx={{ width: '100%' }}>
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        Benutzername
+                      </Typography>
+                      {!editMode ? (
+                        <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                          {profile.userName}
+                        </Typography>
+                      ) : (
+                        <TextField
+                          name="userName"
+                          label="Benutzername"
+                          size="small"
+                          fullWidth
+                          value={editData.userName}
+                          onChange={handleEditChange}
+                          sx={{ mt: 1 }}
+                        />
+                      )}
+                    </Box>
+                  </Stack>
+                </Box>
+
+                <Divider />
+
                 <Box>
                   <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
                     <PersonIcon color="action" />
@@ -647,55 +673,7 @@ export default function Profile() {
                   </Stack>
                 </Box>
 
-                <Divider />
 
-                <Box>
-                  <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
-                    <WorkspacePremiumIcon color="action" />
-                    <Box>
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        Besuchte Events
-                      </Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 'medium', mb: 0.5 }}>
-                        {profile.eventsAttended ?? 0} Events besucht
-                      </Typography>
-                      {(() => {
-                        const breakdown = getVisitedEventsByYearBreakdown();
-                        const years = Object.keys(breakdown).map(Number).sort((a, b) => b - a);
-                        if (years.length === 0) return null;
-                        return (
-                          <Stack spacing={0.5} sx={{ mt: 1, pl: 0.5 }}>
-                            {years.map(y => (
-                              <Typography key={y} variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.78rem' }}>
-                                📅 {y}: <strong>{breakdown[y]}</strong> Event{breakdown[y] === 1 ? '' : 's'} besucht
-                              </Typography>
-                            ))}
-                          </Stack>
-                        );
-                      })()}
-                    </Box>
-                  </Stack>
-                </Box>
-
-                <Divider />
-
-                {/* Forum Activity */}
-                <Box>
-                  <Stack direction="row" spacing={2} sx={{ alignItems: 'flex-start' }}>
-                    <ForumIcon color="action" sx={{ mt: 0.3 }} />
-                    <Box>
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        Forum-Aktivität
-                      </Typography>
-                      <Stack direction="row" spacing={1} sx={{ mt: 0.5, flexWrap: 'wrap', gap: 0.5 }}>
-                        <Chip label={`${profile.forumPostCount ?? 0} Posts`} size="small" variant="outlined" />
-                        <Chip label={`${profile.forumAnswerCount ?? 0} Antworten`} size="small" variant="outlined" />
-                        <Chip label={`${profile.forumTopicCount ?? 0} Themen`} size="small" variant="outlined" />
-                        <Chip label={`${profile.forumCategoryCount ?? 0} Kategorien`} size="small" variant="outlined" />
-                      </Stack>
-                    </Box>
-                  </Stack>
-                </Box>
 
                 <Divider />
 
