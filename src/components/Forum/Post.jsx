@@ -115,8 +115,10 @@ export default function Post({ post, onUpdate, onDelete, onAddPoll, pollsVisible
 
     if (!post) return null;
 
-    const { id, title, creator, creationDate, answerCount, views } = post;
+    const { id, title, creator, creationDate, answerCount, views, creatorPhotoUrl } = post;
     const isCreatorOrAdmin = auth.user === creator || auth.roles === 'Admin';
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+    const avatarUrl = creatorPhotoUrl ? apiBase + creatorPhotoUrl : null;
 
     const handleVote = (type) => {
         if (!auth.user) {
@@ -202,6 +204,7 @@ export default function Post({ post, onUpdate, onDelete, onAddPoll, pollsVisible
                         <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
                             <Avatar
                                 alt={creator ? creator[0].toUpperCase() : 'U'}
+                                src={avatarUrl}
                                 sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', fontWeight: 'bold' }}
                             />
                             <Box>
