@@ -1,5 +1,14 @@
 #!/bin/sh
+set -eu
+
 echo "Substituting environment variables in built JS files..."
+
+CSP_FRAME_SOURCES="${CSP_FRAME_SOURCES}"
+if ! printf '%s' "$CSP_FRAME_SOURCES" | grep -Eq '^https://[A-Za-z0-9._:-]+( https://[A-Za-z0-9._:-]+)*$'; then
+  echo "Invalid CSP_FRAME_SOURCES. Use space-separated HTTPS origins without paths." >&2
+  exit 1
+fi
+sed -i "s|PLACEHOLDER_CSP_FRAME_SOURCES|${CSP_FRAME_SOURCES}|g" /etc/nginx/conf.d/default.conf
 
 for file in /usr/share/nginx/html/assets/*.js; do
   if [ -f "$file" ]; then
