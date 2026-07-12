@@ -248,7 +248,7 @@ export default function Forum_Post() {
     Promise.all([
       api.get("/forum/post", { params: { post: id } }),
       api.get("/forum/answer", { params: { post: id } }),
-      api.get(`/event/by-post/${id}`).then(res => res.data).catch(() => null),
+      api.get(`/event/by-post/${id}`).then(res => res.status === 204 ? null : res.data),
     ])
       .then(([postRes, answersRes, eventData]) => {
         dispatch({
