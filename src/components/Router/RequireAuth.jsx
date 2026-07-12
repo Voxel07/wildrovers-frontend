@@ -5,12 +5,12 @@ const RequireAuth = ({ allowedRoles }) => {
     const { auth } = useAuth();
     const location = useLocation();
 
-    console.log("test",auth.user)
-    console.log(allowedRoles)
+    const roles = Array.isArray(auth?.roles)
+        ? auth.roles
+        : (auth?.roles ? [auth.roles] : []);
 
-    //Breaks because roles isn't an aray
     return (
-        auth?.roles?.find(role => allowedRoles?.includes(role))
+        roles.some(role => allowedRoles?.includes(role))
             ? <Outlet />
             : auth?.user
                 ? <Navigate to="/unauthorized" state={{ from: location }} replace />

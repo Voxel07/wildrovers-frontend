@@ -16,6 +16,7 @@ for file in /usr/share/nginx/html/assets/*.js; do
     sed -i "s|PLACEHOLDER_VITE_OPENOBSERVE_APP_ID|${VITE_OPENOBSERVE_APP_ID}|g" "$file"
     sed -i "s|PLACEHOLDER_VITE_OPENOBSERVE_ORG|${VITE_OPENOBSERVE_ORG}|g" "$file"
     sed -i "s|PLACEHOLDER_VITE_OPENOBSERVE_INSECURE_HTTP|${VITE_OPENOBSERVE_INSECURE_HTTP}|g" "$file"
+    sed -i "s|PLACEHOLDER_VITE_OPENOBSERVE_ENABLED|${VITE_OPENOBSERVE_ENABLED}|g" "$file"
   fi
 done
 

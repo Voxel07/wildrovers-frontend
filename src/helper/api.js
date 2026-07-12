@@ -6,16 +6,46 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080',
 });
 
+let refreshPromise = null;
 let isRefreshing = false;
 let refreshSubscribers = [];
+let lastRefreshedToken = null;
 
 function subscribeTokenRefresh(cb) {
-  refreshSubscribers.push(cb);
+  if (lastRefreshedToken) {
+    cb(lastRefreshedToken);
+  } else {
+    refreshSubscribers.push(cb);
+  }
 }
 
 function onRefreshed(token) {
+  lastRefreshedToken = token;
   refreshSubscribers.forEach((cb) => cb(token));
   refreshSubscribers = [];
+}
+
+function refreshAuthToken(auth) {
+  if (!refreshPromise) {
+    refreshPromise = refreshTokens(auth.refreshToken)
+      .then((tokens) => {
+        const payload = parseJwt(tokens.access_token || tokens.id_token);
+        const updatedAuth = {
+          ...auth,
+          JWT: tokens.access_token,
+          refreshToken: tokens.refresh_token || auth.refreshToken,
+          expiresAt: payload?.exp
+            ? payload.exp * 1000
+            : (tokens.expires_in ? Date.now() + tokens.expires_in * 1000 : null),
+          user: payload?.preferred_username || payload?.sub || auth.user,
+        };
+        setCookie('auth:v1', JSON.stringify(updatedAuth), 7);
+        window.dispatchEvent(new Event('auth-updated'));
+        return tokens.access_token;
+      })
+      .finally(() => { refreshPromise = null; });
+  }
+  return refreshPromise;
 }
 
 api.interceptors.request.use(
@@ -29,47 +59,13 @@ api.interceptors.request.use(
           const isExpired = auth.expiresAt && (auth.expiresAt - 30 * 1000 < Date.now());
 
           if (isExpired && auth.refreshToken) {
-            if (!isRefreshing) {
-              isRefreshing = true;
-              try {
-                const tokens = await refreshTokens(auth.refreshToken);
-                const payload = parseJwt(tokens.access_token || tokens.id_token);
-                let username = auth.user;
-                if (payload) {
-                  username = payload.preferred_username || payload.sub;
-                }
-                const computedExpiresAt = payload?.exp
-                  ? payload.exp * 1000
-                  : (tokens.expires_in ? Date.now() + tokens.expires_in * 1000 : null);
-
-                const updatedAuth = {
-                  ...auth,
-                  JWT: tokens.access_token,
-                  refreshToken: tokens.refresh_token || auth.refreshToken,
-                  expiresAt: computedExpiresAt,
-                  user: username,
-                };
-                setCookie('auth:v1', JSON.stringify(updatedAuth), 7);
-                window.dispatchEvent(new Event('auth-updated'));
-                isRefreshing = false;
-                onRefreshed(tokens.access_token);
-              } catch (err) {
-                isRefreshing = false;
-                console.error('Token refresh failed in interceptor', err);
-                // Clear auth to force relogin
-                deleteCookie('auth:v1');
-                window.dispatchEvent(new Event('auth-updated'));
-                return config;
-              }
+            try {
+              config.headers.Authorization = `Bearer ${await refreshAuthToken(auth)}`;
+            } catch (err) {
+              console.error('Token refresh failed in interceptor', err);
+              deleteCookie('auth:v1');
+              window.dispatchEvent(new Event('auth-updated'));
             }
-
-            // Wait for token refresh to complete
-            const newToken = await new Promise((resolve) => {
-              subscribeTokenRefresh((token) => {
-                resolve(token);
-              });
-            });
-            config.headers.Authorization = `Bearer ${newToken}`;
           } else {
             config.headers.Authorization = `Bearer ${auth.JWT}`;
           }
@@ -123,6 +119,7 @@ api.interceptors.response.use(
             // OIDC session: attempt token refresh
             if (!isRefreshing) {
               isRefreshing = true;
+              lastRefreshedToken = null;
               try {
                 const tokens = await refreshTokens(auth.refreshToken);
                 const payload = parseJwt(tokens.access_token || tokens.id_token);
@@ -167,6 +164,11 @@ api.interceptors.response.use(
 
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
             return api(originalRequest);
+          }
+          deleteCookie('auth:v1');
+          window.dispatchEvent(new Event('auth-updated'));
+          if (!window.location.pathname.toLowerCase().includes('/login')) {
+            window.location.href = '/Login';
           }
           // Local-JWT session (no refreshToken): don't clear auth on 401 — just propagate the error
         }
