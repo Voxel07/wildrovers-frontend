@@ -54,7 +54,8 @@ const emptyNotificationPreferences = {
   resources: {
     EVENT: { email: false, webhook: false },
     FORUM: { email: false, webhook: false },
-    GALLERY: { email: false, webhook: false }
+    GALLERY: { email: false, webhook: false },
+    SIGNUP: { email: false, webhook: false }
   },
   webhook: { configured: false, enabled: false, urlMasked: '', verifiedAt: null, lastSuccessAt: null, lastError: null, failureCount: 0 }
 };
@@ -490,105 +491,105 @@ export default function Profile() {
               position: 'relative',
               overflow: 'hidden',
             }}>
-            {/* Background image */}
-            {backgroundUrl && (
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: '100%',
-                  backgroundImage: `url(${backgroundUrl})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  opacity: 0.15,
-                  zIndex: 0,
-                }}
-              />
-            )}
-            <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 1 }}>
-              <Avatar
-                src={avatarUrl}
-                sx={{
-                  width: 100,
-                  height: 100,
-                  fontSize: '2.5rem',
-                  fontWeight: 'bold',
-                  bgcolor: 'primary.main',
-                  color: 'primary.contrastText',
-                  mb: 2,
-                  boxShadow: '0 0 20px rgba(255, 152, 0, 0.25)',
-                  border: '2px solid rgba(255, 152, 0, 0.3)'
-                }}
-              >
-                {initial}
-              </Avatar>
-              <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
-                {profile.userName}
-              </Typography>
-              <Chip
-                label={profile.role}
-                color={roleColors[profile.role] || "default"}
-                size="small"
-                sx={{ fontWeight: 'bold', px: 1, mb: 3 }}
-              />
-
-              <Stack spacing={1} sx={{ width: '100%', px: 2 }}>
-                <input
-                  type="file"
-                  accept="image/*"
-                  id="avatar-upload"
-                  style={{ display: 'none' }}
-                  onChange={handleAvatarChange}
+              {/* Background image */}
+              {backgroundUrl && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '100%',
+                    backgroundImage: `url(${backgroundUrl})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    opacity: 0.15,
+                    zIndex: 0,
+                  }}
                 />
-                <label htmlFor="avatar-upload">
-                  <Button component="span" variant="outlined" size="small" fullWidth>
-                    Profilbild ändern
-                  </Button>
-                </label>
-
-                {profile.photoUrl && (
-                  <Button
-                    variant="text"
-                    size="small"
-                    color="error"
-                    fullWidth
-                    onClick={handleRemovePhoto}
-                  >
-                    Profilbild entfernen
-                  </Button>
-                )}
-
-                <input
-                  type="file"
-                  accept="image/*"
-                  id="background-upload"
-                  style={{ display: 'none' }}
-                  onChange={handleBackgroundChange}
+              )}
+              <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 1 }}>
+                <Avatar
+                  src={avatarUrl}
+                  sx={{
+                    width: 100,
+                    height: 100,
+                    fontSize: '2.5rem',
+                    fontWeight: 'bold',
+                    bgcolor: 'primary.main',
+                    color: 'primary.contrastText',
+                    mb: 2,
+                    boxShadow: '0 0 20px rgba(255, 152, 0, 0.25)',
+                    border: '2px solid rgba(255, 152, 0, 0.3)'
+                  }}
+                >
+                  {initial}
+                </Avatar>
+                <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  {profile.userName}
+                </Typography>
+                <Chip
+                  label={profile.role}
+                  color={roleColors[profile.role] || "default"}
+                  size="small"
+                  sx={{ fontWeight: 'bold', px: 1, mb: 3 }}
                 />
-                <label htmlFor="background-upload">
-                  <Button component="span" variant="outlined" size="small" fullWidth>
-                    Hintergrund ändern
-                  </Button>
-                </label>
 
-                {profile.backgroundUrl && (
-                  <Button
-                    variant="text"
-                    size="small"
-                    color="error"
-                    fullWidth
-                    onClick={handleRemoveBackground}
-                  >
-                    Hintergrund entfernen
-                  </Button>
-                )}
-              </Stack>
-            </CardContent>
-          </Card>
-          <ProfileActivitySummary profile={profile} events={events} />
-        </Stack>
+                <Stack spacing={1} sx={{ width: '100%', px: 2 }}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="avatar-upload"
+                    style={{ display: 'none' }}
+                    onChange={handleAvatarChange}
+                  />
+                  <label htmlFor="avatar-upload">
+                    <Button component="span" variant="outlined" size="small" fullWidth>
+                      Profilbild ändern
+                    </Button>
+                  </label>
+
+                  {profile.photoUrl && (
+                    <Button
+                      variant="text"
+                      size="small"
+                      color="error"
+                      fullWidth
+                      onClick={handleRemovePhoto}
+                    >
+                      Profilbild entfernen
+                    </Button>
+                  )}
+
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="background-upload"
+                    style={{ display: 'none' }}
+                    onChange={handleBackgroundChange}
+                  />
+                  <label htmlFor="background-upload">
+                    <Button component="span" variant="outlined" size="small" fullWidth>
+                      Hintergrund ändern
+                    </Button>
+                  </label>
+
+                  {profile.backgroundUrl && (
+                    <Button
+                      variant="text"
+                      size="small"
+                      color="error"
+                      fullWidth
+                      onClick={handleRemoveBackground}
+                    >
+                      Hintergrund entfernen
+                    </Button>
+                  )}
+                </Stack>
+              </CardContent>
+            </Card>
+            <ProfileActivitySummary profile={profile} events={events} />
+          </Stack>
         </Grid>
 
         {/* Profile Details Right */}
@@ -901,11 +902,11 @@ export default function Profile() {
       <Card sx={{ mt: 4, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
         <CardContent sx={{ p: 4 }}>
           <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', mb: 1 }}>
-            <NotificationsActiveIcon color="primary" />
+            <NotificationsActiveIcon color="action" />
             <Typography variant="h6" sx={{ fontWeight: 'bold' }}>Benachrichtigungen</Typography>
           </Stack>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Events werden sofort gemeldet. Forum und Galerie werden morgens um 06:00 Uhr zusammengefasst.
+            Event-E-Mails werden sofort gesendet. Andere E-Mails werden morgens um 06:00 Uhr zusammengefasst. Webhooks werden immer direkt gesendet.
           </Typography>
 
           <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(110px, 1fr) auto auto', gap: 1, alignItems: 'center' }}>
@@ -915,7 +916,8 @@ export default function Profile() {
             {[
               ['EVENT', 'Events'],
               ['FORUM', 'Forum'],
-              ['GALLERY', 'Galerie']
+              ['GALLERY', 'Galerie'],
+              ...(['Admin', 'Vorstand'].includes(profile?.role) ? [['SIGNUP', 'Neue Registrierungen']] : [])
             ].map(([resource, label]) => (
               <React.Fragment key={resource}>
                 <Typography>{label}</Typography>
