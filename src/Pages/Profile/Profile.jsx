@@ -32,6 +32,9 @@ import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import ForumIcon from '@mui/icons-material/Forum';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import GroupIcon from '@mui/icons-material/Group';
+import Switch from '@mui/material/Switch';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import WebhookIcon from '@mui/icons-material/Webhook';
 
 const roleColors = {
   "Admin": "error",
@@ -45,6 +48,15 @@ const initialProfileState = {
   profile: null,
   loading: true,
   error: null,
+};
+
+const emptyNotificationPreferences = {
+  resources: {
+    EVENT: { email: false, webhook: false },
+    FORUM: { email: false, webhook: false },
+    GALLERY: { email: false, webhook: false }
+  },
+  webhook: { configured: false, enabled: false, urlMasked: '', verifiedAt: null, lastSuccessAt: null, lastError: null, failureCount: 0 }
 };
 
 function profileReducer(state, action) {
@@ -108,6 +120,10 @@ export default function Profile() {
     userName: ''
   });
   const [saving, setSaving] = useState(false);
+  const [notificationPreferences, setNotificationPreferences] = useState(emptyNotificationPreferences);
+  const [notificationSaving, setNotificationSaving] = useState(false);
+  const [webhookUrl, setWebhookUrl] = useState('');
+  const [webhookSecret, setWebhookSecret] = useState('');
 
   const fetchProfile = (silent = false) => {
     if (!silent) {
@@ -146,7 +162,73 @@ export default function Profile() {
       .catch(err => {
         console.error("Error fetching events for profile breakdown", err);
       });
+    api.get('/user/me/notifications')
+      .then(res => setNotificationPreferences(res.data))
+      .catch(err => console.error("Error fetching notification preferences", err));
   }, [auth, navigate]);
+
+  const toggleNotificationChannel = (resource, channel) => {
+    setNotificationPreferences(current => ({
+      ...current,
+      resources: {
+        ...current.resources,
+        [resource]: { ...current.resources[resource], [channel]: !current.resources[resource][channel] }
+      }
+    }));
+  };
+
+  const saveNotificationPreferences = () => {
+    setNotificationSaving(true);
+    api.put('/user/me/notifications', {
+      resources: notificationPreferences.resources,
+      webhookUrl: webhookUrl.trim() || null
+    }).then(res => {
+      setNotificationPreferences(res.data);
+      setWebhookUrl('');
+      if (res.data.webhookSecret) setWebhookSecret(res.data.webhookSecret);
+      alertsManagerRef.current.showAlert('success', 'Benachrichtigungseinstellungen gespeichert.');
+    }).catch(err => {
+      alertsManagerRef.current.showAlert('error', extractErrorMessage(err));
+    }).finally(() => setNotificationSaving(false));
+  };
+
+  const testWebhook = () => {
+    api.post('/user/me/notifications/webhook/test')
+      .then(() => {
+        alertsManagerRef.current.showAlert('success', 'Webhook erfolgreich getestet.');
+        return api.get('/user/me/notifications');
+      })
+      .then(res => res && setNotificationPreferences(res.data))
+      .catch(err => alertsManagerRef.current.showAlert('error', extractErrorMessage(err)));
+  };
+
+  const rotateWebhookSecret = () => {
+    api.post('/user/me/notifications/webhook/rotate-secret')
+      .then(res => {
+        setWebhookSecret(res.data.webhookSecret);
+        alertsManagerRef.current.showAlert('success', 'Webhook-Secret erneuert.');
+      })
+      .catch(err => alertsManagerRef.current.showAlert('error', extractErrorMessage(err)));
+  };
+
+  const removeWebhook = () => {
+    api.delete('/user/me/notifications/webhook').then(() => {
+      setNotificationPreferences(current => ({
+        ...current,
+        resources: Object.fromEntries(Object.entries(current.resources).map(([key, value]) => [key, { ...value, webhook: false }])),
+        webhook: emptyNotificationPreferences.webhook
+      }));
+      setWebhookSecret('');
+      setWebhookUrl('');
+      alertsManagerRef.current.showAlert('success', 'Webhook entfernt.');
+    }).catch(err => alertsManagerRef.current.showAlert('error', extractErrorMessage(err)));
+  };
+
+  const acknowledgeNews = () => {
+    api.post('/user/me/notifications/acknowledge')
+      .then(() => alertsManagerRef.current.showAlert('success', 'Neuigkeiten als gelesen markiert.'))
+      .catch(err => alertsManagerRef.current.showAlert('error', extractErrorMessage(err)));
+  };
 
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
@@ -815,6 +897,75 @@ export default function Profile() {
           </Card>
         </Grid>
       </Grid>
+
+      <Card sx={{ mt: 4, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+        <CardContent sx={{ p: 4 }}>
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', mb: 1 }}>
+            <NotificationsActiveIcon color="primary" />
+            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>Benachrichtigungen</Typography>
+          </Stack>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Events werden sofort gemeldet. Forum und Galerie werden morgens um 06:00 Uhr zusammengefasst.
+          </Typography>
+
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(110px, 1fr) auto auto', gap: 1, alignItems: 'center' }}>
+            <Typography variant="caption" color="text.secondary">Bereich</Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>E-Mail</Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>Webhook</Typography>
+            {[
+              ['EVENT', 'Events'],
+              ['FORUM', 'Forum'],
+              ['GALLERY', 'Galerie']
+            ].map(([resource, label]) => (
+              <React.Fragment key={resource}>
+                <Typography>{label}</Typography>
+                <Switch checked={notificationPreferences.resources?.[resource]?.email || false} onChange={() => toggleNotificationChannel(resource, 'email')} inputProps={{ 'aria-label': `${label} per E-Mail` }} />
+                <Switch checked={notificationPreferences.resources?.[resource]?.webhook || false} onChange={() => toggleNotificationChannel(resource, 'webhook')} inputProps={{ 'aria-label': `${label} per Webhook` }} />
+              </React.Fragment>
+            ))}
+          </Box>
+
+          {Object.values(notificationPreferences.resources || {}).some(value => value.webhook) && (
+            <Box sx={{ mt: 3, p: 2.5, borderRadius: 2, bgcolor: 'action.hover' }}>
+              <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 2 }}>
+                <WebhookIcon color="action" />
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Persönlicher Webhook</Typography>
+              </Stack>
+              <TextField
+                fullWidth
+                size="small"
+                label={notificationPreferences.webhook?.configured ? 'Neue URL eingeben, um die vorhandene zu ersetzen' : 'Webhook-URL'}
+                placeholder={notificationPreferences.webhook?.urlMasked || 'https://example.org/webhook'}
+                value={webhookUrl}
+                onChange={event => setWebhookUrl(event.target.value)}
+              />
+              {webhookSecret && (
+                <TextField fullWidth size="small" sx={{ mt: 2 }} label="Webhook-Secret (wird nur einmal angezeigt)" value={webhookSecret} slotProps={{ input: { readOnly: true } }} />
+              )}
+              {notificationPreferences.webhook?.configured && (
+                <Stack spacing={1} sx={{ mt: 2 }}>
+                  <Typography variant="caption" color={notificationPreferences.webhook.verifiedAt ? 'success.main' : 'warning.main'}>
+                    {notificationPreferences.webhook.verifiedAt ? 'Webhook verifiziert' : 'Webhook noch nicht erfolgreich getestet'}
+                  </Typography>
+                  {notificationPreferences.webhook.lastError && <Typography variant="caption" color="error">Letzter Fehler: {notificationPreferences.webhook.lastError}</Typography>}
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                    <Button size="small" variant="outlined" onClick={testWebhook}>Webhook testen</Button>
+                    <Button size="small" variant="outlined" onClick={rotateWebhookSecret}>Secret erneuern</Button>
+                    <Button size="small" color="error" onClick={removeWebhook}>Webhook entfernen</Button>
+                  </Stack>
+                </Stack>
+              )}
+            </Box>
+          )}
+
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mt: 3 }}>
+            <Button variant="contained" onClick={saveNotificationPreferences} disabled={notificationSaving}>
+              Einstellungen speichern
+            </Button>
+            <Button variant="text" onClick={acknowledgeNews}>Neuigkeiten als gelesen markieren</Button>
+          </Stack>
+        </CardContent>
+      </Card>
     </Container>
   );
 }
