@@ -15,6 +15,7 @@ import TextField from '@mui/material/TextField';
 import LoginIcon from '@mui/icons-material/Login';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
+import MarkEmailUnreadIcon from '@mui/icons-material/MarkEmailUnread';
 
 // Auth & OIDC
 import useAuth from '../../context/useAuth';
@@ -72,6 +73,10 @@ const SignIn = React.forwardRef((props, ref) => {
 
   const [usernameOrEmail, setUsernameOrEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [canResendVerification, setCanResendVerification] = useState(false);
+  const [resendingVerification, setResendingVerification] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
+  const [resendError, setResendError] = useState('');
 
   const from = location.state?.from?.pathname || "/";
   const [blockedByAdmin, setBlockedByAdmin] = useState(false);
@@ -163,6 +168,9 @@ const SignIn = React.forwardRef((props, ref) => {
     }
 
     dispatch({ type: 'LOGIN_START' });
+    setCanResendVerification(false);
+    setResendMessage('');
+    setResendError('');
     try {
       const response = await api.post('/user/login', {
         userName: usernameOrEmail,
@@ -188,8 +196,39 @@ const SignIn = React.forwardRef((props, ref) => {
     } catch (err) {
       console.error("Local login failed", err);
       const errorMsg = extractErrorMessage(err);
+      setCanResendVerification(err?.response?.data?.code === 'ACCOUNT_NOT_VERIFIED');
       dispatch({ type: 'LOGIN_ERROR', payload: errorMsg });
     }
+  };
+
+  const handleResendVerification = async () => {
+    setResendingVerification(true);
+    setResendMessage('');
+    setResendError('');
+    try {
+      const response = await api.post('/user/resend-verification', {
+        userName: usernameOrEmail,
+        password
+      });
+      setResendMessage(response.data?.message || 'Ein neuer Verifizierungscode wurde gesendet.');
+    } catch (err) {
+      console.error('Resending verification code failed', err);
+      setResendError(extractErrorMessage(err));
+      if (err?.response?.status === 401) {
+        setCanResendVerification(false);
+      }
+    } finally {
+      setResendingVerification(false);
+    }
+  };
+
+  const openVerificationPage = () => {
+    if (props.callback) {
+      props.callback();
+    }
+    navigate('/Regestrieren/Erfolgreich', {
+      state: { email: usernameOrEmail.includes('@') ? usernameOrEmail.trim() : '' }
+    });
   };
 
   const cardContentInner = (
@@ -214,7 +253,11 @@ const SignIn = React.forwardRef((props, ref) => {
             fullWidth
             label="Benutzername oder E-Mail"
             value={usernameOrEmail}
-            onChange={(e) => setUsernameOrEmail(e.target.value)}
+            onChange={(e) => {
+              setUsernameOrEmail(e.target.value);
+              setCanResendVerification(false);
+              setResendMessage('');
+            }}
             autoComplete="username"
             autoFocus
           />
@@ -226,7 +269,11 @@ const SignIn = React.forwardRef((props, ref) => {
             label="Passwort"
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setCanResendVerification(false);
+              setResendMessage('');
+            }}
             autoComplete="current-password"
           />
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 0.5 }}>
@@ -292,6 +339,36 @@ const SignIn = React.forwardRef((props, ref) => {
       {error && (
         <Alert severity="error" sx={{ width: '100%', mt: 3 }}>
           {error}
+        </Alert>
+      )}
+
+      {canResendVerification && (
+        <Box sx={{ width: '100%', mt: 2 }}>
+          <Button
+            variant="outlined"
+            color="primary"
+            fullWidth
+            startIcon={resendingVerification ? <CircularProgress size={18} color="inherit" /> : <MarkEmailUnreadIcon />}
+            onClick={handleResendVerification}
+            disabled={resendingVerification}
+          >
+            {resendingVerification ? 'Code wird gesendet...' : 'Verifizierungscode erneut senden'}
+          </Button>
+        </Box>
+      )}
+
+      {resendMessage && (
+        <Alert severity="success" sx={{ width: '100%', mt: 2 }}>
+          {resendMessage}
+          <Button color="inherit" size="small" onClick={openVerificationPage} sx={{ ml: 1 }}>
+            Code eingeben
+          </Button>
+        </Alert>
+      )}
+
+      {resendError && (
+        <Alert severity="error" sx={{ width: '100%', mt: 2 }}>
+          {resendError}
         </Alert>
       )}
     </Box>
