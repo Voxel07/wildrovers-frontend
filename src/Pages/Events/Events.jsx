@@ -32,6 +32,7 @@ import ForumIcon from '@mui/icons-material/Forum';
 import AddBoxIcon from '@mui/icons-material/AddBox';
 import WarningIcon from '@mui/icons-material/Warning';
 import LockIcon from '@mui/icons-material/Lock';
+import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 
 const initialModalState = {
   openModal: false,
@@ -116,6 +117,8 @@ export default function Events() {
   const isAdmin = auth?.roles === 'Admin';
   const currentUsername = auth?.user;
   const isTeamMember = isLoggedIn && ['Frischling', 'Mitglied', 'Vorstand', 'Admin'].includes(auth?.roles);
+  const isVorstand = auth?.roles === 'Vorstand';
+  const canManageAttendance = isLoggedIn && (isAdmin || isVorstand);
 
   const [events, setEvents] = useState([]);
   const [modalState, dispatchModal] = useReducer(modalReducer, initialModalState);
@@ -126,6 +129,9 @@ export default function Events() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
   const [menuEventId, setMenuEventId] = useState(null);
+  const [participantDialogOpen, setParticipantDialogOpen] = useState(false);
+  const [participantEventId, setParticipantEventId] = useState(null);
+  const [teamMembers, setTeamMembers] = useState([]);
 
   const fetchEvents = () => {
     api.get('/event')
@@ -262,6 +268,30 @@ export default function Events() {
       });
   };
 
+  const openParticipantDialog = (event) => {
+    setParticipantEventId(event.id);
+    setParticipantDialogOpen(true);
+    api.get('/user/members')
+      .then(res => {
+        setTeamMembers(res.data);
+      })
+      .catch(err => {
+        console.error("Error fetching team members", err);
+        setTeamMembers([]);
+      });
+  };
+
+  const handleAttendanceForUser = (userId, status) => {
+    if (!participantEventId) return;
+    api.post(`/event/${participantEventId}/attendance/${userId}`, { status })
+      .then(() => {
+        fetchEvents();
+      })
+      .catch(err => {
+        console.error("Error setting attendance for user", err);
+      });
+  };
+
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     try {
@@ -325,6 +355,8 @@ export default function Events() {
       return { dateTextOnly: startDateStr, timeTextOnly: '' };
     }
   };
+
+  const participantEvent = events.find(e => e.id === participantEventId);
 
   return (
     <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: { xs: 4, md: 8 } }}>
@@ -461,10 +493,10 @@ export default function Events() {
                     <Grid container spacing={2} sx={{ alignItems: 'stretch' }}>
                       {/* Left Column: Date & Time (desktop only) */}
                       <Grid size={{ xs: 3.5, sm: 2.5 }} sx={{ display: { xs: 'none', sm: 'flex' }, flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', pr: { xs: 1, sm: 2 } }}>
-                        <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'primary.main', textAlign: 'right', fontSize: { xs: '0.85rem', sm: '1rem' } }}>
+                        <Typography variant="body1" sx={{ fontWeight: 'bold', color: isFuture ? 'primary.main' : 'text.disabled', textAlign: 'right', fontSize: { xs: '0.85rem', sm: '1rem' } }}>
                           {dateTextOnly}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'right', fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'right', fontSize: { xs: '0.7rem', sm: '0.75rem' }, opacity: isFuture ? 1 : 0.6 }}>
                           {timeTextOnly}
                         </Typography>
                         {isNextEvent && (
@@ -519,6 +551,8 @@ export default function Events() {
                           bgcolor: isFuture ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.005)',
                           transition: 'all 0.3s ease',
                           width: '100%',
+                          opacity: isFuture ? 1 : 0.55,
+                          filter: isFuture ? 'none' : 'grayscale(0.9)',
                           '&:hover': {
                             borderColor: isFuture ? 'primary.main' : 'rgba(255,255,255,0.15)',
                             transform: 'translateX(4px)'
@@ -619,6 +653,20 @@ export default function Events() {
                                   sx={{ cursor: isLoggedIn ? 'pointer' : (isTeamMember ? 'help' : 'default') }}
                                 />
                               </Tooltip>
+
+                              {canManageAttendance && (
+                                <Tooltip title="Teilnehmer verwalten">
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    startIcon={<PersonAddAlt1Icon />}
+                                    onClick={() => openParticipantDialog(event)}
+                                    sx={{ ml: 'auto' }}
+                                  >
+                                    Teilnehmer
+                                  </Button>
+                                </Tooltip>
+                              )}
 
                             </Box>
                           </CardContent>
@@ -735,6 +783,80 @@ export default function Events() {
             </Button>
           </DialogActions>
         </form>
+      </Dialog>
+
+      {/* Dialog for managing participants (Admins / Vorstand) */}
+      <Dialog open={participantDialogOpen} onClose={() => setParticipantDialogOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle sx={{ fontWeight: 'bold', borderBottom: '1px solid rgba(255,255,255,0.08)', color: 'primary.main' }}>
+          Teilnehmer verwalten
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            {participantEvent ? <>Event: <strong>{participantEvent.title}</strong></> : 'Event'} — Trage den Status für jedes Teammitglied ein.
+          </Typography>
+          {teamMembers.length === 0 ? (
+            <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+              Keine Teammitglieder gefunden.
+            </Typography>
+          ) : (
+            <Stack spacing={1}>
+              {teamMembers.map(member => {
+                const current = participantEvent?.attendances?.find(a => a.userName === member.userName);
+                return (
+                  <Box
+                    key={member.id}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 1,
+                      flexWrap: 'wrap',
+                      p: 1,
+                      borderRadius: 1,
+                      bgcolor: 'rgba(255,255,255,0.03)'
+                    }}
+                  >
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{member.userName}</Typography>
+                      <Typography variant="caption" color="text.secondary">{member.role}</Typography>
+                    </Box>
+                    <Stack direction="row" spacing={0.5}>
+                      <Button
+                        size="small"
+                        variant={current?.status === 'YES' ? 'contained' : 'outlined'}
+                        color="success"
+                        onClick={() => handleAttendanceForUser(member.id, 'YES')}
+                      >
+                        Ja
+                      </Button>
+                      <Button
+                        size="small"
+                        variant={current?.status === 'NO' ? 'contained' : 'outlined'}
+                        color="error"
+                        onClick={() => handleAttendanceForUser(member.id, 'NO')}
+                      >
+                        Nein
+                      </Button>
+                      <Button
+                        size="small"
+                        variant={current?.status === 'MAYBE' ? 'contained' : 'outlined'}
+                        color="warning"
+                        onClick={() => handleAttendanceForUser(member.id, 'MAYBE')}
+                      >
+                        Vielleicht
+                      </Button>
+                    </Stack>
+                  </Box>
+                );
+              })}
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <Button onClick={() => setParticipantDialogOpen(false)} color="inherit">
+            Schließen
+          </Button>
+        </DialogActions>
       </Dialog>
 
       {/* Custom dialog for deleting event */}
