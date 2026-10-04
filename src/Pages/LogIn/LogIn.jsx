@@ -21,35 +21,7 @@ import MarkEmailUnreadIcon from '@mui/icons-material/MarkEmailUnread';
 import useAuth from '../../context/useAuth';
 import { redirectToAuthentik, exchangeCodeForToken, parseJwt } from '../../helper/oidc';
 import api, { extractErrorMessage } from '../../helper/api';
-
-// Map OIDC groups to local DB roles
-function mapGroupsToRole(groups) {
-  if (!groups || !groups.length) return "Besucher";
-  
-  let isAdmin = false;
-  let isVorstand = false;
-  let isMitglied = false;
-  let isFrischling = false;
-
-  groups.forEach(g => {
-    const lower = g.toLowerCase();
-    if (lower.includes("admin")) {
-      isAdmin = true;
-    } else if (lower.includes("vorstand") || lower.includes("aldermen")) {
-      isVorstand = true;
-    } else if (lower.includes("mitglied") || lower.includes("member") || lower.includes("user") || lower.includes("wrw")) {
-      isMitglied = true;
-    } else if (lower.includes("frischling") || lower.includes("freshman")) {
-      isFrischling = true;
-    }
-  });
-
-  if (isAdmin) return "Admin";
-  if (isVorstand) return "Vorstand";
-  if (isMitglied) return "Mitglied";
-  if (isFrischling) return "Frischling";
-  return "Besucher";
-}
+import { removeQueryParams } from '../../helper/telemetry';
 
 const initialLoginState = { loading: false, error: null };
 
@@ -95,6 +67,11 @@ const SignIn = React.forwardRef((props, ref) => {
     const code = searchParams.get('code');
     const hasVerifier = localStorage.getItem("oidc_verifier");
 
+    if (code) {
+      // Authorization code and state are single-use secrets: drop them from the URL.
+      removeQueryParams('code', 'state', 'session_state', 'iss');
+    }
+
     if (code && hasVerifier) {
       dispatch({ type: 'VERIFYING' });
       exchangeCodeForToken(code)
@@ -103,8 +80,6 @@ const SignIn = React.forwardRef((props, ref) => {
           const payload = parseJwt(tokens.access_token || tokens.id_token);
           if (payload) {
             const username = payload.preferred_username || payload.sub;
-            const groups = payload.groups || [];
-            const role = mapGroupsToRole(groups);
 
             const computedExpiresAt = payload.exp
               ? payload.exp * 1000
@@ -115,7 +90,8 @@ const SignIn = React.forwardRef((props, ref) => {
               refreshToken: tokens.refresh_token,
               expiresAt: computedExpiresAt,
               user: username,
-              roles: role
+              // The backend maps IdP groups to the role (explicit allowlist); /user/me is authoritative.
+              roles: 'Besucher'
             };
 
             setAuth(authData);
@@ -126,6 +102,8 @@ const SignIn = React.forwardRef((props, ref) => {
                 const dbUser = res.data;
                 setAuth(prev => ({
                   ...prev,
+                  user: dbUser?.userName || prev.user,
+                  roles: dbUser?.role || 'Besucher',
                   canCreateCategory: dbUser?.canCreateCategory || false
                 }));
                 navigate(from, { replace: true });

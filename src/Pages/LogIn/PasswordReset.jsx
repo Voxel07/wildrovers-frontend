@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api, { extractErrorMessage } from '../../helper/api';
+import { removeQueryParams } from '../../helper/telemetry';
 
 // Mui
 import Container from '@mui/material/Container';
@@ -42,6 +43,8 @@ export default function PasswordReset() {
     setErrorMsg('');
     setSuccessMsg('');
     setIsFinished(false);
+    // Keep the one-time token out of the address bar, history, referrers and telemetry.
+    if (token) removeQueryParams('token');
   }, [token]);
 
   const handleRequestReset = async (e) => {

@@ -1,14 +1,11 @@
 // OIDC Client Helper for Authentik
 
-// Generate random string for code verifier
-function dec2hex(dec) {
-  return dec.toString(16).padStart(2, "0");
-}
-
+// RFC 7636 §4.1: the verifier must be 43–128 characters from the unreserved set.
+// 32 random bytes, base64url-encoded without padding, yield exactly 43 characters.
 export function generateCodeVerifier() {
-  const array = new Uint32Array(56 / 2);
-  window.crypto.getRandomValues(array);
-  return Array.from(array, dec2hex).join("");
+  const bytes = new Uint8Array(32);
+  window.crypto.getRandomValues(bytes);
+  return base64urlencode(bytes);
 }
 
 // Generate SHA-256 hash of verifier

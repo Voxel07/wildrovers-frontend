@@ -942,7 +942,7 @@ export default function Profile() {
                 onChange={event => setWebhookUrl(event.target.value)}
               />
               {webhookSecret && (
-                <TextField fullWidth size="small" sx={{ mt: 2 }} label="Webhook-Secret (wird nur einmal angezeigt)" value={webhookSecret} slotProps={{ input: { readOnly: true } }} />
+                <TextField fullWidth size="small" sx={{ mt: 2 }} label="Webhook-Secret (wird nur einmal angezeigt)" value={webhookSecret} data-o2-privacy="hidden" slotProps={{ input: { readOnly: true } }} />
               )}
               {notificationPreferences.webhook?.configured && (
                 <Stack spacing={1} sx={{ mt: 2 }}>

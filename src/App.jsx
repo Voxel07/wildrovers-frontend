@@ -1,4 +1,5 @@
-import { Routes, Navigate, Route } from "react-router-dom";
+import { Routes, Navigate, Route, useLocation } from "react-router-dom";
+import { syncReplayWithRoute } from './helper/telemetry';
 
 // MUI
 import Box from '@mui/material/Box';
@@ -44,6 +45,7 @@ const AUTHENTICATED_ROLES = ["Besucher", "Frischling", "Mitglied", "Vorstand", "
 
 function App() {
   const { auth } = useAuth();
+  const location = useLocation();
   const [user, setUser] = useState({ valid: false, name: "", role: "", jwt: "" });
 
   useEffect(() => {
@@ -63,6 +65,11 @@ function App() {
       });
     }
   }, [auth]);
+
+  // Session replay must never record login, reset, signup, profile or admin views.
+  useEffect(() => {
+    syncReplayWithRoute(location.pathname);
+  }, [location.pathname]);
 
   const stateValue = useMemo(() => ({ user, setUser }), [user, setUser]);
   const alertsManagerRef = useRef();
