@@ -13,26 +13,26 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@fontsource/roboto": "^5.3.0",
-    "@hookform/resolvers": "^3.10.0",
+    "@hookform/resolvers": "^5.9.1",
     "@mui/icons-material": "^9.4.0",
     "@mui/material": "^9.4.0",
-    "@mui/x-data-grid": "^9.13.0",
-    "@openobserve/browser-logs": "^0.3.4",
-    "@openobserve/browser-rum": "^0.3.4",
+    "@mui/x-data-grid": "^9.14.0",
+    "@openobserve/browser-logs": "^0.4.3",
+    "@openobserve/browser-rum": "^0.4.3",
     "axios": "^1.20.0",
     "date-fns": "^4.4.0",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "react-hook-form": "^7.87.0",
-    "react-parallax-tilt": "^1.7.341",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-hook-form": "^7.89.0",
+    "react-parallax-tilt": "^1.7.346",
     "react-quill-new": "^3.8.3",
-    "react-router-dom": "^7.18.3",
+    "react-router-dom": "^7.18.4",
     "universal-cookie": "^8.1.2",
     "yup": "^1.7.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.1.1",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "vite": "^8.2.2"
+    "vite": "^8.3.2"
   }
 }
