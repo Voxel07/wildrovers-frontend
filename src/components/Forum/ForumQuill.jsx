@@ -120,12 +120,14 @@ const ForumQuill = React.forwardRef(({ value, onChange, placeholder, style, read
           const editor = quillRef.current.getEditor();
           const range = editor.getSelection(true);
           editor.insertEmbed(range.index, 'image', url);
+          if (res.data?.fullUrl) editor.formatText(range.index, 1, 'link', res.data.fullUrl);
           editor.setSelection(range.index + 1);
         }
       } catch (err) {
         console.error('Image upload failed', err);
         if (alertsManagerRef?.current) {
-          alertsManagerRef.current.showAlert('error', 'Bild konnte nicht hochgeladen werden');
+          alertsManagerRef.current.showAlert('error', typeof err.response?.data === 'string'
+            ? err.response.data : 'Bild konnte nicht hochgeladen werden');
         }
       } finally {
         document.body.removeChild(input);

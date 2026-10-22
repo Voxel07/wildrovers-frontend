@@ -71,7 +71,7 @@ export default function UserManagement() {
     setLoading(true);
     Promise.all([
       api.get('/user'),
-      api.get('/event')
+      api.get('/event', { params: { year: new Date().getFullYear() } })
     ])
       .then(([usersRes, eventsRes]) => {
         setUsers(usersRes.data);

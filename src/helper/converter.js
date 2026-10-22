@@ -29,3 +29,8 @@ export function hasRequiredRole(userRole, requiredRole) {
   if (userIndex === -1 || requiredIndex === -1) return false;
   return userIndex >= requiredIndex;
 }
+
+/** Vorstand and Admin may edit and delete content of other users (same rule as the backend). */
+export function isModerator(userRole) {
+  return hasRequiredRole(userRole, "Vorstand");
+}

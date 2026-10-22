@@ -25,7 +25,7 @@ import Divider from '@mui/material/Divider';
 import ForumQuill from './ForumQuill';
 
 // Eigene
-import { convertTimestamp } from '../../helper/converter';
+import { convertTimestamp, isModerator } from '../../helper/converter';
 import useAuth from '../../context/useAuth';
 import { AlertsContext } from '../../components/utils/AlertsManager';
 
@@ -44,15 +44,15 @@ export default function Answer(props) {
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
   const menuOpen = Boolean(menuAnchorEl);
 
-  const isCreatorOrAdmin = auth.user === answer.creator || auth.roles === "Admin";
+  const isCreatorOrAdmin = auth.user === answer.creator || isModerator(auth.roles);
 
   const handleDelete = () => {
-    if (window.confirm("Möchtest du diese Antwort wirklich löschen?")) {
+    if (window.confirm("MÃ¶chtest du diese Antwort wirklich lÃ¶schen?")) {
       api.delete('/forum/answer', {
         data: { id: answer.id }
       })
       .then(response => {
-        alertsManagerRef.current.showAlert('success', 'Antwort erfolgreich gelöscht');
+        alertsManagerRef.current.showAlert('success', 'Antwort erfolgreich gelÃ¶scht');
         if (onUpdate) onUpdate();
       })
       .catch(error => {
@@ -123,7 +123,7 @@ export default function Answer(props) {
                   </Typography>
                   {answer.editDate && (
                     <Typography variant="caption" color="text.secondary">
-                      bearbeitet am {answer.editDate}
+                      bearbeitet am {convertTimestamp(answer.editDate)}
                     </Typography>
                   )}
                 </Box>
@@ -163,7 +163,7 @@ export default function Answer(props) {
                         </MenuItem>
                         <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
                           <DeleteForeverIcon fontSize="small" sx={{ mr: 1 }} />
-                          Antwort löschen
+                          Antwort lÃ¶schen
                         </MenuItem>
                       </Menu>
                     </>

@@ -30,31 +30,37 @@ import { convertTimestamp } from '../../helper/converter';
 import ForumBreadcrumbs from '../../components/Forum/ForumBreadcrumbs';
 import ForumChips from '../../components/Forum/ForumChips';
 
-const initialFetchState = { posts: [], topicData: null, loading: true, error: null, errorStatus: null };
+const initialFetchState = { posts: [], postTotal: 0, topicData: null, loading: true, error: null, errorStatus: null };
 
 function fetchReducer(state, action) {
   switch (action.type) {
     case 'FETCH_START': return { ...state, loading: true, error: null, errorStatus: null };
-    case 'FETCH_SUCCESS': return { posts: action.posts, topicData: action.topicData, loading: false, error: null, errorStatus: null };
+    case 'FETCH_SUCCESS': return { posts: action.posts, postTotal: action.postTotal, topicData: action.topicData, loading: false, error: null, errorStatus: null };
+    case 'PAGE_SUCCESS': return { ...state, posts: action.posts, postTotal: action.postTotal };
     case 'FETCH_ERROR': return { ...state, loading: false, error: action.payload, errorStatus: action.status };
     default: return state;
   }
 }
 
+const totalOf = (response) => Number(response.headers?.['x-total-count'] ?? (response.data || []).length);
+
 export default function Forum_Topic() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [fetchState, dispatch] = useReducer(fetchReducer, initialFetchState);
-  const { posts, topicData, loading, error, errorStatus } = fetchState;
+  const { posts, postTotal, topicData, loading, error, errorStatus } = fetchState;
   const [sort, setSort] = useState({ field: 'creationDate', direction: 'asc' });
+  // Posts are paged on the server (newest first).
+  const [paging, setPaging] = useState({ page: 0, size: 10 });
 
   const fetchTopicData = useCallback(() => {
     const controller = new AbortController();
     dispatch({ type: 'FETCH_START' });
+    setPaging(p => ({ ...p, page: 0 }));
 
     Promise.all([
       api.get('/forum/post', {
-        params: { topic: id },
+        params: { topic: id, page: 0, size: paging.size },
         signal: controller.signal,
       }),
       api.get('/forum/topic', {
@@ -66,6 +72,7 @@ export default function Forum_Topic() {
         dispatch({
           type: 'FETCH_SUCCESS',
           posts: postsRes.data || [],
+          postTotal: totalOf(postsRes),
           topicData: topicRes.data?.[0] || null,
         });
       })
@@ -88,6 +95,16 @@ export default function Forum_Topic() {
     const cleanup = fetchTopicData();
     return cleanup;
   }, [fetchTopicData]);
+
+  const loadPostPage = (page, size) => {
+    setPaging({ page, size });
+    api.get('/forum/post', { params: { topic: id, page, size } })
+      .then(res => dispatch({ type: 'PAGE_SUCCESS', posts: res.data || [], postTotal: totalOf(res) }))
+      .catch(error => {
+        console.error(error);
+        dispatch({ type: 'FETCH_ERROR', payload: extractErrorMessage(error), status: error.response?.status || 0 });
+      });
+  };
 
   const handleSort = (field) => {
     setSort(prev => ({
@@ -194,7 +211,15 @@ export default function Forum_Topic() {
 
 
         <AccordionDetails sx={{ p: 0 }}>
-          <Post posts={sortedPosts} topicId={id} topic={topic} />
+          <Post
+            posts={sortedPosts}
+            topicId={id}
+            topic={topic}
+            total={postTotal}
+            page={paging.page}
+            rowsPerPage={paging.size}
+            onPageChange={loadPostPage}
+          />
         </AccordionDetails>
       </Accordion>
 

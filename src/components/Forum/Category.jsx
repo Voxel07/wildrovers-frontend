@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, use, useReducer } from 'react';
+import React, { useMemo, useState, useEffect, use, useReducer, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api, { extractErrorMessage } from '../../helper/api';
 
@@ -31,7 +31,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Topic from "./Topic";
 import AddTopic from './AddTopic';
 import { AlertsContext } from '../../components/utils/AlertsManager';
-import { convertTimestamp, formatNumber, hasRequiredRole } from '../../helper/converter';
+import { convertTimestamp, formatNumber, hasRequiredRole, isModerator } from '../../helper/converter';
 import useAuth from '../../context/useAuth';
 import ForumChips from './ForumChips';
 
@@ -178,10 +178,19 @@ export default function Category(props) {
     }
   }, [props.vals]);
 
+  // Topics preloaded by the parent (forum overview) are used for the first render only;
+  // later refreshes (after adding/editing a topic) fetch this category again.
+  const preloadedTopics = useRef(props.topics);
+
   useEffect(() => {
     if (!props.vals) return;
+    if (preloadedTopics.current) {
+      dispatch({ type: 'FETCH_SUCCESS', payload: { topics: preloadedTopics.current, category: props.vals } });
+      preloadedTopics.current = null;
+      return;
+    }
     api.get("/forum/topic", {
-      params: { category: props.vals.id }
+      params: { category: props.vals.id, size: 200 }
     })
       .then(response => {
         dispatch({ type: 'FETCH_SUCCESS', payload: { topics: response.data, category: props.vals } });
@@ -238,7 +247,7 @@ export default function Category(props) {
     return sort.direction === 'asc' ? cmp : -cmp;
   });
 
-  const isCreatorOrAdmin = auth.user === category.creator || auth.roles === "Admin";
+  const isCreatorOrAdmin = auth.user === category.creator || isModerator(auth.roles);
 
   const categoryChipsDesktop = [
     { tooltip: "Ersteller", icon: <PersonIcon />, label: category.creator || 'Unbekannt' },

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useReducer } from 'react';
 import useAuth from '../../context/useAuth';
 import api, { extractErrorMessage } from '../../helper/api';
+import { isModerator } from '../../helper/converter';
 
 // Material UI
 import {
@@ -114,11 +115,11 @@ function PermissionNotice({ icon: Icon, text }) {
 export default function Events() {
   const { auth } = useAuth();
   const isLoggedIn = !!auth?.JWT;
-  const isAdmin = auth?.roles === 'Admin';
+  // Vorstand and Admin may edit or delete what others created, as in the backend.
+  const canModerate = isModerator(auth?.roles);
   const currentUsername = auth?.user;
   const isTeamMember = isLoggedIn && ['Frischling', 'Mitglied', 'Vorstand', 'Admin'].includes(auth?.roles);
-  const isVorstand = auth?.roles === 'Vorstand';
-  const canManageAttendance = isLoggedIn && (isAdmin || isVorstand);
+  const canManageAttendance = isLoggedIn && canModerate;
 
   const [events, setEvents] = useState([]);
   const [modalState, dispatchModal] = useReducer(modalReducer, initialModalState);
@@ -132,9 +133,16 @@ export default function Events() {
   const [participantDialogOpen, setParticipantDialogOpen] = useState(false);
   const [participantEventId, setParticipantEventId] = useState(null);
   const [teamMembers, setTeamMembers] = useState([]);
+  const [eventYears, setEventYears] = useState([]);
 
-  const fetchEvents = () => {
-    api.get('/event')
+  // Only the selected year is loaded; the year chips come from a separate, small list.
+  const fetchEvents = (year = selectedYear) => {
+    api.get('/event/years')
+      .then(res => setEventYears(res.data || []))
+      .catch(err => {
+        console.error("Error fetching event years", err);
+      });
+    api.get('/event', { params: { year } })
       .then(res => {
         setEvents(res.data);
       })
@@ -144,19 +152,14 @@ export default function Events() {
   };
 
   useEffect(() => {
-    if (events.length > 0) {
-      const years = Array.from(
-        new Set(events.map(e => e.eventDate ? new Date(e.eventDate).getFullYear() : null).filter(Boolean))
-      ).sort((a, b) => a - b);
-      if (years.length > 0 && !years.includes(selectedYear)) {
-        setSelectedYear(years[years.length - 1]);
-      }
+    if (eventYears.length > 0 && !eventYears.includes(selectedYear)) {
+      setSelectedYear(eventYears[eventYears.length - 1]);
     }
-  }, [events]);
+  }, [eventYears]);
 
   useEffect(() => {
-    fetchEvents();
-  }, []);
+    fetchEvents(selectedYear);
+  }, [selectedYear]);
 
   const handleOpenAdd = () => {
     dispatchModal({ type: 'OPEN_ADD' });
@@ -391,9 +394,7 @@ export default function Events() {
 
         {/* Year Filter Chips */}
         {(() => {
-          const uniqueYears = Array.from(
-            new Set(events.map(e => e.eventDate ? new Date(e.eventDate).getFullYear() : null).filter(Boolean))
-          ).sort((a, b) => a - b);
+          const uniqueYears = eventYears;
           if (uniqueYears.length <= 1) return null;
           return (
             <Stack direction="row" spacing={1.5} sx={{ justifyContent: 'center', mb: 6, flexWrap: 'wrap', gap: 1 }}>
@@ -446,7 +447,7 @@ export default function Events() {
             <Box sx={{ position: 'relative' }}>
               {sortedEvents.map((event, index) => {
                 const isCreator = event.creatorName === currentUsername;
-                const canModify = isTeamMember && (isCreator || isAdmin);
+                const canModify = isTeamMember && (isCreator || canModerate);
                 const isFuture = new Date(event.eventDate) >= today;
                 const isNextEvent = nextEvent && nextEvent.id === event.id;
                 const daysToNext = isNextEvent ? Math.ceil((new Date(event.eventDate) - today) / (1000 * 60 * 60 * 24)) : 0;
@@ -593,12 +594,12 @@ export default function Events() {
                                 </Stack>
                               </Stack>
                               <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center', flexShrink: 0 }}>
-                                {event.forumPostUrl && (
+                                {event.forumPostId && (
                                   <Tooltip title="Im Forum diskutieren">
                                     <IconButton
                                       color="secondary"
                                       size="small"
-                                      href={event.forumPostUrl.replace(/^https?:\/\/[^/]+/, window.location.origin)}
+                                      href={`/Forum/Post/${event.forumPostId}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                     >

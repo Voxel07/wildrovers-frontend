@@ -38,7 +38,7 @@ import Divider from '@mui/material/Divider';
 import ForumQuill from './ForumQuill';
 
 // Eigene
-import { convertTimestamp, formatNumber } from '../../helper/converter';
+import { convertTimestamp, formatNumber, isModerator } from '../../helper/converter';
 import useAuth from '../../context/useAuth';
 import { AlertsContext } from '../utils/AlertsManager';
 
@@ -116,7 +116,7 @@ export default function Post({ post, onUpdate, onDelete, onAddPoll, pollsVisible
     if (!post) return null;
 
     const { id, title, creator, creationDate, answerCount, views, creatorPhotoUrl } = post;
-    const isCreatorOrAdmin = auth.user === creator || auth.roles === 'Admin';
+    const isCreatorOrAdmin = auth.user === creator || isModerator(auth.roles);
     const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8080';
     const avatarUrl = creatorPhotoUrl ? apiBase + creatorPhotoUrl : null;
 

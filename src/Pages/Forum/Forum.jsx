@@ -25,6 +25,8 @@ const Forum = () => {
     const { auth } = useAuth();
     const alertsManagerRef = use(AlertsContext);
     const [categories, setCategories] = useState([]);
+    // Topics of all visible categories, grouped by category id (null: load per category)
+    const [topicsByCategory, setTopicsByCategory] = useState(null);
     const [loading, setloading] = useState(false);
     const [error, setError] = useState(null);
     const [errorStatus, setErrorStatus] = useState(null);
@@ -45,8 +47,25 @@ const Forum = () => {
         setloading(true);
         setError(null);
         setErrorStatus(null);
-        api.get("/forum/category")
-        .then(response => {
+        Promise.all([
+            api.get("/forum/category"),
+            // One request for all topics instead of one per category; on failure each
+            // category falls back to loading its own topics.
+            api.get("/forum/topic", { params: { size: 200 } }).catch(() => null),
+        ])
+        .then(([response, topicsResponse]) => {
+            // Topic lists are paged; if the forum has more topics than one page, each category loads its own.
+            const complete = topicsResponse
+                && Number(topicsResponse.headers?.["x-total-count"] ?? 0) <= (topicsResponse.data?.length ?? 0);
+            if (complete) {
+                const grouped = {};
+                for (const topic of topicsResponse.data ?? []) {
+                    (grouped[topic.categoryId] ??= []).push(topic);
+                }
+                setTopicsByCategory(grouped);
+            } else {
+                setTopicsByCategory(null);
+            }
             setCategories(response.data);
             setloading(false);
         })
@@ -85,6 +104,7 @@ const Forum = () => {
           key={category.id}
           currentIndex={index}
           vals={category}
+          topics={topicsByCategory ? (topicsByCategory[category.id] ?? []) : undefined}
           editCallback={(cat) => setEditingCategory(cat)}
           deleteCallback={handleDelete}
           onCategoryUpdate={handleCategoryUpdate}

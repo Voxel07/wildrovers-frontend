@@ -1,4 +1,4 @@
-import React, { useEffect, useState, use, useCallback, useReducer } from 'react';
+import React, { useEffect, useState, use, useCallback, useReducer, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api, { extractErrorMessage } from '../../helper/api';
 
@@ -40,6 +40,7 @@ import TextField from '@mui/material/TextField';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import IconButton from '@mui/material/IconButton';
+import Pagination from '@mui/material/Pagination';
 
 // Quill for Reply Editor
 import ForumQuill from '../../components/Forum/ForumQuill';
@@ -50,13 +51,16 @@ import Answer from '../../components/Forum/Answer';
 import PollWidget from '../../components/Forum/PollWidget';
 import { AlertsContext } from '../../components/utils/AlertsManager';
 import useAuth from '../../context/useAuth';
-import { convertTimestamp } from '../../helper/converter';
+import { convertTimestamp, isModerator } from '../../helper/converter';
 import ForumBreadcrumbs from '../../components/Forum/ForumBreadcrumbs';
 import ForumChips from '../../components/Forum/ForumChips';
+
+const ANSWERS_PER_PAGE = 50;
 
 const initialFetchState = {
   post: null,
   answers: [],
+  answerTotal: 0,
   associatedEvent: null,
   loading: true,
 };
@@ -77,6 +81,7 @@ function fetchReducer(state, action) {
         loading: false,
         post: action.payload.post,
         answers: action.payload.answers,
+        answerTotal: action.payload.answerTotal,
         associatedEvent: action.payload.associatedEvent,
       };
     case 'FETCH_FAILURE':
@@ -131,7 +136,10 @@ export default function Forum_Post() {
   const alertsManagerRef = use(AlertsContext);
 
   const [state, dispatch] = useReducer(fetchReducer, initialFetchState);
-  const { post, answers, associatedEvent, loading } = state;
+  const { post, answers, answerTotal, associatedEvent, loading } = state;
+  const [answerPage, setAnswerPage] = useState(1);
+  const answerPageRef = useRef(1);
+  const answerPageCount = Math.ceil(answerTotal / ANSWERS_PER_PAGE);
   const userStatus = associatedEvent?.attendances?.find(a => a.userName === auth.user)?.status;
 
   const isLoggedIn = !!auth?.JWT;
@@ -152,7 +160,7 @@ export default function Forum_Post() {
   const [submittingPoll, setSubmittingPoll] = useState(false);
   const [deletePollId, setDeletePollId] = useState(null);
 
-  const isCreatorOrAdmin = post && auth.user && (post.creator === auth.user || auth.roles === 'Admin');
+  const isCreatorOrAdmin = post && auth.user && (post.creator === auth.user || isModerator(auth.roles));
 
   const handleClosePollDialog = () => {
     setCreatePollOpen(false);
@@ -239,23 +247,28 @@ export default function Forum_Post() {
       });
   };
 
-  // Fetch post, answers, and associated event
-  const fetchData = useCallback((silent = false) => {
+  // Fetch post, one page of answers, and associated event. The page is kept in a ref so that
+  // silent refetches (after replying, voting, RSVP) stay on the page the reader is looking at.
+  const fetchData = useCallback((silent = false, page = answerPageRef.current) => {
+    answerPageRef.current = page;
     if (!silent) {
       dispatch({ type: 'FETCH_START' });
     }
 
     Promise.all([
       api.get("/forum/post", { params: { post: id } }),
-      api.get("/forum/answer", { params: { post: id } }),
+      api.get("/forum/answer", { params: { post: id, page: page - 1, size: ANSWERS_PER_PAGE } }),
       api.get(`/event/by-post/${id}`).then(res => res.status === 204 ? null : res.data),
     ])
       .then(([postRes, answersRes, eventData]) => {
+        const answerList = answersRes.data ?? [];
+        setAnswerPage(page);
         dispatch({
           type: 'FETCH_SUCCESS',
           payload: {
             post: postRes.data?.[0] ?? null,
-            answers: answersRes.data ?? [],
+            answers: answerList,
+            answerTotal: Number(answersRes.headers?.['x-total-count'] ?? answerList.length),
             associatedEvent: eventData,
           },
         });
@@ -275,8 +288,15 @@ export default function Forum_Post() {
 
 
   useEffect(() => {
-    fetchData();
+    fetchData(false, 1);
   }, [fetchData]);
+
+  // Read tracking is a separate write, so reloads and silent refetches do not count as views.
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    api.post('/forum/post/view', null, { params: { post: id } })
+      .catch(error => console.error("Failed to mark post as read", error));
+  }, [id, isLoggedIn]);
 
   const handleReplySubmit = () => {
     if (!replyContent || replyContent.trim() === '' || replyContent === '<p><br></p>') {
@@ -291,7 +311,8 @@ export default function Forum_Post() {
       .then(response => {
         alertsManagerRef.current.showAlert('success', 'Antwort erfolgreich hinzugefügt');
         setReplyContent('');
-        fetchData(true); // Reload post & answers silently
+        // Reload silently and show the last page, where the new answer is
+        fetchData(true, Math.max(1, Math.ceil((answerTotal + 1) / ANSWERS_PER_PAGE)));
       })
       .catch(error => {
         console.error(error);
@@ -597,16 +618,28 @@ export default function Forum_Post() {
           textAlign: { xs: 'center', md: 'left' },
         }}
       >
-        Antworten ({answers.length})
+        Antworten ({answerTotal})
       </Typography>
 
       <Grid container spacing={3} sx={{ flexDirection: 'column' }}>
         {answers.length ? (
-          answers.map(answer => (
-            <Grid key={answer.id}>
-              <Answer answer={answer} onUpdate={() => fetchData(true)} />
-            </Grid>
-          ))
+          <>
+            {answers.map(answer => (
+              <Grid key={answer.id}>
+                <Answer answer={answer} onUpdate={() => fetchData(true)} />
+              </Grid>
+            ))}
+            {answerPageCount > 1 && (
+              <Grid sx={{ display: 'flex', justifyContent: 'center' }}>
+                <Pagination
+                  count={answerPageCount}
+                  page={answerPage}
+                  color="primary"
+                  onChange={(_, page) => fetchData(true, page)}
+                />
+              </Grid>
+            )}
+          </>
         ) : (
           <Grid>
             <Card sx={{ p: 4, textAlign: 'center' }}>

@@ -83,7 +83,7 @@ api.interceptors.request.use(
 
 // Response interceptor — retry on 401 by refreshing token (OIDC sessions only)
 // Local-JWT sessions (no refreshToken) are NOT cleared on 401 — only OIDC refresh failures clear auth.
-// On 403, the user is blocked — terminate the session immediately.
+// On 403 with X-Account-Status: denied, the user is blocked — terminate the session immediately.
 // On 429, dispatch a global event so the UI can show a rate-limit warning.
 api.interceptors.response.use(
   (response) => response,
@@ -99,8 +99,9 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Blocked user: end the session immediately
-    if (error.response?.status === 403) {
+    // Blocked/inactive account: end the session immediately. Other 403s are ordinary
+    // permission denials and are left to the caller.
+    if (error.response?.status === 403 && error.response.headers?.['x-account-status'] === 'denied') {
       deleteCookie('auth:v1');
       window.dispatchEvent(new Event('auth-updated'));
       if (!window.location.pathname.toLowerCase().includes('/login')) {

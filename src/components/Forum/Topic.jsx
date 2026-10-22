@@ -20,7 +20,7 @@ import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 
 // Eigene
-import { convertTimestamp } from '../../helper/converter';
+import { convertTimestamp, isModerator } from '../../helper/converter';
 import useAuth from '../../context/useAuth';
 import ForumChips from './ForumChips';
 import { AlertsContext } from '../../components/utils/AlertsManager';
@@ -28,8 +28,11 @@ import { AlertsContext } from '../../components/utils/AlertsManager';
 export default function Topic(props) {
   const { auth } = useAuth();
   const navigate = useNavigate();
-  const [post, setPost] = useState(null);
-  const [allPostsViewed, setAllPostsViewed] = useState(true);
+  // Topic lists from the backend carry latestPost/allViewed; only fall back to per-topic
+  // requests for topics that come without them (e.g. a topic that was just created).
+  const hasSummary = props.topic.allViewed !== undefined && props.topic.allViewed !== null;
+  const [post, setPost] = useState(props.topic.latestPost ?? null);
+  const [allPostsViewed, setAllPostsViewed] = useState(hasSummary ? props.topic.allViewed : true);
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
   const { topic, id, postCount, views, creationDate, creator } = props.topic;
   const alertsManagerRef = use(AlertsContext);
@@ -85,6 +88,11 @@ export default function Topic(props) {
   }
 
   useEffect(() => {
+    if (hasSummary) {
+      setPost(props.topic.latestPost ?? null);
+      setAllPostsViewed(props.topic.allViewed);
+      return;
+    }
     if (postCount > 0) {
       api.get("/forum/post/latest", { params: { topic: id } })
         .then(response => {
@@ -96,9 +104,10 @@ export default function Topic(props) {
     } else {
       setPost(null);
     }
-  }, [id, postCount]);
+  }, [id, postCount, hasSummary, props.topic.latestPost, props.topic.allViewed]);
 
   useEffect(() => {
+    if (hasSummary) return;
     if (postCount > 0) {
       api.get("/forum/post", { params: { topic: id } })
         .then(response => {
@@ -112,7 +121,7 @@ export default function Topic(props) {
     } else {
       setAllPostsViewed(true);
     }
-  }, [id, postCount]);
+  }, [id, postCount, hasSummary]);
 
   function handleDelete(e) {
     e.stopPropagation();
@@ -136,7 +145,7 @@ export default function Topic(props) {
     if (props.editCallback) props.editCallback(props.topic);
   }
 
-  const isCreatorOrAdmin = auth.user === creator || auth.roles === "Admin";
+  const isCreatorOrAdmin = auth.user === creator || isModerator(auth.roles);
 
   const topicChipsDesktop = [
     { tooltip: "Beiträge", icon: <TopicIcon />, label: postCount },

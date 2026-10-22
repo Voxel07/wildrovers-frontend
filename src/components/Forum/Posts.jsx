@@ -93,9 +93,13 @@ export default function Posts(props) {
   const navigate = useNavigate();
   const [order, setOrder] = useState('desc');
   const [orderBy, setOrderBy] = useState('creationDate');
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [localPage, setLocalPage] = useState(0);
+  const [localRowsPerPage, setLocalRowsPerPage] = useState(10);
   const [tableData, setTableData] = useState([]);
+  // With `total` the parent pages on the server and `posts` is already the current page.
+  const serverPaged = props.total !== undefined;
+  const page = serverPaged ? props.page : localPage;
+  const rowsPerPage = serverPaged ? props.rowsPerPage : localRowsPerPage;
 
   // Sync state with incoming props
   useEffect(() => {
@@ -115,19 +119,27 @@ export default function Posts(props) {
   };
 
   const handleChangePage = (event, newPage) => {
-    setPage(newPage);
+    if (serverPaged) props.onPageChange(newPage, rowsPerPage);
+    else setLocalPage(newPage);
   };
 
   const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
+    const size = parseInt(event.target.value, 10);
+    if (serverPaged) {
+      props.onPageChange(0, size);
+    } else {
+      setLocalRowsPerPage(size);
+      setLocalPage(0);
+    }
   };
 
   const handleAdd = () => {
     navigate('/Forum/Texteditor', { state: { topicId: props.topicId } });
   };
 
-  const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - tableData.length) : 0;
+  const totalRows = serverPaged ? props.total : tableData.length;
+  const pageStart = serverPaged ? 0 : page * rowsPerPage;
+  const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - totalRows) : 0;
 
   return (
     <Paper sx={{ width: '100%', overflow: 'hidden', bgcolor: 'background.paper', borderRadius: 2 }}>
@@ -141,7 +153,7 @@ export default function Posts(props) {
             {tableData
               .slice()
               .sort(getComparator(order, orderBy))
-              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+              .slice(pageStart, pageStart + rowsPerPage)
               .map((row, index) => {
                 return (
                   <TableRow
@@ -210,7 +222,7 @@ export default function Posts(props) {
       <TablePagination
         rowsPerPageOptions={[5, 10, 25]}
         component="div"
-        count={tableData.length}
+        count={totalRows}
         rowsPerPage={rowsPerPage}
         page={page}
         onPageChange={handleChangePage}
@@ -236,4 +248,9 @@ Posts.propTypes = {
   posts: PropTypes.array,
   topic: PropTypes.string,
   topicId: PropTypes.number,
+  // Server-side paging: total row count, current page (0-based), page size and change handler.
+  total: PropTypes.number,
+  page: PropTypes.number,
+  rowsPerPage: PropTypes.number,
+  onPageChange: PropTypes.func,
 };

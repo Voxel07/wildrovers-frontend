@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useReducer } from 'react';
 import useAuth from '../../context/useAuth';
 import api, { extractErrorMessage } from '../../helper/api';
+import { isModerator } from '../../helper/converter';
 
 // Material UI
 import {
@@ -89,14 +90,23 @@ function modalReducer(state, action) {
 export default function Gallery() {
   const { auth } = useAuth();
   const isLoggedIn = !!auth?.JWT;
-  const isAdmin = auth?.roles === 'Admin';
+  // Vorstand and Admin may edit or delete what others created, as in the backend.
+  const canModerate = isModerator(auth?.roles);
   const currentUsername = auth?.user;
   const isTeamMember = isLoggedIn && ['Frischling', 'Mitglied', 'Vorstand', 'Admin'].includes(auth?.roles);
 
   const proxyUrl = import.meta.env.VITE_IMMICH_PROXY_URL || "";
-  const dropUrl = import.meta.env.VITE_IMMICH_DROP_URL || "";
-
   const [showUpload, setShowUpload] = useState(false);
+  // The Immich upload link is only handed out to team members by the backend.
+  const [dropUrl, setDropUrl] = useState(null);
+  const [dropUrlError, setDropUrlError] = useState(null);
+
+  useEffect(() => {
+    if (!isTeamMember || !showUpload || dropUrl) return;
+    api.get('/gallery/upload-url')
+      .then(res => { setDropUrl(res.data?.url ?? null); setDropUrlError(null); })
+      .catch(err => setDropUrlError(extractErrorMessage(err)));
+  }, [isTeamMember, showUpload, dropUrl]);
   const [dbAlbums, setDbAlbums] = useState([]);
   const [modalState, dispatchModal] = useReducer(modalReducer, initialModalState);
   const { openModal, editMode, selectedAlbumId, formData, formError } = modalState;
@@ -196,9 +206,12 @@ export default function Gallery() {
     }
 
     try {
-      new URL(formData.url);
+      const albumUrl = new URL(formData.url);
+      if (albumUrl.protocol !== 'https:' || albumUrl.username || albumUrl.password || albumUrl.port) {
+        throw new Error('HTTPS required');
+      }
     } catch (e) {
-      dispatchModal({ type: 'SET_FORM_ERROR', payload: 'Bitte eine gültige URL angeben.' });
+      dispatchModal({ type: 'SET_FORM_ERROR', payload: 'Bitte eine gültige HTTPS-URL angeben.' });
       return;
     }
 
@@ -276,12 +289,20 @@ export default function Gallery() {
             mb: 8,
             boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
           }}>
-            <iframe
-              src={dropUrl}
-              style={{ width: '100%', height: '100%', border: 'none' }}
-              allowFullScreen
-              title="Immich Drop Upload"
-            />
+            {dropUrl ? (
+              <iframe
+                src={dropUrl}
+                style={{ width: '100%', height: '100%', border: 'none' }}
+                allowFullScreen
+                title="Immich Drop Upload"
+              />
+            ) : (
+              <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3 }}>
+                <Typography color={dropUrlError ? 'error' : 'text.secondary'}>
+                  {dropUrlError ? `Upload-Link konnte nicht geladen werden: ${dropUrlError}` : 'Upload wird geladen…'}
+                </Typography>
+              </Box>
+            )}
           </Box>
         )}
 
@@ -342,7 +363,7 @@ export default function Gallery() {
 
                 return sortedAlbums.map((album) => {
                   const isCreator = album.creatorName === currentUsername;
-                  const canModify = isTeamMember && (isCreator || isAdmin);
+                  const canModify = isTeamMember && (isCreator || canModerate);
 
                   return (
                     <Grid size={{ xs: 12, sm: 6, md: 4 }} key={album.id} sx={{ display: 'flex' }}>
