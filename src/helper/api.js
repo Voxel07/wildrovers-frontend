@@ -1,180 +1,115 @@
 import axios from 'axios';
-import { refreshTokens, parseJwt } from './oidc';
-import { getCookie, setCookie, deleteCookie } from './cookies';
+
+/**
+ * The session lives in two HttpOnly cookies set by the backend (wr_at: access token,
+ * wr_rt: refresh token, sent only to /auth). JavaScript never sees either token;
+ * requests just carry the cookies (withCredentials) and the X-Requested-With header
+ * the backend requires as CSRF protection.
+ */
+export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+
+/** Absolute URL for a backend path such as a photo URL returned by the API. */
+export function apiUrl(path) {
+  if (!path) return null;
+  return /^https?:\/\//.test(path) ? path : API_BASE + path;
+}
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080',
+  baseURL: API_BASE,
+  withCredentials: true,
+  headers: { 'X-Requested-With': 'XMLHttpRequest' },
 });
 
+// When the current access cookie expires (ms); null while no session is known.
+let accessExpiresAt = null;
 let refreshPromise = null;
-let isRefreshing = false;
-let refreshSubscribers = [];
-let lastRefreshedToken = null;
 
-function subscribeTokenRefresh(cb) {
-  if (lastRefreshedToken) {
-    cb(lastRefreshedToken);
-  } else {
-    refreshSubscribers.push(cb);
+/** Remembers the session returned by /auth/login, /auth/oidc, /auth/refresh or /auth/session. */
+export function rememberSession(session) {
+  accessExpiresAt = session?.authenticated ? (session.accessExpiresAt ?? Date.now() + 10 * 60 * 1000) : null;
+}
+
+function announce(session, expired) {
+  window.dispatchEvent(new CustomEvent('auth-session', { detail: session }));
+  if (expired) {
+    window.dispatchEvent(new Event('auth-expired'));
   }
 }
 
-function onRefreshed(token) {
-  lastRefreshedToken = token;
-  refreshSubscribers.forEach((cb) => cb(token));
-  refreshSubscribers = [];
-}
-
-function refreshAuthToken(auth) {
+/**
+ * Exchanges the refresh cookie for a new access cookie. Concurrent callers share one
+ * request; the backend rotates the refresh token and tolerates parallel tabs.
+ */
+export function refreshSession() {
   if (!refreshPromise) {
-    refreshPromise = refreshTokens(auth.refreshToken)
-      .then((tokens) => {
-        const payload = parseJwt(tokens.access_token || tokens.id_token);
-        const updatedAuth = {
-          ...auth,
-          JWT: tokens.access_token,
-          refreshToken: tokens.refresh_token || auth.refreshToken,
-          expiresAt: payload?.exp
-            ? payload.exp * 1000
-            : (tokens.expires_in ? Date.now() + tokens.expires_in * 1000 : null),
-          user: payload?.preferred_username || payload?.sub || auth.user,
-        };
-        setCookie('auth:v1', JSON.stringify(updatedAuth), 7);
-        window.dispatchEvent(new Event('auth-updated'));
-        return tokens.access_token;
+    const hadSession = accessExpiresAt !== null;
+    refreshPromise = api.post('/auth/refresh', null, { _skipAuthRetry: true })
+      .then((res) => {
+        rememberSession(res.data);
+        announce(res.data, hadSession && !res.data?.authenticated);
+        return res.data;
+      })
+      .catch((err) => {
+        rememberSession(null);
+        if (err.response?.status !== 403) {
+          announce({ authenticated: false }, hadSession);
+        }
+        throw err;
       })
       .finally(() => { refreshPromise = null; });
   }
   return refreshPromise;
 }
 
-api.interceptors.request.use(
-  async (config) => {
+// Refresh shortly before the access cookie expires, so requests never go out
+// without it (public endpoints would otherwise silently answer as for a visitor).
+api.interceptors.request.use(async (config) => {
+  if (!config._skipAuthRetry && accessExpiresAt !== null && Date.now() > accessExpiresAt - 30 * 1000) {
     try {
-      const storedAuth = getCookie('auth:v1');
-      if (storedAuth) {
-        const auth = JSON.parse(storedAuth);
-        if (auth && auth.JWT) {
-          // Check if token is expired or close to expiring (within 30 seconds)
-          const isExpired = auth.expiresAt && (auth.expiresAt - 30 * 1000 < Date.now());
-
-          if (isExpired && auth.refreshToken) {
-            try {
-              config.headers.Authorization = `Bearer ${await refreshAuthToken(auth)}`;
-            } catch (err) {
-              console.error('Token refresh failed in interceptor', err);
-              deleteCookie('auth:v1');
-              window.dispatchEvent(new Event('auth-updated'));
-            }
-          } else {
-            config.headers.Authorization = `Bearer ${auth.JWT}`;
-          }
-        }
-      }
-    } catch (e) {
-      console.error('Error in API request interceptor', e);
+      await refreshSession();
+    } catch {
+      // The response interceptor and the auth-expired event handle the outcome.
     }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
   }
-);
+  return config;
+});
 
-// Response interceptor — retry on 401 by refreshing token (OIDC sessions only)
-// Local-JWT sessions (no refreshToken) are NOT cleared on 401 — only OIDC refresh failures clear auth.
-// On 403 with X-Account-Status: denied, the user is blocked — terminate the session immediately.
-// On 429, dispatch a global event so the UI can show a rate-limit warning.
+// 401: refresh once and retry. 403 with X-Account-Status: denied: account blocked, end the session.
+// 429: global event so the UI can show a rate-limit warning.
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
+    const config = error.config || {};
+    const status = error.response?.status;
 
-    // Rate-limited: dispatch global event for the UI to display
-    if (error.response?.status === 429) {
-      const msg = extractErrorMessage(error);
+    if (status === 429) {
       window.dispatchEvent(new CustomEvent('api-ratelimited', {
-        detail: { message: msg, url: originalRequest?.url }
+        detail: { message: extractErrorMessage(error), url: config.url }
       }));
       return Promise.reject(error);
     }
 
-    // Blocked/inactive account: end the session immediately. Other 403s are ordinary
-    // permission denials and are left to the caller.
-    if (error.response?.status === 403 && error.response.headers?.['x-account-status'] === 'denied') {
-      deleteCookie('auth:v1');
-      window.dispatchEvent(new Event('auth-updated'));
+    if (status === 403 && error.response.headers?.['x-account-status'] === 'denied') {
+      rememberSession(null);
+      announce({ authenticated: false }, false);
       if (!window.location.pathname.toLowerCase().includes('/login')) {
         window.location.href = '/Login?blocked=true';
       }
       return Promise.reject(error);
     }
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
+    if (status === 401 && !config._retried && !config._skipAuthRetry && !String(config.url || '').startsWith('/auth/')) {
+      config._retried = true;
+      let session = null;
       try {
-        const storedAuth = getCookie('auth:v1');
-        if (storedAuth) {
-          const auth = JSON.parse(storedAuth);
-          if (auth && auth.refreshToken) {
-            // OIDC session: attempt token refresh
-            if (!isRefreshing) {
-              isRefreshing = true;
-              lastRefreshedToken = null;
-              try {
-                const tokens = await refreshTokens(auth.refreshToken);
-                const payload = parseJwt(tokens.access_token || tokens.id_token);
-                let username = auth.user;
-                if (payload) {
-                  username = payload.preferred_username || payload.sub;
-                }
-                const computedExpiresAt = payload?.exp
-                  ? payload.exp * 1000
-                  : (tokens.expires_in ? Date.now() + tokens.expires_in * 1000 : null);
-
-                const updatedAuth = {
-                  ...auth,
-                  JWT: tokens.access_token,
-                  refreshToken: tokens.refresh_token || auth.refreshToken,
-                  expiresAt: computedExpiresAt,
-                  user: username,
-                };
-                setCookie('auth:v1', JSON.stringify(updatedAuth), 7);
-                window.dispatchEvent(new Event('auth-updated'));
-                isRefreshing = false;
-                onRefreshed(tokens.access_token);
-              } catch (err) {
-                isRefreshing = false;
-                console.error('Token refresh failed in response interceptor', err);
-                // Refresh failed for an OIDC session — clear auth and force re-login
-                deleteCookie('auth:v1');
-                window.dispatchEvent(new Event('auth-updated'));
-                if (!window.location.pathname.toLowerCase().includes('/login')) {
-                  window.location.href = '/Login';
-                }
-                return Promise.reject(error);
-              }
-            }
-
-            // Wait for token refresh to complete
-            const newToken = await new Promise((resolve) => {
-              subscribeTokenRefresh((token) => {
-                resolve(token);
-              });
-            });
-
-            originalRequest.headers.Authorization = `Bearer ${newToken}`;
-            return api(originalRequest);
-          }
-          deleteCookie('auth:v1');
-          window.dispatchEvent(new Event('auth-updated'));
-          if (!window.location.pathname.toLowerCase().includes('/login')) {
-            window.location.href = '/Login';
-          }
-          // Local-JWT session (no refreshToken): don't clear auth on 401 — just propagate the error
-        }
-      } catch (e) {
-        console.error('Error in API response interceptor 401 retry', e);
+        session = await refreshSession();
+      } catch {
+        // Session ended; the backend cleared the cookies.
+      }
+      // With a new session every request is retried. Without one only reads are:
+      // they succeed as a visitor now that the stale cookie is gone.
+      if (session?.authenticated || (config.method || 'get').toLowerCase() === 'get') {
+        return api(config);
       }
     }
     return Promise.reject(error);
@@ -183,15 +118,14 @@ api.interceptors.response.use(
 
 /**
  * Extract a human-readable error message from an Axios error response.
- * Handles the backend's JSON format: {"status":"error","message":"..."}
- * as well as plain strings and objects.
+ * The backend answers errors as {"status":"error","code":"...","message":"..."}.
  */
 export function extractErrorMessage(error) {
   const data = error?.response?.data;
   if (!data) return error?.message || 'Unbekannter Fehler';
   if (typeof data === 'string') return data;
   if (typeof data === 'object') {
-    return data.message || data.details || data.error || JSON.stringify(data);
+    return data.message || data.details || data.error || data.title || JSON.stringify(data);
   }
   return String(data);
 }

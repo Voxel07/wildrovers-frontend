@@ -230,7 +230,7 @@ export default function PollWidget(props) {
           </Stack>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
             {canDelete && (
-              <IconButton
+              <IconButton aria-label="Umfrage-Aktionen"
                 size="small"
                 onClick={(e) => setMenuAnchor(e.currentTarget)}
               >
@@ -432,7 +432,7 @@ export default function PollWidget(props) {
                 value={opt.text}
                 onChange={(e) => handleEditOptionChange(index, e.target.value)}
               />
-              <IconButton
+              <IconButton aria-label="Option entfernen"
                 color="error"
                 onClick={() => handleRemoveEditOption(index)}
                 disabled={editOptions.length <= 2}

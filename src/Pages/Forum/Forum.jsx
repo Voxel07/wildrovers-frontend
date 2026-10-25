@@ -122,7 +122,7 @@ const Forum = () => {
                 <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
                     Forum
                 </Typography>
-                {auth?.JWT && (auth.roles !== 'Besucher' || auth.canCreateCategory) && (
+                {auth.isAuthenticated && (auth.roles !== 'Besucher' || auth.canCreateCategory) && (
                     <Button 
                         variant="contained" 
                         color="primary"

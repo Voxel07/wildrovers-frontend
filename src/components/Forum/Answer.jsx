@@ -23,6 +23,7 @@ import Divider from '@mui/material/Divider';
 
 // Quill
 import ForumQuill from './ForumQuill';
+import ConfirmDialog from '../utils/ConfirmDialog';
 
 // Eigene
 import { convertTimestamp, isModerator } from '../../helper/converter';
@@ -42,26 +43,31 @@ export default function Answer(props) {
   const [editContent, setEditContent] = useState(answer.content);
   const [saving, setSaving] = useState(false);
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const menuOpen = Boolean(menuAnchorEl);
 
   const isCreatorOrAdmin = auth.user === answer.creator || isModerator(auth.roles);
 
   const handleDelete = () => {
-    if (window.confirm("MÃ¶chtest du diese Antwort wirklich lÃ¶schen?")) {
-      api.delete('/forum/answer', {
-        data: { id: answer.id }
-      })
-      .then(response => {
-        alertsManagerRef.current.showAlert('success', 'Antwort erfolgreich gelÃ¶scht');
-        if (onUpdate) onUpdate();
-      })
-      .catch(error => {
-        console.error(error);
-        const status = error.response?.status || 500;
-        const msg = extractErrorMessage(error);
-        alertsManagerRef.current.showAlert('error', `${status}: ${msg}`);
-      });
-    }
+    setMenuAnchorEl(null);
+    setConfirmOpen(true);
+  };
+
+  const confirmDelete = () => {
+    setConfirmOpen(false);
+    api.delete('/forum/answer', {
+      data: { id: answer.id }
+    })
+    .then(() => {
+      alertsManagerRef.current.showAlert('success', 'Antwort erfolgreich gelöscht');
+      if (onUpdate) onUpdate();
+    })
+    .catch(error => {
+      console.error(error);
+      const status = error.response?.status || 500;
+      const msg = extractErrorMessage(error);
+      alertsManagerRef.current.showAlert('error', `${status}: ${msg}`);
+    });
   };
 
   const handleSaveEdit = () => {
@@ -146,7 +152,7 @@ export default function Answer(props) {
                     </Stack>
                   ) : (
                     <>
-                      <IconButton size="small" onClick={(e) => setMenuAnchorEl(e.currentTarget)}>
+                      <IconButton aria-label="Weitere Aktionen" size="small" onClick={(e) => setMenuAnchorEl(e.currentTarget)}>
                         <MoreVertIcon fontSize="small" />
                       </IconButton>
                       <Menu
@@ -163,7 +169,7 @@ export default function Answer(props) {
                         </MenuItem>
                         <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
                           <DeleteForeverIcon fontSize="small" sx={{ mr: 1 }} />
-                          Antwort lÃ¶schen
+                          Antwort löschen
                         </MenuItem>
                       </Menu>
                     </>
@@ -200,6 +206,13 @@ export default function Answer(props) {
           </Grid>
         </Grid>
       </CardContent>
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Antwort löschen?"
+        message="Möchtest du diese Antwort wirklich löschen? Das kann nicht rückgängig gemacht werden."
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </Card>
   );
 }

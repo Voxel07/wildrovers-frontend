@@ -1,6 +1,7 @@
 import React, { useState, useEffect, use, useRef, useCallback, useReducer } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import api from '../../helper/api';
+import api, { extractErrorMessage } from '../../helper/api';
+import useSessionDraft from '../../hooks/useSessionDraft';
 
 // Quill
 import ForumQuill from '../../components/Forum/ForumQuill';
@@ -90,8 +91,10 @@ export default function TextEditor(props) {
 
   const isReadOnly = props.readonly === true || props.readonly === 'true';
 
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState(props.value || '');
+  // Drafts survive an expired session or a login redirect (per topic, this tab only).
+  const draftKey = !isReadOnly && location.state?.topicId ? `draft:post:${location.state.topicId}` : null;
+  const [title, setTitle, clearTitleDraft] = useSessionDraft(draftKey && `${draftKey}:title`, '');
+  const [content, setContent, clearContentDraft] = useSessionDraft(draftKey && `${draftKey}:content`, props.value || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
@@ -150,6 +153,8 @@ export default function TextEditor(props) {
     api.put(`/forum/post?topic=${topicId}`, { title, content })
       .then(response => {
         const postId = response.data;
+        clearTitleDraft();
+        clearContentDraft();
         alertsManagerRef.current.showAlert('success', 'Beitrag erfolgreich erstellt!');
 
         if (hasPoll && pollQuestion.trim()) {
@@ -178,7 +183,7 @@ export default function TextEditor(props) {
       .catch(err => {
         console.error(err);
         const status = err.response?.status || 500;
-        const data = err.response?.data || 'Fehler beim Speichern des Beitrags';
+        const data = extractErrorMessage(err) || 'Fehler beim Speichern des Beitrags';
         setError(`${status}: ${data}`);
         setSaving(false);
       });
@@ -391,7 +396,7 @@ export default function TextEditor(props) {
                   value={option.value}
                   onChange={(e) => handleOptionChange(option.id, e.target.value)}
                 />
-                <IconButton color="error" onClick={() => handleRemoveOption(option.id)} disabled={pollOptions.length <= 2}>
+                <IconButton aria-label="Option entfernen" color="error" onClick={() => handleRemoveOption(option.id)} disabled={pollOptions.length <= 2}>
                   <DeleteIcon />
                 </IconButton>
               </Stack>

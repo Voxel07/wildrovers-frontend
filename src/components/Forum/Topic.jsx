@@ -230,7 +230,7 @@ export default function Topic(props) {
             </Box>
             {/* Mobile burger menu */}
             <Box sx={{ display: { xs: 'flex', sm: 'none' } }}>
-              <IconButton size="small" onClick={handleMenuOpen} color="inherit">
+              <IconButton aria-label="Weitere Aktionen" size="small" onClick={handleMenuOpen} color="inherit">
                 <MoreVertIcon fontSize="small" />
               </IconButton>
             </Box>

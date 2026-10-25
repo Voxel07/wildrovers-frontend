@@ -221,7 +221,7 @@ export default function Rules() {
             ),
             endAdornment: searchQuery && (
               <InputAdornment position="end">
-                <IconButton onClick={() => setSearchQuery('')} edge="end" size="small">
+                <IconButton aria-label="Suche leeren" onClick={() => setSearchQuery('')} edge="end" size="small">
                   <ClearIcon />
                 </IconButton>
               </InputAdornment>

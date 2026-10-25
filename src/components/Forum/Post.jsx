@@ -1,6 +1,6 @@
 import React, { useState, use, useReducer } from 'react';
 import PropTypes from 'prop-types';
-import api, { extractErrorMessage } from '../../helper/api';
+import api, { extractErrorMessage, apiUrl } from '../../helper/api';
 
 // Mui
 import Grid from '@mui/material/Grid';
@@ -117,8 +117,7 @@ export default function Post({ post, onUpdate, onDelete, onAddPoll, pollsVisible
 
     const { id, title, creator, creationDate, answerCount, views, creatorPhotoUrl } = post;
     const isCreatorOrAdmin = auth.user === creator || isModerator(auth.roles);
-    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-    const avatarUrl = creatorPhotoUrl ? apiBase + creatorPhotoUrl : null;
+    const avatarUrl = apiUrl(creatorPhotoUrl);
 
     const handleVote = (type) => {
         if (!auth.user) {

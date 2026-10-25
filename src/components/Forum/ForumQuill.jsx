@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect, useCallback, useMemo, useImperative
 import ReactQuill, { Quill } from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { Box } from '@mui/material';
-import api from '../../helper/api';
+import api, { extractErrorMessage } from '../../helper/api';
 import { AlertsContext } from '../utils/AlertsManager';
 
 const noModules = { toolbar: false };
@@ -126,8 +126,8 @@ const ForumQuill = React.forwardRef(({ value, onChange, placeholder, style, read
       } catch (err) {
         console.error('Image upload failed', err);
         if (alertsManagerRef?.current) {
-          alertsManagerRef.current.showAlert('error', typeof err.response?.data === 'string'
-            ? err.response.data : 'Bild konnte nicht hochgeladen werden');
+          alertsManagerRef.current.showAlert('error', err.response?.data
+            ? extractErrorMessage(err) : 'Bild konnte nicht hochgeladen werden');
         }
       } finally {
         document.body.removeChild(input);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../helper/api';
+import api, { apiUrl } from '../../helper/api';
 import useAuth from '../../context/useAuth';
 import Tilt from 'react-parallax-tilt';
 
@@ -25,7 +25,7 @@ const roles = {
 
 export default function Team() {
   const { auth } = useAuth();
-  const isTeamMember = auth?.JWT && ['Frischling', 'Mitglied', 'Vorstand', 'Admin'].includes(auth?.roles);
+  const isTeamMember = auth.isAuthenticated && ['Frischling', 'Mitglied', 'Vorstand', 'Admin'].includes(auth?.roles);
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -81,17 +81,8 @@ export default function Team() {
     frischling: members.filter(u => u.role === 'Frischling')
   };
 
-  const getAvatarUrl = (photoUrl) => {
-    if (!photoUrl) return null;
-    const base = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-    return base + photoUrl;
-  };
-
-  const getBackgroundUrl = (backgroundUrl) => {
-    if (!backgroundUrl) return null;
-    const base = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-    return base + backgroundUrl;
-  };
+  const getAvatarUrl = apiUrl;
+  const getBackgroundUrl = apiUrl;
 
   if (loading) {
     return (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, use } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../../helper/api';
+import api, { extractErrorMessage } from '../../helper/api';
 import useAuth from '../../context/useAuth';
 import { AlertsContext } from '../../components/utils/AlertsManager';
 
@@ -64,7 +64,7 @@ export default function UserManagement() {
   const [deleteGallery, setDeleteGallery] = useState(true);
   const [hardDelete, setHardDelete] = useState(false);
 
-  const isAuthorized = auth?.JWT && (auth.roles === 'Admin' || auth.roles === 'Vorstand');
+  const isAuthorized = auth.isAuthenticated && (auth.roles === 'Admin' || auth.roles === 'Vorstand');
   const isVorstand = auth?.roles === 'Vorstand';
 
   const fetchUsers = () => {
@@ -87,7 +87,7 @@ export default function UserManagement() {
   };
 
   useEffect(() => {
-    if (!auth || !auth.JWT) {
+    if (!auth.isAuthenticated) {
       navigate('/Login');
       return;
     }
@@ -145,7 +145,7 @@ export default function UserManagement() {
       })
       .catch(err => {
         console.error("Error updating user", err);
-        const msg = err.response?.data || 'Fehler beim Speichern.';
+        const msg = extractErrorMessage(err) || 'Fehler beim Speichern.';
         alertsManagerRef.current.showAlert('error', `Speichern fehlgeschlagen: ${msg}`);
         fetchUsers();
       })
@@ -204,7 +204,7 @@ export default function UserManagement() {
       })
       .catch(err => {
         console.error('Error deleting user data', err);
-        const msg = err.response?.data || 'Fehler beim Löschen.';
+        const msg = extractErrorMessage(err) || 'Fehler beim Löschen.';
         alertsManagerRef.current.showAlert('error', `Löschen fehlgeschlagen: ${msg}`);
       })
       .finally(() => {
@@ -350,12 +350,15 @@ export default function UserManagement() {
                       <TableCell>{user.firstName} {user.lastName}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
+                        <Tooltip title={user.oidcLinked ? 'Rolle wird über Authentik-Gruppen verwaltet' : ''}>
+                        <span>
                         <Select
                           value={user.role || 'Besucher'}
                           onChange={(e) => handleRoleChange(user.id, e.target.value)}
                           size="small"
                           sx={{ minWidth: 120 }}
-                          disabled={isVorstand && user.role === 'Admin'}
+                          inputProps={{ 'aria-label': `Rolle von ${user.userName}` }}
+                          disabled={user.oidcLinked || (isVorstand && user.role === 'Admin')}
                           MenuProps={{
                             disablePortal: false,
                             anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
@@ -369,6 +372,8 @@ export default function UserManagement() {
                           <MenuItem value="Vorstand">Vorstand</MenuItem>
                           <MenuItem value="Admin">Admin</MenuItem>
                         </Select>
+                        </span>
+                        </Tooltip>
                       </TableCell>
                       <TableCell align="center">
                         <Switch

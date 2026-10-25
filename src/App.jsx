@@ -7,7 +7,7 @@ import Box from '@mui/material/Box';
 //pages
 import Navbar from './components/Navigation/Navbar';
 import Footer from './components/Navigation/Footer';
-import { lazy, Suspense, useMemo, useState, useRef, useEffect } from "react";
+import { lazy, Suspense, useRef, useEffect } from "react";
 
 const LandingPage = lazy(() => import('./Pages/LandingPage/LandingPage'));
 const LogIn = lazy(() => import('./Pages/LogIn/LogIn'));
@@ -27,9 +27,6 @@ const Topics = lazy(() => import('./Pages/Forum/Forum-Topic'));
 const Posts = lazy(() => import('./Pages/Forum/Forum-Post'));
 const TextEditor = lazy(() => import('./Pages/Texteditor/Texteditor'));
 
-//context
-import { UserContext } from './context/UserContext';
-import useAuth from './context/useAuth';
 
 //Protected routes
 import RequireAuth from './components/Router/RequireAuth';
@@ -44,34 +41,13 @@ import { AlertsManager, AlertsContext } from './components/utils/AlertsManager';
 const AUTHENTICATED_ROLES = ["Besucher", "Frischling", "Mitglied", "Vorstand", "Admin"];
 
 function App() {
-  const { auth } = useAuth();
   const location = useLocation();
-  const [user, setUser] = useState({ valid: false, name: "", role: "", jwt: "" });
-
-  useEffect(() => {
-    if (auth && auth.JWT) {
-      setUser({
-        valid: true,
-        name: auth.user,
-        role: auth.roles,
-        jwt: auth.JWT
-      });
-    } else {
-      setUser({
-        valid: false,
-        name: "",
-        role: "",
-        jwt: ""
-      });
-    }
-  }, [auth]);
 
   // Session replay must never record login, reset, signup, profile or admin views.
   useEffect(() => {
     syncReplayWithRoute(location.pathname);
   }, [location.pathname]);
 
-  const stateValue = useMemo(() => ({ user, setUser }), [user, setUser]);
   const alertsManagerRef = useRef();
 
   // Listen for global rate-limit events dispatched by api.js interceptor
@@ -87,7 +63,6 @@ function App() {
   }, []);
 
   return (
-    <UserContext.Provider value={stateValue}>
       <AlertsContext.Provider value={alertsManagerRef}>
         <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
             <Navbar />
@@ -100,12 +75,16 @@ function App() {
                 <Route path="/" element={<LandingPage />} />
                 <Route path="Login" element={<LogIn />} />
                 <Route path="password-reset" element={<PasswordReset />} />
-                <Route path="Regestrieren" element={<SignUp />} />
-                <Route path="Regestrieren/Erfolgreich" element={<VerificationPrompt />} />
+                <Route path="registrieren" element={<SignUp />} />
+                <Route path="registrieren/erfolgreich" element={<VerificationPrompt />} />
+                {/* Old, misspelled addresses still circulate in links and bookmarks */}
+                <Route path="Regestrieren" element={<Navigate to="/registrieren" replace />} />
+                <Route path="Regestrieren/Erfolgreich" element={<Navigate to="/registrieren/erfolgreich" replace />} />
                 <Route path="unauthorized" element={<Unauthorized />} />
                 <Route path="Datenschutz" element={<Datenschutz />} />
                 <Route path="404" element={<PageNotFound />} />
-                <Route path="galery" element={<Gallery />} />
+                <Route path="galerie" element={<Gallery />} />
+                <Route path="galery" element={<Navigate to="/galerie" replace />} />
                 <Route path="events" element={<Events />} />
                 <Route path="team" element={<Team />} />
 
@@ -138,7 +117,6 @@ function App() {
             <Footer />
           </Box>
       </AlertsContext.Provider>
-    </UserContext.Provider>
   );
 }
 

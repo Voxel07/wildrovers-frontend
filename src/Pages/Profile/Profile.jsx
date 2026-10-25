@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useReducer, use } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api, { extractErrorMessage } from '../../helper/api';
+import api, { extractErrorMessage, apiUrl } from '../../helper/api';
 import { convertTimestamp } from '../../helper/converter';
 import useAuth from '../../context/useAuth';
 import { AlertsContext } from '../../components/utils/AlertsManager';
@@ -103,7 +103,7 @@ function profileReducer(state, action) {
 }
 
 export default function Profile() {
-  const { auth, setAuth } = useAuth();
+  const { auth, reloadSession } = useAuth();
   const navigate = useNavigate();
   const alertsManagerRef = use(AlertsContext);
   const [state, dispatch] = useReducer(profileReducer, initialProfileState);
@@ -130,7 +130,7 @@ export default function Profile() {
     if (!silent) {
       dispatch({ type: 'FETCH_START' });
     }
-    api.get('/user/me')
+    api.get('/user/me', { params: { stats: true } })
       .then(response => {
         dispatch({ type: 'FETCH_SUCCESS', payload: response.data });
         setEditData({
@@ -151,7 +151,7 @@ export default function Profile() {
   };
 
   useEffect(() => {
-    if (!auth || !auth.JWT) {
+    if (!auth.isAuthenticated) {
       navigate('/Login');
       return;
     }
@@ -280,6 +280,7 @@ export default function Profile() {
           })
             .then(res => {
               dispatch({ type: 'UPDATE_PHOTO', payload: res.data.photoUrl });
+              reloadSession(); // navbar avatar
               alertsManagerRef.current.showAlert('success', 'Profilbild erfolgreich aktualisiert.');
             })
             .catch(err => {
@@ -368,6 +369,7 @@ export default function Profile() {
     api.delete('/user/me/photo')
       .then(() => {
         dispatch({ type: 'UPDATE_PHOTO', payload: null });
+        reloadSession(); // navbar avatar
         alertsManagerRef.current.showAlert('success', 'Profilbild entfernt.');
       })
       .catch(err => {
@@ -391,7 +393,7 @@ export default function Profile() {
       .then(res => {
         dispatch({ type: 'UPDATE_PROFILE_SUCCESS', payload: res.data });
         if (res.data.userName && auth?.user !== res.data.userName) {
-          setAuth(prev => ({ ...prev, user: res.data.userName }));
+          reloadSession();
         }
         setEditMode(false);
         fetchProfile(true);
@@ -426,9 +428,8 @@ export default function Profile() {
   }
 
   const initial = profile.userName ? profile.userName[0].toUpperCase() : 'U';
-  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-  const avatarUrl = profile.photoUrl ? apiBase + profile.photoUrl : null;
-  const backgroundUrl = profile.backgroundUrl ? apiBase + profile.backgroundUrl : null;
+  const avatarUrl = apiUrl(profile.photoUrl);
+  const backgroundUrl = apiUrl(profile.backgroundUrl);
 
   return (
     <Container maxWidth="md" sx={{ mt: 5, mb: 8, px: { xs: 2, md: 3 } }}>

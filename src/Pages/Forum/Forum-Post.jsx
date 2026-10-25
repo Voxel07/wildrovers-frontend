@@ -1,6 +1,7 @@
 import React, { useEffect, useState, use, useCallback, useReducer, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api, { extractErrorMessage } from '../../helper/api';
+import useSessionDraft from '../../hooks/useSessionDraft';
 
 // Mui
 import Container from '@mui/material/Container';
@@ -142,11 +143,11 @@ export default function Forum_Post() {
   const answerPageCount = Math.ceil(answerTotal / ANSWERS_PER_PAGE);
   const userStatus = associatedEvent?.attendances?.find(a => a.userName === auth.user)?.status;
 
-  const isLoggedIn = !!auth?.JWT;
+  const isLoggedIn = auth.isAuthenticated;
   const isTeamMember = isLoggedIn && ['Frischling', 'Mitglied', 'Vorstand', 'Admin'].includes(auth?.roles);
 
   // Reply State
-  const [replyContent, setReplyContent] = useState('');
+  const [replyContent, setReplyContent, clearReplyDraft] = useSessionDraft(`draft:answer:${id}`, '');
   const [submittingReply, setSubmittingReply] = useState(false);
 
   // Poll Dialog State
@@ -310,7 +311,7 @@ export default function Forum_Post() {
     })
       .then(response => {
         alertsManagerRef.current.showAlert('success', 'Antwort erfolgreich hinzugefügt');
-        setReplyContent('');
+        clearReplyDraft();
         // Reload silently and show the last page, where the new answer is
         fetchData(true, Math.max(1, Math.ceil((answerTotal + 1) / ANSWERS_PER_PAGE)));
       })
@@ -784,7 +785,7 @@ export default function Forum_Post() {
                   value={option}
                   onChange={(e) => handleOptionChange(index, e.target.value)}
                 />
-                <IconButton
+                <IconButton aria-label="Option entfernen"
                   color="error"
                   onClick={() => handleRemoveOption(index)}
                   disabled={pollOptions.length <= 2}

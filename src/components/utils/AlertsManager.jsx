@@ -1,11 +1,13 @@
-
-import React, { useState, useEffect, useImperativeHandle, createContext } from 'react';
+import { useState, useImperativeHandle, createContext, useCallback, useEffect, useRef } from 'react';
 import Alert from '@mui/material/Alert';
 import Slide from '@mui/material/Slide';
-import  LinearProgress  from '@mui/material/LinearProgress';
 //styling
 import './AlertsManager.css';
 const AlertsContext = createContext();
+
+// Errors and warnings usually need reading; confirmations only a glance.
+const DURATION_MS = { error: 8000, warning: 6000, info: 4000, success: 4000 };
+const MAX_ALERTS = 5;
 
 /**
  * Format alert messages: handle strings, objects with .message, and fallback to JSON.
@@ -18,84 +20,49 @@ function formatAlertMessage(msg) {
   return String(msg);
 }
 
-const AlertsManager = ({ ref, ...props }) => {
-    const [alerts, setAlerts] = useState([]);
+let nextAlertId = 0;
 
-    useEffect(() => {
-      const interval = setInterval(() => {
-        setAlerts((prevAlerts) =>
-          prevAlerts.map((alert) => ({
-            ...alert,
-            remainingTime: Math.max(alert.remainingTime - 100, 0),
-          }))
-        );
-      }, 100);
-      return () => clearInterval(interval);
+const AlertsManager = ({ ref }) => {
+    const [alerts, setAlerts] = useState([]);
+    const timers = useRef(new Map());
+
+    const removeAlert = useCallback((id) => {
+      clearTimeout(timers.current.get(id));
+      timers.current.delete(id);
+      setAlerts((prevAlerts) => prevAlerts.filter((alert) => alert.id !== id));
     }, []);
 
+    // One timeout per alert; the countdown bar is a CSS animation, so nothing re-renders while it runs.
+    const showAlert = useCallback((severity, message) => {
+      const id = ++nextAlertId;
+      const duration = DURATION_MS[severity] ?? 4000;
+      setAlerts((prevAlerts) => [...prevAlerts, { id, severity, message, duration }].slice(-MAX_ALERTS));
+      timers.current.set(id, setTimeout(() => removeAlert(id), duration));
+    }, [removeAlert]);
 
-    // Function to add an alert to the state
-    const showAlert = (severity, message) => {
-      const id = new Date().getTime();
-      setAlerts((prevAlerts) => [
-        ...prevAlerts,
-        { id, severity, message, remainingTime: 3000 },
-      ]);
-      if (alerts.length >= 5) {
-        removeAlert(alerts[0].id);
-      }
-    };
+    useEffect(() => {
+      const pending = timers.current;
+      return () => pending.forEach(clearTimeout);
+    }, []);
 
-    // Function to remove an alert from the state
-    const removeAlert = (id) => {
-      setAlerts((prevAlerts) => prevAlerts.filter((alert) => alert.id !== id));
-    };
-
-    useImperativeHandle(ref, () => ({
-      showAlert,
-    }));
+    useImperativeHandle(ref, () => ({ showAlert }), [showAlert]);
 
     return (
-      // Render the alerts
-      <div className='alerts-manager'>
+      <div className='alerts-manager' aria-live="polite">
         {alerts.map((alert) => (
-      <Slide
-        key={alert.id}
-        direction="left"
-        in={true}
-        mountOnEnter
-        unmountOnExit
-        onEnter={() => {
-          setTimeout(() => {
-            removeAlert(alert.id);
-          }, 3000);
-        }}
-      >
-        <div style={{position: 'relative'}}>
-        <Alert
-          severity={alert.severity}
-          onClose={() => removeAlert(alert.id)}
-          sx={{ mb: 1 }}
-        >
-          {formatAlertMessage(alert.message)}
-        </Alert>
-            <LinearProgress
-              variant="determinate"
-              color={alert.severity}
-              value={Math.max(0, Math.min(100, 100 - ((alert.remainingTime - 340)/ 3000) * 100))}
-              style={{
-                position: 'absolute',
-                bottom: 8,
-                left: 0,
-                width: '100%',
-                borderBottomRightRadius: 2,
-                borderBottomLeftRadius: 2,
-              }}
-            />
-
+          <Slide key={alert.id} direction="left" in={true} mountOnEnter unmountOnExit>
+            <div className="alerts-manager__item">
+              <Alert severity={alert.severity} onClose={() => removeAlert(alert.id)} sx={{ mb: 1 }}>
+                {formatAlertMessage(alert.message)}
+              </Alert>
+              <div
+                className={`alerts-manager__progress alerts-manager__progress--${alert.severity}`}
+                style={{ animationDuration: `${alert.duration}ms` }}
+                aria-hidden="true"
+              />
             </div>
-      </Slide>
-    ))}
+          </Slide>
+        ))}
       </div>
     );
 };

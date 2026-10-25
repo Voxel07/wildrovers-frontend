@@ -28,13 +28,11 @@ import LoginIcon from '@mui/icons-material/Login';
 
 // Context
 import useAuth from '../../context/useAuth';
-import { UserContext } from '../../context/UserContext';
-import api from '../../helper/api';
 
 // Navigation items
 const navItems = [
   { key: 1, name: 'Forum', path: '/Forum', icon: <ForumIcon /> },
-  { key: 2, name: 'Galerie', path: '/galery', icon: <CollectionsIcon /> },
+  { key: 2, name: 'Galerie', path: '/galerie', icon: <CollectionsIcon /> },
   { key: 3, name: 'Events', path: '/events', icon: <EventIcon /> },
   { key: 4, name: 'Team', path: '/team', icon: <GroupsIcon /> },
   { key: 5, name: 'Regeln', path: '/Regeln', icon: <GavelIcon /> },
@@ -53,29 +51,10 @@ const TOPBAR_HEIGHT = 65;
 const Sidebar = ({ mode, onToggleMode }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { auth, setAuth } = useAuth();
-  const { setUser } = React.useContext(UserContext);
-  const [photoUrl, setPhotoUrl] = React.useState(null);
+  const { auth, logout } = useAuth();
+  const photoUrl = auth.photoUrl;
 
-  // Fetch user profile photo on mount / when user changes
-  React.useEffect(() => {
-    if (!auth?.user) {
-      setPhotoUrl(null);
-      return;
-    }
-    let cancelled = false;
-    api.get('/user/me')
-      .then((res) => {
-        if (!cancelled && res.data?.photoUrl) {
-          const base = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-          setPhotoUrl(base + res.data.photoUrl);
-        }
-      })
-      .catch(() => {}); // silently ignore
-    return () => { cancelled = true; };
-  }, [auth?.user]);
-
-  const isAdminOrVorstand = auth?.JWT && (auth.roles === 'Admin' || auth.roles === 'Vorstand');
+  const isAdminOrVorstand = auth.isAuthenticated && (auth.roles === 'Admin' || auth.roles === 'Vorstand');
   const visibleItems = [...navItems];
   if (isAdminOrVorstand) {
     visibleItems.push({ key: 6, name: 'Benutzerverwaltung', path: '/Admin/UserManagement', icon: <AdminPanelSettingsIcon /> });
@@ -87,15 +66,8 @@ const Sidebar = ({ mode, onToggleMode }) => {
   };
 
   const handleLogout = async () => {
-    try {
-      await api.post('/user/logout');
-    } catch (e) {
-      console.error('Logout error:', e);
-    } finally {
-      setUser({ valid: false, jwt: null });
-      setAuth({ JWT: null, user: null, roles: null });
-      navigate('/', { replace: true });
-    }
+    await logout();
+    navigate('/', { replace: true });
   };
 
   const sidebarWidth = mode === 'full' ? SIDEBAR_FULL_WIDTH : SIDEBAR_MINI_WIDTH;

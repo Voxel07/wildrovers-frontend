@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useReducer } from 'react';
+import React, { useState, useEffect, useReducer, use } from 'react';
+import { AlertsContext } from '../../components/utils/AlertsManager';
 import useAuth from '../../context/useAuth';
 import api, { extractErrorMessage } from '../../helper/api';
 import { isModerator } from '../../helper/converter';
@@ -89,7 +90,8 @@ function modalReducer(state, action) {
 
 export default function Gallery() {
   const { auth } = useAuth();
-  const isLoggedIn = !!auth?.JWT;
+  const alertsManagerRef = use(AlertsContext);
+  const isLoggedIn = auth.isAuthenticated;
   // Vorstand and Admin may edit or delete what others created, as in the backend.
   const canModerate = isModerator(auth?.roles);
   const currentUsername = auth?.user;
@@ -179,7 +181,7 @@ export default function Gallery() {
       })
       .catch(err => {
         console.error("Error deleting album", err);
-        alert(extractErrorMessage(err) || 'Löschen fehlgeschlagen.');
+        alertsManagerRef.current?.showAlert('error', extractErrorMessage(err) || 'Löschen fehlgeschlagen.');
       });
   };
 

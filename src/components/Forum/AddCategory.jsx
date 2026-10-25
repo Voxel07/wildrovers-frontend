@@ -2,7 +2,7 @@
  * This is the Modal to add a new Category
  */
 import React, { useState, useEffect, use, useMemo } from 'react';
-import api from '../../helper/api';
+import api, { extractErrorMessage } from '../../helper/api';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -137,12 +137,12 @@ const AddCategory = ({ ref, ...props }) => {
             if (resCode === 401) {
                 resData = "Nicht angemeldet!";
             } else if (resCode === 403 || resCode === 406) {
-                resData = error.response.data || "Du bist für diese Aktion nicht berechtigt!";
+                resData = extractErrorMessage(error) || "Du bist für diese Aktion nicht berechtigt!";
             } else if (resCode === 429) {
                 resData = "Zu viele Anfragen — bitte warte einen Moment.";
                 alertsManagerRef.current.showAlert('warning', resData);
             } else {
-                resData = error.response?.data?.message || error.response?.data || "Ein Fehler ist aufgetreten.";
+                resData = extractErrorMessage(error) || "Ein Fehler ist aufgetreten.";
             }
 
             setState({ resCode, resData });

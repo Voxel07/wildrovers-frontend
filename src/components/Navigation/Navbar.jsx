@@ -37,12 +37,10 @@ import RoversLogo from '../../images/WRW_small.webp';
 import NavbarLogo from './Navbar-Logo';
 import NavbarLogin from './Navbar-LoginPromt';
 import useAuth from '../../context/useAuth';
-import { UserContext } from '../../context/UserContext';
-import api from '../../helper/api';
 
 const navItems = [
   { key: 1, name: 'Forum', path: '/Forum', icon: <ForumIcon /> },
-  { key: 2, name: 'Galerie', path: '/galery', icon: <CollectionsIcon /> },
+  { key: 2, name: 'Galerie', path: '/galerie', icon: <CollectionsIcon /> },
   { key: 3, name: 'Events', path: '/events', icon: <EventIcon /> },
   { key: 4, name: 'Team', path: '/team', icon: <GroupsIcon /> },
   { key: 5, name: 'Regeln', path: '/Regeln', icon: <GavelIcon /> },
@@ -56,13 +54,12 @@ const DRAWER_WIDTH = 260;
  * - Mobile (<md): hamburger button opens a temporary drawer with nav links.
  */
 const ResponsiveAppBar = () => {
-  const { auth, setAuth } = useAuth();
-  const { setUser } = React.useContext(UserContext);
+  const { auth, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const isAdminOrVorstand = auth?.JWT && (auth.roles === 'Admin' || auth.roles === 'Vorstand');
+  const isAdminOrVorstand = auth.isAuthenticated && (auth.roles === 'Admin' || auth.roles === 'Vorstand');
 
   const isCurrentPath = (path) => {
     if (path === '/Forum') return location.pathname.startsWith('/Forum');
@@ -70,15 +67,8 @@ const ResponsiveAppBar = () => {
   };
 
   const handleLogout = async () => {
-    try {
-      await api.post('/user/logout');
-    } catch (e) {
-      console.error('Logout error:', e);
-    } finally {
-      setUser({ valid: false, jwt: null });
-      setAuth({ JWT: null, user: null, roles: null });
-      navigate('/', { replace: true });
-    }
+    await logout();
+    navigate('/', { replace: true });
   };
 
   const handleNavClick = (path) => {
@@ -93,7 +83,7 @@ const ResponsiveAppBar = () => {
         <Typography variant="h6" sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 800, letterSpacing: '.15rem', color: 'primary.main' }}>
           WILDROVERS
         </Typography>
-        <IconButton onClick={() => setDrawerOpen(false)} sx={{ color: 'text.secondary' }}>
+        <IconButton aria-label="Menü schließen" onClick={() => setDrawerOpen(false)} sx={{ color: 'text.secondary' }}>
           <CloseIcon />
         </IconButton>
       </Box>

@@ -1,41 +1,28 @@
-// OIDC Client Helper for Authentik
+// Authentik login, browser half. The browser only runs the authorization request
+// (PKCE + state); the backend exchanges the code and keeps every token.
 
 // RFC 7636 §4.1: the verifier must be 43–128 characters from the unreserved set.
 // 32 random bytes, base64url-encoded without padding, yield exactly 43 characters.
-export function generateCodeVerifier() {
+function randomString() {
   const bytes = new Uint8Array(32);
   window.crypto.getRandomValues(bytes);
   return base64urlencode(bytes);
 }
 
-// Generate SHA-256 hash of verifier
-async function sha256(plain) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(plain);
-  return window.crypto.subtle.digest("SHA-256", data);
-}
-
-// Base64url encode the hash buffer
 function base64urlencode(a) {
   let str = "";
   const bytes = new Uint8Array(a);
-  const len = bytes.byteLength;
-  for (let i = 0; i < len; i++) {
+  for (let i = 0; i < bytes.byteLength; i++) {
     str += String.fromCharCode(bytes[i]);
   }
-  return btoa(str)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
+  return btoa(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-// Generate code challenge from verifier
-export async function generateCodeChallenge(v) {
-  const hashed = await sha256(v);
+async function generateCodeChallenge(verifier) {
+  const hashed = await window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
   return base64urlencode(hashed);
 }
 
-// Get OIDC configuration from environment
 const getOidcConfig = () => {
   const authority = import.meta.env.VITE_OIDC_AUTHORITY || 'http://localhost:9000/application/o/wildrovers/';
   let origin = 'http://localhost:9000';
@@ -45,124 +32,58 @@ const getOidcConfig = () => {
     console.error("Invalid OIDC authority URL", e);
   }
   return {
-    authority,
     clientId: import.meta.env.VITE_OIDC_CLIENT_ID || 'wildrovers-backend',
     redirectUri: import.meta.env.VITE_OIDC_REDIRECT_URI || 'http://localhost:5173/Login',
     authorizeUrl: `${origin}/application/o/authorize/`,
-    tokenUrl: `${origin}/application/o/token/`,
   };
 };
 
-// Redirect user to Authentik OIDC login page
-export async function redirectToAuthentik() {
+// sessionStorage: the values only have to survive the redirect in this tab.
+const VERIFIER_KEY = "oidc_verifier";
+const STATE_KEY = "oidc_state";
+const RETURN_KEY = "oidc_return_to";
+
+/** Redirects to Authentik; `returnTo` is where the user lands after login. */
+export async function redirectToAuthentik(returnTo = "/") {
   const config = getOidcConfig();
-  const verifier = generateCodeVerifier();
-  
-  // Save verifier locally to exchange later
-  localStorage.setItem("oidc_verifier", verifier);
-  
-  const challenge = await generateCodeChallenge(verifier);
-  
+  const verifier = randomString();
+  const state = randomString();
+  sessionStorage.setItem(VERIFIER_KEY, verifier);
+  sessionStorage.setItem(STATE_KEY, state);
+  sessionStorage.setItem(RETURN_KEY, returnTo);
+
   const url = new URL(config.authorizeUrl);
   url.searchParams.append("response_type", "code");
   url.searchParams.append("client_id", config.clientId);
   url.searchParams.append("redirect_uri", config.redirectUri);
   url.searchParams.append("scope", "openid profile email offline_access");
-  url.searchParams.append("code_challenge", challenge);
+  url.searchParams.append("code_challenge", await generateCodeChallenge(verifier));
   url.searchParams.append("code_challenge_method", "S256");
-  
-  // Optional: add state to protect against CSRF
-  const state = Math.random().toString(36).substring(2, 15);
-  localStorage.setItem("oidc_state", state);
   url.searchParams.append("state", state);
 
   window.location.href = url.toString();
 }
 
-// Exchange code for token
-export async function exchangeCodeForToken(code) {
-  const config = getOidcConfig();
-  const verifier = localStorage.getItem("oidc_verifier");
-  
-  if (!verifier) {
+/**
+ * Takes the PKCE verifier for a returned authorization code, once. Returns null when
+ * no login is pending or the returned state does not match the one sent (forged or
+ * replayed callback).
+ */
+export function consumeOidcCallback(returnedState) {
+  const verifier = sessionStorage.getItem(VERIFIER_KEY);
+  const expectedState = sessionStorage.getItem(STATE_KEY);
+  const returnTo = sessionStorage.getItem(RETURN_KEY) || "/";
+  // Single use, also against the double effect run of React Strict Mode.
+  sessionStorage.removeItem(VERIFIER_KEY);
+  sessionStorage.removeItem(STATE_KEY);
+  sessionStorage.removeItem(RETURN_KEY);
+  if (!verifier || !expectedState || returnedState !== expectedState) {
     return null;
   }
-
-  // Clear verifier immediately to prevent double exchange in React Strict Mode
-  localStorage.removeItem("oidc_verifier");
-  localStorage.removeItem("oidc_state");
-
-  const params = new URLSearchParams();
-  params.append("grant_type", "authorization_code");
-  params.append("client_id", config.clientId);
-  params.append("code", code);
-  params.append("redirect_uri", config.redirectUri);
-  params.append("code_verifier", verifier);
-
-  const response = await fetch(config.tokenUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: params.toString(),
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Token exchange failed: ${errText}`);
-  }
-
-  return await response.json();
+  return { verifier, returnTo };
 }
 
-// Parse JWT claims
-export function parseJwt(token) {
-  try {
-    return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-  } catch (e) {
-    return null;
-  }
-}
-
-// Refresh access token using refresh token
-export async function refreshAccessToken(refreshToken) {
-  const config = getOidcConfig();
-  const params = new URLSearchParams();
-  params.append("grant_type", "refresh_token");
-  params.append("client_id", config.clientId);
-  params.append("refresh_token", refreshToken);
-
-  const response = await fetch(config.tokenUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: params.toString(),
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Token refresh failed: ${errText}`);
-  }
-
-  return await response.json();
-}
-
-let refreshPromise = null;
-
-export async function refreshTokens(refreshToken) {
-  if (refreshPromise) {
-    return refreshPromise;
-  }
-  refreshPromise = (async () => {
-    try {
-      const tokens = await refreshAccessToken(refreshToken);
-      refreshPromise = null;
-      return tokens;
-    } catch (err) {
-      refreshPromise = null;
-      throw err;
-    }
-  })();
-  return refreshPromise;
+/** True while an Authentik login started in this tab is waiting for its callback. */
+export function hasPendingOidcLogin() {
+  return sessionStorage.getItem(VERIFIER_KEY) !== null;
 }

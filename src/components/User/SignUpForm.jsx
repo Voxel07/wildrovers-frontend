@@ -39,7 +39,7 @@ function SignUpForm() {
         .then(response => {
             console.log(JSON.stringify(response.data));
             setState({ resCode: response.status, resData: response.data });
-            navigate("/Regestrieren/Erfolgreich", { replace: true, state: { email: formData.email } });
+            navigate("/registrieren/erfolgreich", { replace: true, state: { email: formData.email } });
         })
         .catch(error => {
             console.log("Error during registration:", error.response);

@@ -19,7 +19,7 @@ import MarkEmailUnreadIcon from '@mui/icons-material/MarkEmailUnread';
 
 // Auth & OIDC
 import useAuth from '../../context/useAuth';
-import { redirectToAuthentik, exchangeCodeForToken, parseJwt } from '../../helper/oidc';
+import { redirectToAuthentik, consumeOidcCallback, hasPendingOidcLogin } from '../../helper/oidc';
 import api, { extractErrorMessage } from '../../helper/api';
 import { removeQueryParams } from '../../helper/telemetry';
 
@@ -37,7 +37,7 @@ function loginReducer(state, action) {
 }
 
 const SignIn = React.forwardRef((props, ref) => {
-  const { setAuth } = useAuth();
+  const { setSession } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [loginState, dispatch] = useReducer(loginReducer, initialLoginState);
@@ -61,77 +61,41 @@ const SignIn = React.forwardRef((props, ref) => {
     }
   }, [location.search]);
 
-  // Check URL for authorization code
+  // Authentik redirected back with an authorization code: the backend exchanges it.
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const code = searchParams.get('code');
-    const hasVerifier = localStorage.getItem("oidc_verifier");
+    const returnedState = searchParams.get('state');
+    if (!code) return;
 
-    if (code) {
-      // Authorization code and state are single-use secrets: drop them from the URL.
-      removeQueryParams('code', 'state', 'session_state', 'iss');
+    // Authorization code and state are single-use secrets: drop them from the URL.
+    removeQueryParams('code', 'state', 'session_state', 'iss');
+    if (!hasPendingOidcLogin()) return;
+
+    const pending = consumeOidcCallback(returnedState);
+    if (!pending) {
+      dispatch({ type: 'LOGIN_ERROR', payload: "Anmeldung abgelehnt (ungültiger Sicherheitsparameter). Bitte versuche es erneut." });
+      return;
     }
 
-    if (code && hasVerifier) {
-      dispatch({ type: 'VERIFYING' });
-      exchangeCodeForToken(code)
-        .then((tokens) => {
-          if (!tokens) return;
-          const payload = parseJwt(tokens.access_token || tokens.id_token);
-          if (payload) {
-            const username = payload.preferred_username || payload.sub;
-
-            const computedExpiresAt = payload.exp
-              ? payload.exp * 1000
-              : (tokens.expires_in ? (Date.now() + tokens.expires_in * 1000) : null);
-
-            const authData = {
-              JWT: tokens.access_token,
-              refreshToken: tokens.refresh_token,
-              expiresAt: computedExpiresAt,
-              user: username,
-              // The backend maps IdP groups to the role (explicit allowlist); /user/me is authoritative.
-              roles: 'Besucher'
-            };
-
-            setAuth(authData);
-
-            // Fetch /user/me to trigger backend DB JIT-provisioning for first-time OIDC users
-            api.get('/user/me')
-              .then((res) => {
-                const dbUser = res.data;
-                setAuth(prev => ({
-                  ...prev,
-                  user: dbUser?.userName || prev.user,
-                  roles: dbUser?.role || 'Besucher',
-                  canCreateCategory: dbUser?.canCreateCategory || false
-                }));
-                navigate(from, { replace: true });
-              })
-              .catch((err) => {
-                console.error("JIT-provisioning via /user/me failed", err);
-                setAuth({});
-                const errorMsg = extractErrorMessage(err);
-                dispatch({ type: 'LOGIN_ERROR', payload: errorMsg });
-              });
-          } else {
-            throw new Error("Invalid token payload");
-          }
-        })
-        .catch((err) => {
-          console.error("Token exchange error", err);
-          dispatch({ type: 'LOGIN_ERROR', payload: "Anmeldung fehlgeschlagen. Bitte versuche es erneut." });
-        })
-        .finally(() => {
-          dispatch({ type: 'STOP_LOADING' });
-        });
-    }
-  }, [location, setAuth, navigate, from]);
+    dispatch({ type: 'VERIFYING' });
+    api.post('/auth/oidc', { code, codeVerifier: pending.verifier })
+      .then((res) => {
+        setSession(res.data);
+        dispatch({ type: 'LOGIN_SUCCESS' });
+        navigate(pending.returnTo, { replace: true });
+      })
+      .catch((err) => {
+        console.error("Authentik login failed", err);
+        dispatch({ type: 'LOGIN_ERROR', payload: extractErrorMessage(err) });
+      });
+  }, [location.search, setSession, navigate]);
 
   const handleLoginClick = async () => {
     try {
       dispatch({ type: 'LOGIN_START' });
-      await redirectToAuthentik();
+      // Modal logins return to the page they were opened on.
+      await redirectToAuthentik(props.modal ? location.pathname + location.search : from);
     } catch (err) {
       console.error("Redirect to Authentik failed", err);
       dispatch({ type: 'LOGIN_ERROR', payload: "Verbindung zum Authentik-Server fehlgeschlagen." });
@@ -150,27 +114,21 @@ const SignIn = React.forwardRef((props, ref) => {
     setResendMessage('');
     setResendError('');
     try {
-      const response = await api.post('/user/login', {
+      // The backend sets the session cookies; the body only says who logged in.
+      const response = await api.post('/auth/login', {
         userName: usernameOrEmail,
         password: password
       });
-
-      const authObject = response.data;
-      const payload = parseJwt(authObject.JWT);
-      const computedExpiresAt = payload?.exp ? payload.exp * 1000 : null;
-
-      setAuth({
-        JWT: authObject.JWT,
-        user: authObject.USER.Name,
-        roles: authObject.USER.Role,
-        canCreateCategory: authObject.USER.canCreateCategory,
-        expiresAt: computedExpiresAt
-      });
+      setSession(response.data);
+      dispatch({ type: 'LOGIN_SUCCESS' });
 
       if (props.callback) {
         props.callback();
       }
-      navigate(from, { replace: true });
+      // A modal login (navbar, expired session) keeps the current page and its unsaved input.
+      if (!props.modal) {
+        navigate(from, { replace: true });
+      }
     } catch (err) {
       console.error("Local login failed", err);
       const errorMsg = extractErrorMessage(err);
@@ -204,7 +162,7 @@ const SignIn = React.forwardRef((props, ref) => {
     if (props.callback) {
       props.callback();
     }
-    navigate('/Regestrieren/Erfolgreich', {
+    navigate('/registrieren/erfolgreich', {
       state: { email: usernameOrEmail.includes('@') ? usernameOrEmail.trim() : '' }
     });
   };
@@ -297,7 +255,7 @@ const SignIn = React.forwardRef((props, ref) => {
             <Typography variant="body2" color="text.secondary">
               Noch kein Konto?{' '}
               <Link 
-                to="/Regestrieren" 
+                to="/registrieren" 
                 onClick={() => { if (props.callback) props.callback(); }}
                 style={{ color: '#ff9800', textDecoration: 'none', fontWeight: 'bold' }}
               >
@@ -306,6 +264,12 @@ const SignIn = React.forwardRef((props, ref) => {
             </Typography>
           </Box>
         </Box>
+      )}
+
+      {props.notice && (
+        <Alert severity="info" sx={{ width: '100%', mt: 3 }}>
+          {props.notice}
+        </Alert>
       )}
 
       {blockedByAdmin && (

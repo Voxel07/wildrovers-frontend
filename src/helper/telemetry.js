@@ -7,6 +7,7 @@ const SENSITIVE_ROUTES = [
   /^\/login/i,
   /^\/password-reset/i,
   /^\/regestrieren/i,
+  /^\/registrieren/i,
   /^\/profil/i,
   /^\/admin\//i,
 ];
