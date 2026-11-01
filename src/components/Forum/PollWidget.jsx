@@ -1,5 +1,6 @@
 import React, { useState, useEffect, use } from 'react';
 import PropTypes from 'prop-types';
+import { Link as RouterLink } from 'react-router-dom';
 import api, { extractErrorMessage } from '../../helper/api';
 
 // Mui
@@ -18,14 +19,16 @@ import Stack from '@mui/material/Stack';
 import IconButton from '@mui/material/IconButton';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import BarChartIcon from '@mui/icons-material/BarChart';
-import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
-import TextField from '@mui/material/TextField';
+import Chip from '@mui/material/Chip';
+import Tooltip from '@mui/material/Tooltip';
+import EventIcon from '@mui/icons-material/Event';
+import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
@@ -33,9 +36,33 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 // Eigene
 import useAuth from '../../context/useAuth';
 import { AlertsContext } from '../../components/utils/AlertsManager';
+import PollOptionsEditor from './PollOptionsEditor';
+import EventFormDialog from '../Events/EventFormDialog';
+import { pollFromServer, toPollPayload, validatePoll } from '../../helper/pollForm';
+import { formatDateOptionLabel } from '../../helper/pollDates';
+
+/** Event title limit of the backend (Event.title, @Size max 200). */
+const EVENT_TITLE_MAX = 200;
+
+/** Prefilled event form for a poll option: dates from the option, 10:00 to 18:00. */
+function eventValuesForOption(poll, option, postId) {
+  const startDay = option.optionDate;
+  const endDay = option.optionEndDate || option.optionDate;
+  // Plain text: the backend sanitiser would store quotes as HTML entities.
+  const lines = [`Termin aus der Umfrage: ${poll.question} (${option.optionText})`];
+  if (postId != null) {
+    lines.push(`Umfrage im Forum: ${window.location.origin}/Forum/Post/${postId}`);
+  }
+  return {
+    title: (poll.question || '').slice(0, EVENT_TITLE_MAX),
+    eventDate: startDay ? `${startDay}T10:00` : '',
+    eventEndDate: endDay ? `${endDay}T18:00` : '',
+    description: lines.join('\n'),
+  };
+}
 
 export default function PollWidget(props) {
-  const { pollData, canDelete, onDelete } = props;
+  const { pollData, canDelete, onDelete, canCreateEvent, postId } = props;
   const { auth } = useAuth();
   const alertsManagerRef = use(AlertsContext);
 
@@ -49,19 +76,15 @@ export default function PollWidget(props) {
 
   // Edit poll state
   const [editOpen, setEditOpen] = useState(false);
-  const [editQuestion, setEditQuestion] = useState('');
-  const [editOptions, setEditOptions] = useState([]);
-  const [editAllowMultiple, setEditAllowMultiple] = useState(false);
-  const [editAnonymous, setEditAnonymous] = useState(false);
+  const [editForm, setEditForm] = useState(() => pollFromServer(pollData));
+  // Event from a poll option; the dialog gets a new key per opening.
+  const [eventDialog, setEventDialog] = useState({ open: false, option: null, key: 0 });
   const [submittingEdit, setSubmittingEdit] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState(null);
   const menuOpen = Boolean(menuAnchor);
 
   const handleOpenEdit = () => {
-    setEditQuestion(poll.question || '');
-    setEditOptions(poll.options?.map(o => ({ id: o.id, text: o.optionText })) || []);
-    setEditAllowMultiple(poll.allowMultiple || false);
-    setEditAnonymous(poll.anonymous || false);
+    setEditForm(pollFromServer(poll));
     setEditOpen(true);
   };
 
@@ -69,45 +92,16 @@ export default function PollWidget(props) {
     setEditOpen(false);
   };
 
-  const handleEditOptionChange = (index, value) => {
-    const updated = [...editOptions];
-    updated[index] = { ...updated[index], text: value };
-    setEditOptions(updated);
-  };
-
-  const handleAddEditOption = () => {
-    setEditOptions([...editOptions, { id: null, text: '' }]);
-  };
-
-  const handleRemoveEditOption = (index) => {
-    if (editOptions.length <= 2) {
-      alertsManagerRef.current.showAlert('warning', 'Eine Umfrage muss mindestens 2 Optionen haben.');
-      return;
-    }
-    setEditOptions(editOptions.filter((_, i) => i !== index));
-  };
-
   const handleEditSubmit = () => {
-    if (!editQuestion.trim()) {
-      alertsManagerRef.current.showAlert('warning', 'Bitte gib eine Umfrage-Frage ein.');
-      return;
-    }
-    const filled = editOptions.filter(o => o.text.trim() !== '');
-    if (filled.length < 2) {
-      alertsManagerRef.current.showAlert('warning', 'Bitte gib mindestens 2 Optionen ein.');
+    const validationError = validatePoll(editForm);
+    if (validationError) {
+      alertsManagerRef.current.showAlert('warning', validationError);
       return;
     }
 
     setSubmittingEdit(true);
-    const payload = {
-      question: editQuestion,
-      allowMultiple: editAllowMultiple,
-      anonymous: editAnonymous,
-      options: editOptions.map(o => ({
-        id: o.id,               // null for new, existing id for rename
-        optionText: o.text
-      }))
-    };
+    // Options with an id are renamed (votes kept), options without one are created.
+    const payload = toPollPayload(editForm);
 
     api.post(`/forum/poll/update?poll=${poll.id}`, payload)
       .then(response => {
@@ -210,6 +204,56 @@ export default function PollWidget(props) {
     }
   };
 
+  const handleOpenEventDialog = (option) => {
+    setEventDialog(d => ({ open: true, option, key: d.key + 1 }));
+  };
+
+  const handleEventCreated = (event) => {
+    const optionId = eventDialog.option?.id;
+    alertsManagerRef.current.showAlert('success', 'Event erstellt und in den Kalender eingetragen!');
+    setPoll(p => ({
+      ...p,
+      options: p.options.map(o => (o.id === optionId ? { ...o, eventId: event?.id ?? o.eventId } : o)),
+    }));
+  };
+
+  /** Date, event link and "create event" action shown next to an option. */
+  const renderOptionExtras = (option) => {
+    const dateLabel = option.optionDate ? formatDateOptionLabel(option.optionDate, option.optionEndDate) : null;
+    const showDate = dateLabel && dateLabel !== option.optionText;
+    const eventYear = option.optionDate ? option.optionDate.substring(0, 4) : null;
+    if (!showDate && !option.eventId && !canCreateEvent) return null;
+    return (
+      <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center', flexShrink: 0 }}>
+        {showDate && (
+          <Typography variant="caption" color="text.secondary">{dateLabel}</Typography>
+        )}
+        {option.eventId ? (
+          <Chip
+            component={RouterLink}
+            to={eventYear ? `/events?year=${eventYear}` : '/events'}
+            clickable
+            icon={<EventAvailableIcon />}
+            label="Event"
+            size="small"
+            color="success"
+            variant="outlined"
+          />
+        ) : canCreateEvent && (
+          <Tooltip title="Event aus dieser Option erstellen">
+            <IconButton
+              aria-label="Event aus dieser Option erstellen"
+              size="small"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleOpenEventDialog(option); }}
+            >
+              <EventIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
+      </Stack>
+    );
+  };
+
   if (loading) {
     return null;
   }
@@ -245,18 +289,20 @@ export default function PollWidget(props) {
             {poll.allowMultiple ? (
               <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                 {poll.options.map((option) => (
-                  <FormControlLabel
-                    key={option.id}
-                    control={
-                      <Checkbox
-                        color="primary"
-                        checked={selectedOptions.includes(option.id)}
-                        onChange={() => handleCheckboxChange(option.id)}
-                      />
-                    }
-                    label={option.optionText}
-                    sx={{ mb: 1 }}
-                  />
+                  <Stack key={option.id} direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          color="primary"
+                          checked={selectedOptions.includes(option.id)}
+                          onChange={() => handleCheckboxChange(option.id)}
+                        />
+                      }
+                      label={option.optionText}
+                      sx={{ mb: 1 }}
+                    />
+                    {renderOptionExtras(option)}
+                  </Stack>
                 ))}
               </Box>
             ) : (
@@ -265,13 +311,15 @@ export default function PollWidget(props) {
                 onChange={(e) => setSelectedOptions([Number(e.target.value)])}
               >
                 {poll.options.map((option) => (
-                  <FormControlLabel
-                    key={option.id}
-                    value={option.id}
-                    control={<Radio color="primary" />}
-                    label={option.optionText}
-                    sx={{ mb: 1 }}
-                  />
+                  <Stack key={option.id} direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                    <FormControlLabel
+                      value={option.id}
+                      control={<Radio color="primary" />}
+                      label={option.optionText}
+                      sx={{ mb: 1 }}
+                    />
+                    {renderOptionExtras(option)}
+                  </Stack>
                 ))}
               </RadioGroup>
             )}
@@ -303,9 +351,12 @@ export default function PollWidget(props) {
                       </Typography>
                       {isUserChoice && <CheckCircleIcon color="success" sx={{ fontSize: '1rem' }} />}
                     </Stack>
-                    <Typography variant="body2" color="text.secondary" sx={{ flexShrink: 0 }}>
-                      {optVotes} {optVotes === 1 ? 'Stimme' : 'Stimmen'} ({percentage}%)
-                    </Typography>
+                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexShrink: 0 }}>
+                      {renderOptionExtras(option)}
+                      <Typography variant="body2" color="text.secondary" sx={{ flexShrink: 0 }}>
+                        {optVotes} {optVotes === 1 ? 'Stimme' : 'Stimmen'} ({percentage}%)
+                      </Typography>
+                    </Stack>
                   </Stack>
                   <LinearProgress
                     variant="determinate"
@@ -404,81 +455,7 @@ export default function PollWidget(props) {
         Umfrage bearbeiten
       </DialogTitle>
       <DialogContent dividers sx={{ borderBottom: '1px solid rgba(255,255,255,0.08)', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        <TextField
-          autoFocus
-          margin="dense"
-          label="Frage / Thema der Umfrage"
-          type="text"
-          fullWidth
-          variant="outlined"
-          value={editQuestion}
-          onChange={(e) => setEditQuestion(e.target.value)}
-          sx={{ mb: 3 }}
-        />
-
-        <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 'bold' }}>
-          Optionen
-        </Typography>
-
-        <Stack spacing={1.5} sx={{ mb: 3 }}>
-          {editOptions.map((opt, index) => (
-            <Stack key={index} direction="row" spacing={1} alignItems="center">
-              <TextField
-                placeholder={`Option ${index + 1}`}
-                type="text"
-                fullWidth
-                variant="outlined"
-                size="small"
-                value={opt.text}
-                onChange={(e) => handleEditOptionChange(index, e.target.value)}
-              />
-              <IconButton aria-label="Option entfernen"
-                color="error"
-                onClick={() => handleRemoveEditOption(index)}
-                disabled={editOptions.length <= 2}
-                size="small"
-              >
-                <DeleteIcon />
-              </IconButton>
-            </Stack>
-          ))}
-        </Stack>
-
-        <Button
-          startIcon={<AddIcon />}
-          variant="outlined"
-          size="small"
-          onClick={handleAddEditOption}
-          sx={{ mb: 3 }}
-        >
-          Option hinzufügen
-        </Button>
-
-        <Box>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={editAllowMultiple}
-                onChange={(e) => setEditAllowMultiple(e.target.checked)}
-                color="primary"
-              />
-            }
-            label="Mehrfachauswahl erlauben"
-          />
-        </Box>
-
-        <Box>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={editAnonymous}
-                onChange={(e) => setEditAnonymous(e.target.checked)}
-                color="primary"
-              />
-            }
-            label="Anonyme Umfrage (Wähler bleiben unsichtbar)"
-          />
-        </Box>
+        <PollOptionsEditor value={editForm} onChange={setEditForm} allowReplace={false} autoFocus />
       </DialogContent>
       <DialogActions sx={{ p: 2.5 }}>
         <Button onClick={handleCloseEdit} color="inherit">
@@ -494,6 +471,19 @@ export default function PollWidget(props) {
         </Button>
       </DialogActions>
     </Dialog>
+
+    {/* Event from a poll option */}
+    {eventDialog.option && (
+      <EventFormDialog
+        key={eventDialog.key}
+        open={eventDialog.open}
+        onClose={() => setEventDialog(d => ({ ...d, open: false }))}
+        onSaved={handleEventCreated}
+        initialValues={eventValuesForOption(poll, eventDialog.option, postId)}
+        pollOptionId={eventDialog.option.id}
+        title="Event aus Umfrage-Option erstellen"
+      />
+    )}
     </>
   );
 }
@@ -502,4 +492,8 @@ PollWidget.propTypes = {
   pollData: PropTypes.object.isRequired,
   canDelete: PropTypes.bool,
   onDelete: PropTypes.func,
+  /** Creator of the post or moderator, and team member (events need Frischling or higher). */
+  canCreateEvent: PropTypes.bool,
+  /** Post of the poll, linked in the description of events created from it. */
+  postId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
 };

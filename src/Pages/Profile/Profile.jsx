@@ -60,6 +60,15 @@ const emptyNotificationPreferences = {
   webhook: { configured: false, enabled: false, urlMasked: '', verifiedAt: null, lastSuccessAt: null, lastError: null, failureCount: 0 }
 };
 
+// Fill gaps in a server response with the defaults so a partial or empty payload
+// can never leave resources/webhook undefined and crash the switches.
+const normalizeNotificationPreferences = (data) => ({
+  ...emptyNotificationPreferences,
+  ...data,
+  resources: { ...emptyNotificationPreferences.resources, ...(data?.resources || {}) },
+  webhook: { ...emptyNotificationPreferences.webhook, ...(data?.webhook || {}) }
+});
+
 function profileReducer(state, action) {
   switch (action.type) {
     case 'FETCH_START':
@@ -158,7 +167,7 @@ export default function Profile() {
     // loading every event with every attendance here cost ~2 MB per profile view.
     fetchProfile();
     api.get('/user/me/notifications')
-      .then(res => setNotificationPreferences(res.data))
+      .then(res => setNotificationPreferences(normalizeNotificationPreferences(res.data)))
       .catch(err => console.error("Error fetching notification preferences", err));
   }, [auth, navigate]);
 
@@ -167,7 +176,7 @@ export default function Profile() {
       ...current,
       resources: {
         ...current.resources,
-        [resource]: { ...current.resources[resource], [channel]: !current.resources[resource][channel] }
+        [resource]: { ...current.resources?.[resource], [channel]: !current.resources?.[resource]?.[channel] }
       }
     }));
   };
@@ -178,7 +187,7 @@ export default function Profile() {
       resources: notificationPreferences.resources,
       webhookUrl: webhookUrl.trim() || null
     }).then(res => {
-      setNotificationPreferences(res.data);
+      setNotificationPreferences(normalizeNotificationPreferences(res.data));
       setWebhookUrl('');
       if (res.data.webhookSecret) setWebhookSecret(res.data.webhookSecret);
       alertsManagerRef.current.showAlert('success', 'Benachrichtigungseinstellungen gespeichert.');
@@ -193,7 +202,7 @@ export default function Profile() {
         alertsManagerRef.current.showAlert('success', 'Webhook erfolgreich getestet.');
         return api.get('/user/me/notifications');
       })
-      .then(res => res && setNotificationPreferences(res.data))
+      .then(res => res && setNotificationPreferences(normalizeNotificationPreferences(res.data)))
       .catch(err => alertsManagerRef.current.showAlert('error', extractErrorMessage(err)));
   };
 

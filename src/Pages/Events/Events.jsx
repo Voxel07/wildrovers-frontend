@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useReducer, use } from 'react';
+import React, { useState, useEffect, use } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AlertsContext } from '../../components/utils/AlertsManager';
 import useAuth from '../../context/useAuth';
 import api, { extractErrorMessage } from '../../helper/api';
 import { isModerator } from '../../helper/converter';
+import EventFormDialog from '../../components/Events/EventFormDialog';
 
 // Material UI
 import {
@@ -17,7 +19,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
   Stack,
   IconButton,
   Tooltip,
@@ -36,59 +37,7 @@ import WarningIcon from '@mui/icons-material/Warning';
 import LockIcon from '@mui/icons-material/Lock';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 
-const initialModalState = {
-  openModal: false,
-  editMode: false,
-  selectedEventId: null,
-  formData: {
-    title: '',
-    description: '',
-    eventDate: '',
-    eventEndDate: '',
-    location: ''
-  },
-  formError: '',
-};
-
-function modalReducer(state, action) {
-  switch (action.type) {
-    case 'OPEN_ADD':
-      return {
-        ...state,
-        openModal: true,
-        editMode: false,
-        selectedEventId: null,
-        formData: { title: '', description: '', eventDate: '', eventEndDate: '', location: '' },
-        formError: '',
-      };
-    case 'OPEN_EDIT':
-      return {
-        ...state,
-        openModal: true,
-        editMode: true,
-        selectedEventId: action.payload.id,
-        formData: action.payload.formData,
-        formError: '',
-      };
-    case 'CLOSE':
-      return {
-        ...state,
-        openModal: false,
-      };
-    case 'SET_FORM_DATA':
-      return {
-        ...state,
-        formData: action.payload,
-      };
-    case 'SET_FORM_ERROR':
-      return {
-        ...state,
-        formError: action.payload,
-      };
-    default:
-      return state;
-  }
-}
+const CLOSED_MODAL = { open: false, eventId: null, initialValues: {}, key: 0 };
 
 function PermissionNotice({ icon: Icon, text }) {
   return (
@@ -124,12 +73,17 @@ export default function Events() {
   const canManageAttendance = isLoggedIn && canModerate;
 
   const [events, setEvents] = useState([]);
-  const [modalState, dispatchModal] = useReducer(modalReducer, initialModalState);
-  const { openModal, editMode, selectedEventId, formData, formError } = modalState;
+  // The dialog gets a new key per opening, so its form starts from initialValues.
+  const [modal, setModal] = useState(CLOSED_MODAL);
+  const [searchParams] = useSearchParams();
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [eventToDelete, setEventToDelete] = useState(null);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  // ?year=2027 opens that year (links from polls whose event lies in another year).
+  const [selectedYear, setSelectedYear] = useState(() => {
+    const year = Number(searchParams.get('year'));
+    return Number.isInteger(year) && year >= 1900 && year <= 9999 ? year : new Date().getFullYear();
+  });
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
   const [menuEventId, setMenuEventId] = useState(null);
   const [participantDialogOpen, setParticipantDialogOpen] = useState(false);
@@ -164,79 +118,27 @@ export default function Events() {
   }, [selectedYear]);
 
   const handleOpenAdd = () => {
-    dispatchModal({ type: 'OPEN_ADD' });
+    setModal(m => ({ open: true, eventId: null, initialValues: {}, key: m.key + 1 }));
   };
 
   const handleOpenEdit = (event) => {
-    // Format LocalDateTime string to datetime-local compatible format (YYYY-MM-DDThh:mm)
-    let formattedDate = '';
-    if (event.eventDate) {
-      formattedDate = event.eventDate.substring(0, 16);
-    }
-    let formattedEndDate = '';
-    if (event.eventEndDate) {
-      formattedEndDate = event.eventEndDate.substring(0, 16);
-    }
-
-    dispatchModal({
-      type: 'OPEN_EDIT',
-      payload: {
-        id: event.id,
-        formData: {
-          title: event.title,
-          description: event.description || '',
-          eventDate: formattedDate,
-          eventEndDate: formattedEndDate,
-          location: event.location
-        }
-      }
-    });
+    // LocalDateTime string to the datetime-local format (YYYY-MM-DDThh:mm)
+    setModal(m => ({
+      open: true,
+      eventId: event.id,
+      initialValues: {
+        title: event.title,
+        description: event.description || '',
+        eventDate: event.eventDate ? event.eventDate.substring(0, 16) : '',
+        eventEndDate: event.eventEndDate ? event.eventEndDate.substring(0, 16) : '',
+        location: event.location
+      },
+      key: m.key + 1
+    }));
   };
 
   const handleCloseModal = () => {
-    dispatchModal({ type: 'CLOSE' });
-  };
-
-  const handleChange = (e) => {
-    dispatchModal({
-      type: 'SET_FORM_DATA',
-      payload: { ...formData, [e.target.name]: e.target.value }
-    });
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    dispatchModal({ type: 'SET_FORM_ERROR', payload: '' });
-
-    if (!formData.title || !formData.eventDate || !formData.location) {
-      dispatchModal({ type: 'SET_FORM_ERROR', payload: 'Bitte fülle alle Pflichtfelder (Titel, Datum, Ort) aus.' });
-      return;
-    }
-
-    const payload = {
-      title: formData.title,
-      description: formData.description,
-      eventDate: formData.eventDate, // format YYYY-MM-DDThh:mm is fully compatible with LocalDateTime
-      eventEndDate: formData.eventEndDate || null,
-      location: formData.location
-    };
-
-    const request = editMode
-      ? api.put('/event', { ...payload, id: selectedEventId })
-      : api.post('/event', payload);
-
-    request
-      .then(() => {
-        handleCloseModal();
-        fetchEvents();
-      })
-      .catch(err => {
-        console.error("Error saving event", err);
-        dispatchModal({
-          type: 'SET_FORM_ERROR',
-          payload: extractErrorMessage(err),
-        });
-      });
+    setModal(m => ({ ...m, open: false }));
   };
 
   const handleOpenDelete = (event) => {
@@ -713,80 +615,14 @@ export default function Events() {
       </Container>
 
       {/* Dialog for adding/editing event */}
-      <Dialog open={openModal} onClose={handleCloseModal} fullWidth maxWidth="sm">
-        <DialogTitle sx={{ fontWeight: 'bold', borderBottom: '1px solid rgba(255,255,255,0.08)', color: 'primary.main' }}>
-          {editMode ? 'Event-Termin bearbeiten' : 'Neuen Event-Termin erstellen'}
-        </DialogTitle>
-        <form onSubmit={handleSubmit}>
-          <DialogContent sx={{ p: 3 }}>
-            {formError && (
-              <Typography color="error" sx={{ mb: 2, fontWeight: 'bold' }}>
-                {formError}
-              </Typography>
-            )}
-            <Stack spacing={3}>
-              <TextField
-                name="title"
-                label="Event-Titel"
-                fullWidth
-                variant="outlined"
-                value={formData.title}
-                onChange={handleChange}
-                required
-              />
-              <TextField
-                name="eventDate"
-                label="Datum & Uhrzeit"
-                type="datetime-local"
-                fullWidth
-                variant="outlined"
-                value={formData.eventDate}
-                onChange={handleChange}
-                slotProps={{ inputLabel: { shrink: true } }}
-                required
-              />
-              <TextField
-                name="eventEndDate"
-                label="Enddatum & Endzeit (optional)"
-                type="datetime-local"
-                fullWidth
-                variant="outlined"
-                value={formData.eventEndDate || ''}
-                onChange={handleChange}
-                slotProps={{ inputLabel: { shrink: true } }}
-              />
-              <TextField
-                name="location"
-                label="Ort / Spielfeld"
-                fullWidth
-                variant="outlined"
-                value={formData.location}
-                onChange={handleChange}
-                required
-              />
-              <TextField
-                name="description"
-                label="Beschreibung / Details"
-                fullWidth
-                variant="outlined"
-                multiline
-                rows={4}
-                value={formData.description}
-                onChange={handleChange}
-                placeholder="Mitzubringende Ausrüstung, Zeitplanung, Fahrgemeinschaften..."
-              />
-            </Stack>
-          </DialogContent>
-          <DialogActions sx={{ p: 3, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-            <Button onClick={handleCloseModal} color="inherit">
-              Abbrechen
-            </Button>
-            <Button type="submit" variant="contained" color="primary">
-              Speichern
-            </Button>
-          </DialogActions>
-        </form>
-      </Dialog>
+      <EventFormDialog
+        key={modal.key}
+        open={modal.open}
+        onClose={handleCloseModal}
+        onSaved={() => fetchEvents()}
+        eventId={modal.eventId ?? undefined}
+        initialValues={modal.initialValues}
+      />
 
       {/* Dialog for managing participants (Admins / Vorstand) */}
       <Dialog open={participantDialogOpen} onClose={() => setParticipantDialogOpen(false)} fullWidth maxWidth="sm">

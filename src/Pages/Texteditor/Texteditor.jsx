@@ -1,4 +1,4 @@
-import React, { useState, useEffect, use, useRef, useCallback, useReducer } from 'react';
+import React, { useState, useEffect, use, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api, { extractErrorMessage } from '../../helper/api';
 import useSessionDraft from '../../hooks/useSessionDraft';
@@ -18,70 +18,21 @@ import {
   FormControlLabel,
   Stack,
   Alert,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions
 } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
-import AddIcon from '@mui/icons-material/Add';
 import SendIcon from '@mui/icons-material/Send';
 import PollIcon from '@mui/icons-material/Poll';
 // Feedback & Auth
 import { AlertsContext } from '../../components/utils/AlertsManager';
 import useAuth from '../../context/useAuth';
 import BackButton from '../../components/Navigation/BackButton';
+import PollOptionsEditor from '../../components/Forum/PollOptionsEditor';
+import { createEmptyPoll, filledOptions, toPollPayload, validatePoll } from '../../helper/pollForm';
 
 const noModules = { toolbar: false };
-
-let _nextOptionId = 0;
-const makeOption = (value = '') => ({ id: _nextOptionId++, value });
-
-const initialPollState = {
-  hasPoll: false,
-  pollQuestion: '',
-  pollOptions: [makeOption(), makeOption()],
-  pollDialogOpen: false,
-  allowMultiple: false,
-};
-
-function pollReducer(state, action) {
-  switch (action.type) {
-    case 'OPEN_DIALOG':
-      return { ...state, pollDialogOpen: true };
-    case 'CLOSE_DIALOG':
-      return { ...state, pollDialogOpen: false };
-    case 'SET_HAS_POLL':
-      return { ...state, hasPoll: action.payload };
-    case 'ADD_OPTION':
-      return { ...state, pollOptions: [...state.pollOptions, makeOption()] };
-    case 'REMOVE_OPTION':
-      return {
-        ...state,
-        pollOptions: state.pollOptions.filter((opt) => opt.id !== action.payload)
-      };
-    case 'SET_OPTION': {
-      const { id, value } = action.payload;
-      return {
-        ...state,
-        pollOptions: state.pollOptions.map((opt) => opt.id === id ? { ...opt, value } : opt)
-      };
-    }
-    case 'SET_QUESTION':
-      return { ...state, pollQuestion: action.payload };
-    case 'TOGGLE_ALLOW_MULTIPLE':
-      return { ...state, allowMultiple: action.payload };
-    case 'SAVE_POLL_CONFIG':
-      return {
-        ...state,
-        pollDialogOpen: false,
-        hasPoll: true,
-      };
-    default:
-      return state;
-  }
-}
 
 export default function TextEditor(props) {
   const { auth } = useAuth();
@@ -98,8 +49,9 @@ export default function TextEditor(props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
-  const [pollState, dispatchPoll] = useReducer(pollReducer, initialPollState);
-  const { hasPoll, pollQuestion, pollOptions, pollDialogOpen, allowMultiple } = pollState;
+  const [hasPoll, setHasPoll] = useState(false);
+  const [pollDialogOpen, setPollDialogOpen] = useState(false);
+  const [pollForm, setPollForm] = useState(createEmptyPoll);
 
   const topicId = location.state?.topicId;
 
@@ -110,27 +62,20 @@ export default function TextEditor(props) {
     }
   }, [topicId, props.readonly, alertsManagerRef]);
 
-  const handleAddOption = () => dispatchPoll({ type: 'ADD_OPTION' });
-
-  const handleRemoveOption = (id) => {
-    if (pollOptions.length <= 2) return;
-    dispatchPoll({ type: 'REMOVE_OPTION', payload: id });
-  };
-
-  const handleOptionChange = (id, val) => {
-    dispatchPoll({ type: 'SET_OPTION', payload: { id, value: val } });
-  };
-
   const handleSavePollConfig = () => {
-    if (!pollQuestion.trim()) {
-      alertsManagerRef.current.showAlert('warning', 'Bitte gib eine Umfrage-Frage ein');
+    const validationError = validatePoll(pollForm);
+    if (validationError) {
+      alertsManagerRef.current.showAlert('warning', validationError);
       return;
     }
-    if (pollOptions.filter(o => o.value.trim() !== '').length < 2) {
-      alertsManagerRef.current.showAlert('warning', 'Bitte gib mindestens 2 Optionen ein');
-      return;
-    }
-    dispatchPoll({ type: 'SAVE_POLL_CONFIG' });
+    setPollDialogOpen(false);
+    setHasPoll(true);
+  };
+
+  const handleCancelPollDialog = () => {
+    setPollDialogOpen(false);
+    // A poll that was never saved is not attached to the post.
+    if (validatePoll(pollForm)) setHasPoll(false);
   };
 
   const handleSavePost = () => {
@@ -157,16 +102,8 @@ export default function TextEditor(props) {
         clearContentDraft();
         alertsManagerRef.current.showAlert('success', 'Beitrag erfolgreich erstellt!');
 
-        if (hasPoll && pollQuestion.trim()) {
-          const optionsPayload = pollOptions
-            .filter(opt => opt.value.trim() !== '')
-            .map(opt => ({ optionText: opt.value }));
-
-          api.post(`/forum/poll/create?post=${postId}`, {
-            question: pollQuestion,
-            options: optionsPayload,
-            allowMultiple: allowMultiple
-          })
+        if (hasPoll && !validatePoll(pollForm)) {
+          api.post(`/forum/poll/create?post=${postId}`, toPollPayload(pollForm))
             .then(() => {
               alertsManagerRef.current.showAlert('success', 'Umfrage erfolgreich hinzugefügt!');
               navigate(`/Forum/Topic/${topicId}`);
@@ -314,8 +251,8 @@ export default function TextEditor(props) {
                   <Checkbox
                     checked={hasPoll}
                     onChange={(e) => {
-                      if (e.target.checked) dispatchPoll({ type: 'OPEN_DIALOG' });
-                      else dispatchPoll({ type: 'SET_HAS_POLL', payload: false });
+                      if (e.target.checked) setPollDialogOpen(true);
+                      else setHasPoll(false);
                     }}
                     color="primary"
                   />
@@ -323,20 +260,20 @@ export default function TextEditor(props) {
                 label="Umfrage zu diesem Beitrag hinzufügen"
               />
               {hasPoll && (
-                <Button size="small" startIcon={<PollIcon />} onClick={() => dispatchPoll({ type: 'OPEN_DIALOG' })} variant="outlined">
+                <Button size="small" startIcon={<PollIcon />} onClick={() => setPollDialogOpen(true)} variant="outlined">
                   Umfrage bearbeiten
                 </Button>
               )}
             </Stack>
 
-            {hasPoll && pollQuestion && (
+            {hasPoll && pollForm.question && (
               <Alert severity="info" sx={{ bgcolor: 'rgba(255,152,0,0.08)', border: '1px solid rgba(255,152,0,0.2)' }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>Eingerichtete Umfrage: {pollQuestion}</Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>Eingerichtete Umfrage: {pollForm.question}</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Optionen: {pollOptions.filter(o => o.value.trim() !== '').map(o => o.value).join(', ')}
+                  Optionen: {filledOptions(pollForm).map(o => o.optionText).join(', ')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  Mehrfachauswahl: {allowMultiple ? 'Ja' : 'Nein'}
+                  Mehrfachauswahl: {pollForm.allowMultiple ? 'Ja' : 'Nein'} · Anonym: {pollForm.anonymous ? 'Ja' : 'Nein'}
                 </Typography>
               </Alert>
             )}
@@ -374,51 +311,15 @@ export default function TextEditor(props) {
 
 
       {/* Poll setup dialog */}
-      <Dialog open={pollDialogOpen} onClose={() => dispatchPoll({ type: 'CLOSE_DIALOG' })} maxWidth="sm" fullWidth disableScrollLock>
+      <Dialog open={pollDialogOpen} onClose={handleCancelPollDialog} maxWidth="sm" fullWidth disableScrollLock>
         <DialogTitle sx={{ fontWeight: 'bold' }}>Umfrage erstellen</DialogTitle>
         <DialogContent>
-          <Stack spacing={2.5} sx={{ mt: 1 }}>
-            <TextField
-              label="Fragestellung"
-              variant="outlined"
-              fullWidth
-              value={pollQuestion}
-              onChange={(e) => dispatchPoll({ type: 'SET_QUESTION', payload: e.target.value })}
-            />
-            <Typography variant="subtitle2" color="text.secondary">Antwortoptionen</Typography>
-            {pollOptions.map((option) => (
-              <Stack direction="row" spacing={1} key={option.id} sx={{ alignItems: 'center' }}>
-                <TextField
-                  label={`Option ${pollOptions.indexOf(option) + 1}`}
-                  variant="outlined"
-                  fullWidth
-                  size="small"
-                  value={option.value}
-                  onChange={(e) => handleOptionChange(option.id, e.target.value)}
-                />
-                <IconButton aria-label="Option entfernen" color="error" onClick={() => handleRemoveOption(option.id)} disabled={pollOptions.length <= 2}>
-                  <DeleteIcon />
-                </IconButton>
-              </Stack>
-            ))}
-            <Button startIcon={<AddIcon />} onClick={handleAddOption} variant="outlined" size="small" sx={{ width: 'fit-content' }}>
-              Option hinzufügen
-            </Button>
-            <Divider sx={{ my: 1 }} />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={allowMultiple}
-                  onChange={(e) => dispatchPoll({ type: 'TOGGLE_ALLOW_MULTIPLE', payload: e.target.checked })}
-                  color="primary"
-                />
-              }
-              label="Mehrfachauswahl erlauben"
-            />
-          </Stack>
+          <Box sx={{ mt: 1 }}>
+            <PollOptionsEditor value={pollForm} onChange={setPollForm} />
+          </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => { dispatchPoll({ type: 'CLOSE_DIALOG' }); if (!pollQuestion.trim()) dispatchPoll({ type: 'SET_HAS_POLL', payload: false }); }} color="error">
+          <Button onClick={handleCancelPollDialog} color="error">
             Abbrechen
           </Button>
           <Button onClick={handleSavePollConfig} variant="contained" color="primary">

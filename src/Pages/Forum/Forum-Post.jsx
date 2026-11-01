@@ -29,17 +29,12 @@ import PersonOutlineIcon from '@mui/icons-material/PersonOutlined';
 import ForumIcon from '@mui/icons-material/Forum';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
-import TextField from '@mui/material/TextField';
-import Checkbox from '@mui/material/Checkbox';
-import FormControlLabel from '@mui/material/FormControlLabel';
 import IconButton from '@mui/material/IconButton';
 import Pagination from '@mui/material/Pagination';
 
@@ -50,6 +45,8 @@ import ForumQuill from '../../components/Forum/ForumQuill';
 import Post from '../../components/Forum/Post';
 import Answer from '../../components/Forum/Answer';
 import PollWidget from '../../components/Forum/PollWidget';
+import PollOptionsEditor from '../../components/Forum/PollOptionsEditor';
+import { createEmptyPoll, toPollPayload, validatePoll } from '../../helper/pollForm';
 import { AlertsContext } from '../../components/utils/AlertsManager';
 import useAuth from '../../context/useAuth';
 import { convertTimestamp, isModerator } from '../../helper/converter';
@@ -154,10 +151,7 @@ export default function Forum_Post() {
   const [createPollOpen, setCreatePollOpen] = useState(false);
   const [pollsVisible, setPollsVisible] = useState(true);
   const [eventVisible, setEventVisible] = useState(true);
-  const [pollQuestion, setPollQuestion] = useState('');
-  const [pollOptions, setPollOptions] = useState(['', '']);
-  const [pollAllowMultiple, setPollAllowMultiple] = useState(false);
-  const [pollAnonymous, setPollAnonymous] = useState(false);
+  const [pollForm, setPollForm] = useState(createEmptyPoll);
   const [submittingPoll, setSubmittingPoll] = useState(false);
   const [deletePollId, setDeletePollId] = useState(null);
 
@@ -165,51 +159,18 @@ export default function Forum_Post() {
 
   const handleClosePollDialog = () => {
     setCreatePollOpen(false);
-    setPollQuestion('');
-    setPollOptions(['', '']);
-    setPollAllowMultiple(false);
-    setPollAnonymous(false);
-  };
-
-  const handleAddOption = () => {
-    setPollOptions([...pollOptions, '']);
-  };
-
-  const handleOptionChange = (index, value) => {
-    const newOptions = [...pollOptions];
-    newOptions[index] = value;
-    setPollOptions(newOptions);
-  };
-
-  const handleRemoveOption = (index) => {
-    if (pollOptions.length <= 2) {
-      alertsManagerRef.current.showAlert('warning', 'Eine Umfrage muss mindestens 2 Optionen haben.');
-      return;
-    }
-    setPollOptions(pollOptions.filter((_, idx) => idx !== index));
+    setPollForm(createEmptyPoll());
   };
 
   const handleCreatePollSubmit = () => {
-    if (!pollQuestion.trim()) {
-      alertsManagerRef.current.showAlert('warning', 'Bitte gib eine Umfrage-Frage ein.');
-      return;
-    }
-
-    const filteredOptions = pollOptions.filter(opt => opt.trim() !== '');
-    if (filteredOptions.length < 2) {
-      alertsManagerRef.current.showAlert('warning', 'Bitte gib mindestens 2 Optionen ein.');
+    const validationError = validatePoll(pollForm);
+    if (validationError) {
+      alertsManagerRef.current.showAlert('warning', validationError);
       return;
     }
 
     setSubmittingPoll(true);
-    const optionsPayload = filteredOptions.map(opt => ({ optionText: opt }));
-
-    api.post(`/forum/poll/create?post=${id}`, {
-      question: pollQuestion,
-      allowMultiple: pollAllowMultiple,
-      anonymous: pollAnonymous,
-      options: optionsPayload
-    })
+    api.post(`/forum/poll/create?post=${id}`, toPollPayload(pollForm))
       .then(() => {
         alertsManagerRef.current.showAlert('success', 'Umfrage erfolgreich hinzugefügt!');
         handleClosePollDialog();
@@ -437,7 +398,13 @@ export default function Forum_Post() {
           <Grid container spacing={3}>
             {post.polls.map(poll => (
               <Grid key={poll.id} size={post.polls.length === 1 ? { xs: 12 } : { xs: 12, md: 6 }}>
-                <PollWidget pollData={poll} canDelete={isCreatorOrAdmin} onDelete={() => handleDeletePoll(poll.id)} />
+                <PollWidget
+                  pollData={poll}
+                  canDelete={isCreatorOrAdmin}
+                  onDelete={() => handleDeletePoll(poll.id)}
+                  canCreateEvent={Boolean(isCreatorOrAdmin && isTeamMember)}
+                  postId={post.id}
+                />
               </Grid>
             ))}
           </Grid>
@@ -757,81 +724,7 @@ export default function Forum_Post() {
           Umfrage hinzufügen
         </DialogTitle>
         <DialogContent dividers sx={{ borderBottom: '1px solid rgba(255,255,255,0.08)', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Frage / Thema der Umfrage"
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={pollQuestion}
-            onChange={(e) => setPollQuestion(e.target.value)}
-            sx={{ mb: 3 }}
-          />
-
-          <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 'bold' }}>
-            Optionen
-          </Typography>
-
-          <Stack spacing={1.5} sx={{ mb: 3 }}>
-            {pollOptions.map((option, index) => (
-              <Stack key={index} direction="row" spacing={1} alignItems="center">
-                <TextField
-                  placeholder={`Option ${index + 1}`}
-                  type="text"
-                  fullWidth
-                  variant="outlined"
-                  size="small"
-                  value={option}
-                  onChange={(e) => handleOptionChange(index, e.target.value)}
-                />
-                <IconButton aria-label="Option entfernen"
-                  color="error"
-                  onClick={() => handleRemoveOption(index)}
-                  disabled={pollOptions.length <= 2}
-                  size="small"
-                >
-                  <DeleteIcon />
-                </IconButton>
-              </Stack>
-            ))}
-          </Stack>
-
-          <Button
-            startIcon={<AddIcon />}
-            variant="outlined"
-            size="small"
-            onClick={handleAddOption}
-            sx={{ mb: 3 }}
-          >
-            Option hinzufügen
-          </Button>
-
-          <Box>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={pollAllowMultiple}
-                  onChange={(e) => setPollAllowMultiple(e.target.checked)}
-                  color="primary"
-                />
-              }
-              label="Mehrfachauswahl erlauben"
-            />
-          </Box>
-
-          <Box>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={pollAnonymous}
-                  onChange={(e) => setPollAnonymous(e.target.checked)}
-                  color="primary"
-                />
-              }
-              label="Anonyme Umfrage (Wähler bleiben unsichtbar)"
-            />
-          </Box>
+          <PollOptionsEditor value={pollForm} onChange={setPollForm} autoFocus />
         </DialogContent>
         <DialogActions sx={{ p: 2.5 }}>
           <Button onClick={handleClosePollDialog} color="inherit">

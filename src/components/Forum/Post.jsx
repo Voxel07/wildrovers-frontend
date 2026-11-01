@@ -1,4 +1,4 @@
-import React, { useState, use, useReducer } from 'react';
+import React, { useState, use, useReducer, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import api, { extractErrorMessage, apiUrl } from '../../helper/api';
 
@@ -55,39 +55,32 @@ function PostStats({ answerCount, views }) {
     );
 }
 
+/** Server vote ("LIKE" / "DISLIKE" / null) as used in the UI ('like' / 'dislike' / null). */
+const fromServerVote = (myVote) => (myVote ? myVote.toLowerCase() : null);
+
+/**
+ * Optimistic like/dislike state. Clicking the active reaction again removes it, clicking the
+ * other one switches it (same rules as the backend).
+ */
 function votingReducer(state, action) {
     switch (action.type) {
         case 'VOTE_OPTIMISTIC': {
             const type = action.payload;
-            if (state.voted === type) return state;
-            let newLikes = state.likes;
-            let newDislikes = state.dislikes;
-            if (type === 'like') {
-                newLikes += 1;
-                if (state.voted === 'dislike') newDislikes -= 1;
-            } else {
-                newDislikes += 1;
-                if (state.voted === 'like') newLikes -= 1;
+            let { likes, dislikes } = state;
+            if (state.voted === 'like') likes = Math.max(0, likes - 1);
+            if (state.voted === 'dislike') dislikes = Math.max(0, dislikes - 1);
+            if (state.voted === type) {
+                return { likes, dislikes, voted: null };
             }
-            return { likes: newLikes, dislikes: newDislikes, voted: type };
+            if (type === 'like') likes += 1;
+            else dislikes += 1;
+            return { likes, dislikes, voted: type };
         }
-        case 'VOTE_SUCCESS':
-            return {
-                ...state,
-                likes: action.payload.likes,
-                dislikes: action.payload.dislikes,
-            };
-        case 'VOTE_REVERT': {
-            const type = action.payload;
-            let newLikes = state.likes;
-            let newDislikes = state.dislikes;
-            if (type === 'like') {
-                newLikes -= 1;
-            } else {
-                newDislikes -= 1;
-            }
-            return { likes: newLikes, dislikes: newDislikes, voted: null };
-        }
+        case 'SYNC':
+            // Server truth: counters and the user's vote after the change.
+            return { ...state, ...action.payload };
+        case 'RESTORE':
+            return action.payload;
         default:
             return state;
     }
@@ -113,6 +106,19 @@ export default function Post({ post, onUpdate, onDelete, onAddPoll, pollsVisible
     });
     const { likes, dislikes, voted } = votingState;
 
+    // The user's own vote, so the active button is shown and can be clicked again to remove it.
+    const postId = post?.id;
+    useEffect(() => {
+        if (!auth.user || postId == null) return;
+        let cancelled = false;
+        api.get('/forum/post/myVote', { params: { post: postId } })
+            .then(res => {
+                if (!cancelled) dispatchVoting({ type: 'SYNC', payload: { voted: fromServerVote(res.data?.myVote) } });
+            })
+            .catch(err => console.error('Failed to load own vote', err));
+        return () => { cancelled = true; };
+    }, [auth.user, postId]);
+
     if (!post) return null;
 
     const { id, title, creator, creationDate, answerCount, views, creatorPhotoUrl } = post;
@@ -124,9 +130,8 @@ export default function Post({ post, onUpdate, onDelete, onAddPoll, pollsVisible
             alertsManagerRef.current.showAlert('warning', 'Bitte einloggen um abzustimmen');
             return;
         }
-        if (voted === type) return; // already voted this type
-
-        // Optimistic update
+        // Optimistic update; the same type again removes the vote.
+        const previous = votingState;
         dispatchVoting({ type: 'VOTE_OPTIMISTIC', payload: type });
 
         api.post(`/forum/post/vote?post=${id}&type=${type}`)
@@ -134,10 +139,11 @@ export default function Post({ post, onUpdate, onDelete, onAddPoll, pollsVisible
                 // Sync with server truth
                 if (res.data) {
                     dispatchVoting({
-                        type: 'VOTE_SUCCESS',
+                        type: 'SYNC',
                         payload: {
                             likes: res.data.likes,
                             dislikes: res.data.dislikes,
+                            voted: fromServerVote(res.data.myVote),
                         },
                     });
                 }
@@ -145,7 +151,7 @@ export default function Post({ post, onUpdate, onDelete, onAddPoll, pollsVisible
             .catch(err => {
                 console.error('Vote error', err);
                 // Revert optimistic on error
-                dispatchVoting({ type: 'VOTE_REVERT', payload: type });
+                dispatchVoting({ type: 'RESTORE', payload: previous });
             });
     };
 
@@ -290,7 +296,7 @@ export default function Post({ post, onUpdate, onDelete, onAddPoll, pollsVisible
                 <Grid size={{ xs: 12 }}>
                     <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
                         <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                            <Tooltip title="Gefällt mir">
+                            <Tooltip title={voted === 'like' ? 'Gefällt mir entfernen' : 'Gefällt mir'}>
                                 <IconButton
                                     size="small"
                                     color={voted === 'like' ? 'primary' : 'default'}
@@ -301,7 +307,7 @@ export default function Post({ post, onUpdate, onDelete, onAddPoll, pollsVisible
                             </Tooltip>
                             <Typography variant="body2" sx={{ minWidth: 20 }}>{formatNumber(likes)}</Typography>
 
-                            <Tooltip title="Gefällt mir nicht">
+                            <Tooltip title={voted === 'dislike' ? 'Gefällt mir nicht entfernen' : 'Gefällt mir nicht'}>
                                 <IconButton
                                     size="small"
                                     color={voted === 'dislike' ? 'error' : 'default'}
