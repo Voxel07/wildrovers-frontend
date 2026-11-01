@@ -110,7 +110,6 @@ export default function Profile() {
   const { profile, loading, error } = state;
 
   // Edit Mode state
-  const [events, setEvents] = useState([]);
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState({
     phrase: '',
@@ -155,14 +154,9 @@ export default function Profile() {
       navigate('/Login');
       return;
     }
+    // Events attended per year come with the profile statistics (eventsAttendedByYear);
+    // loading every event with every attendance here cost ~2 MB per profile view.
     fetchProfile();
-    api.get('/event')
-      .then(res => {
-        setEvents(res.data);
-      })
-      .catch(err => {
-        console.error("Error fetching events for profile breakdown", err);
-      });
     api.get('/user/me/notifications')
       .then(res => setNotificationPreferences(res.data))
       .catch(err => console.error("Error fetching notification preferences", err));
@@ -589,7 +583,7 @@ export default function Profile() {
                 </Stack>
               </CardContent>
             </Card>
-            <ProfileActivitySummary profile={profile} events={events} />
+            <ProfileActivitySummary profile={profile} />
           </Stack>
         </Grid>
 

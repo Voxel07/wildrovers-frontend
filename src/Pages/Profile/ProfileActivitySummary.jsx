@@ -4,18 +4,9 @@ import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import ForumIcon from '@mui/icons-material/Forum';
 import { DataGrid } from '@mui/x-data-grid';
 
-export default function ProfileActivitySummary({ profile, events = [] }) {
-  const getVisitedEventsByYearBreakdown = () => {
-    const countsByYear = {};
-    events.forEach(event => {
-      const isAttended = event.attendances?.some(a => a.userName === profile?.userName && a.status === 'YES');
-      if (isAttended && event.eventDate) {
-        const year = new Date(event.eventDate).getFullYear();
-        countsByYear[year] = (countsByYear[year] || 0) + 1;
-      }
-    });
-    return countsByYear;
-  };
+export default function ProfileActivitySummary({ profile }) {
+  // Counted by the backend (GET /user/me?stats=true): { "2025": 4, "2026": 2 }
+  const getVisitedEventsByYearBreakdown = () => profile?.eventsAttendedByYear ?? {};
 
   const forumColumns = [
     { field: 'type', headerName: 'Typ', flex: 1, sortable: false },
