@@ -22,7 +22,8 @@ import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 
 // Quill
-import ForumQuill from './ForumQuill';
+import ForumQuill from './LazyForumQuill';
+import ForumContent from './ForumContent';
 import ConfirmDialog from '../utils/ConfirmDialog';
 
 // Eigene
@@ -197,10 +198,7 @@ export default function Answer(props) {
             ) : (
               <Box className="reply-body-content" sx={{ pl: 0.5 }}>
                 <style>{`.reply-body-content .ql-container.ql-snow { border: none !important; } .reply-body-content .ql-editor { padding: 0; }`}</style>
-                <ForumQuill
-                  value={answer.content}
-                  readOnly
-                />
+                <ForumContent html={answer.content} />
               </Box>
             )}
           </Grid>

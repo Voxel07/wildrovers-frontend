@@ -4,7 +4,8 @@ import api, { extractErrorMessage } from '../../helper/api';
 import useSessionDraft from '../../hooks/useSessionDraft';
 
 // Quill
-import ForumQuill from '../../components/Forum/ForumQuill';
+import ForumQuill from '../../components/Forum/LazyForumQuill';
+import ForumContent from '../../components/Forum/ForumContent';
 
 // MUI
 import {
@@ -133,9 +134,7 @@ export default function TextEditor(props) {
   // Read-only viewer
   if (isReadOnly) {
     return (
-      <Box className="quill-viewer">
-        <ForumQuill value={props.value || ''} readOnly />
-      </Box>
+      <ForumContent html={props.value || ''} />
     );
   }
 

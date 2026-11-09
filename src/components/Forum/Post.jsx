@@ -35,7 +35,8 @@ import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 
 // Quill
-import ForumQuill from './ForumQuill';
+import ForumQuill from './LazyForumQuill';
+import ForumContent from './ForumContent';
 
 // Eigene
 import { convertTimestamp, formatNumber, isModerator } from '../../helper/converter';
@@ -285,10 +286,7 @@ export default function Post({ post, onUpdate, onDelete, onAddPoll, pollsVisible
                     ) : (
                         <Box className="post-body-content" sx={{ mt: 1 }}>
                             <style>{`.post-body-content .ql-container.ql-snow { border: none !important; } .post-body-content .ql-editor { padding: 0; }`}</style>
-                            <ForumQuill
-                                value={post.content}
-                                readOnly
-                            />
+                            <ForumContent html={post.content} />
                         </Box>
                     )}
                 </Grid>

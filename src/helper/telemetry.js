@@ -1,5 +1,5 @@
-import { openobserveRum } from '@openobserve/browser-rum';
-import { openobserveLogs } from '@openobserve/browser-logs';
+// Small helpers that every page may import. The OpenObserve SDKs live in telemetrySdk.js and
+// are loaded only after the visitor agreed to monitoring, once the page is idle.
 
 // Routes that handle credentials, one-time tokens/codes or personal settings.
 // Session replay never records them (replay meta records contain the full URL).
@@ -12,8 +12,15 @@ const SENSITIVE_ROUTES = [
   /^\/admin\//i,
 ];
 
-let telemetryEnabled = false;
-let replayRunning = false;
+const CONSENT_KEY = 'wr-monitoring-consent';
+export const CONSENT_GRANTED = 'granted';
+export const CONSENT_DENIED = 'denied';
+const CONSENT_EVENT = 'wr-monitoring-consent-changed';
+
+let sdk = null;
+let loading = null;
+let currentPath = typeof window !== 'undefined' ? window.location.pathname : '/';
+let currentUser = null;
 
 /**
  * Removes query string and fragment from a URL. They can carry password-reset
@@ -31,86 +38,106 @@ export function scrubUrl(value) {
   }
 }
 
-function scrubRumEvent(event) {
-  if (event.view) {
-    event.view.url = scrubUrl(event.view.url);
-    if (event.view.referrer) event.view.referrer = scrubUrl(event.view.referrer);
-  }
-  if (event.resource?.url) event.resource.url = scrubUrl(event.resource.url);
-  if (event.error?.resource?.url) event.error.resource.url = scrubUrl(event.error.resource.url);
-  return true;
-}
-
-function scrubLogEvent(log) {
-  if (log.view?.url) log.view.url = scrubUrl(log.view.url);
-  if (log.view?.referrer) log.view.referrer = scrubUrl(log.view.referrer);
-  if (log.http?.url) log.http.url = scrubUrl(log.http.url);
-  return true;
-}
-
 export function isSensitiveRoute(pathname) {
   return SENSITIVE_ROUTES.some((pattern) => pattern.test(pathname || ''));
 }
 
+function config() {
+  const env = import.meta.env;
+  return {
+    site: env.VITE_OPENOBSERVE_SITE,
+    clientToken: env.VITE_OPENOBSERVE_RUM_KEY,
+    appId: env.VITE_OPENOBSERVE_APP_ID || 'wildrovers-frontend',
+    org: env.VITE_OPENOBSERVE_ORG || 'default',
+    insecure: env.VITE_OPENOBSERVE_INSECURE_HTTP === 'true',
+    enabled: env.VITE_OPENOBSERVE_ENABLED !== 'false',
+  };
+}
+
+/** Whether this deployment has monitoring at all (only then is consent asked for). */
+export function isTelemetryConfigured() {
+  const c = config();
+  // Unreplaced container placeholders count as "not configured".
+  const set = (v) => Boolean(v) && !String(v).startsWith('PLACEHOLDER_');
+  return c.enabled && set(c.site) && set(c.clientToken);
+}
+
+export function getTelemetryConsent() {
+  try {
+    return window.localStorage.getItem(CONSENT_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Stores the visitor's choice. Granting starts monitoring right away; withdrawing stops the
+ * replay and reloads the page, because the SDKs cannot be unloaded once started.
+ */
+export function setTelemetryConsent(value) {
+  const wasRunning = sdk !== null;
+  try {
+    window.localStorage.setItem(CONSENT_KEY, value);
+  } catch {
+    // Private mode without storage: the choice holds for this page view only.
+  }
+  window.dispatchEvent(new CustomEvent(CONSENT_EVENT, { detail: value }));
+  if (value === CONSENT_GRANTED) {
+    loadSdk();
+  } else if (wasRunning) {
+    sdk.stopReplay();
+    window.location.reload();
+  }
+}
+
+export function onTelemetryConsentChange(listener) {
+  const handler = (e) => listener(e.detail);
+  window.addEventListener(CONSENT_EVENT, handler);
+  return () => window.removeEventListener(CONSENT_EVENT, handler);
+}
+
+function loadSdk() {
+  if (sdk || loading || !isTelemetryConfigured()) return loading;
+  loading = import('./telemetrySdk')
+    .then((module) => {
+      module.start(config());
+      sdk = module;
+      if (currentUser) sdk.setUser(currentUser);
+      sdk.syncReplay(currentPath);
+    })
+    .catch((err) => {
+      console.warn('Monitoring could not be started', err);
+    })
+    .finally(() => {
+      loading = null;
+    });
+  return loading;
+}
+
+/**
+ * Starts monitoring after the first render, when the browser is idle, and only with consent.
+ * Called once from main.jsx.
+ */
 export function initTelemetry() {
-  const ooSite = import.meta.env.VITE_OPENOBSERVE_SITE;
-  const ooClientToken = import.meta.env.VITE_OPENOBSERVE_RUM_KEY;
-  const ooAppId = import.meta.env.VITE_OPENOBSERVE_APP_ID || 'wildrovers-frontend';
-  const ooOrg = import.meta.env.VITE_OPENOBSERVE_ORG || 'default';
-  const ooInsecure = import.meta.env.VITE_OPENOBSERVE_INSECURE_HTTP === 'true';
-  const ooEnabled = import.meta.env.VITE_OPENOBSERVE_ENABLED !== 'false';
+  if (!isTelemetryConfigured() || getTelemetryConsent() !== CONSENT_GRANTED) return;
+  const start = () => loadSdk();
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(start, { timeout: 5000 });
+  } else {
+    window.setTimeout(start, 2000);
+  }
+}
 
-  if (!ooEnabled || !ooSite || !ooClientToken) return;
-
-  openobserveRum.init({
-    applicationId: ooAppId,
-    clientToken: ooClientToken,
-    site: ooSite,
-    organizationIdentifier: ooOrg,
-    service: 'wildrovers-frontend',
-    env: import.meta.env.MODE || 'production',
-    version: '1.0.0',
-    trackResources: true,
-    trackLongTasks: true,
-    trackUserInteractions: true,
-    apiVersion: 'v1',
-    insecureHTTP: ooInsecure,
-    // Replays never contain page text or form input; sensitive views are not recorded at all.
-    defaultPrivacyLevel: 'mask',
-    startSessionReplayRecordingManually: true,
-    beforeSend: scrubRumEvent,
-    sessionSampleRate: 100,
-    sessionReplaySampleRate: 50
-  });
-
-  openobserveLogs.init({
-    clientToken: ooClientToken,
-    site: ooSite,
-    organizationIdentifier: ooOrg,
-    service: 'wildrovers-frontend',
-    env: import.meta.env.MODE || 'production',
-    version: '1.0.0',
-    apiVersion: 'v1',
-    insecureHTTP: ooInsecure,
-    forwardErrorsToLogs: true,
-    beforeSend: scrubLogEvent
-  });
-
-  telemetryEnabled = true;
-  syncReplayWithRoute(window.location.pathname);
+/** Tags monitoring data with the logged-in account (applied once the SDK is running). */
+export function setTelemetryUser(user) {
+  currentUser = user;
+  if (sdk) sdk.setUser(user);
 }
 
 /** Starts session replay on ordinary pages and stops it on sensitive ones. */
 export function syncReplayWithRoute(pathname) {
-  if (!telemetryEnabled) return;
-  const sensitive = isSensitiveRoute(pathname);
-  if (sensitive && replayRunning) {
-    openobserveRum.stopSessionReplayRecording();
-    replayRunning = false;
-  } else if (!sensitive && !replayRunning) {
-    openobserveRum.startSessionReplayRecording();
-    replayRunning = true;
-  }
+  currentPath = pathname;
+  if (sdk) sdk.syncReplay(pathname);
 }
 
 /** Removes one-time secrets (tokens, codes) from the address bar once they were read. */

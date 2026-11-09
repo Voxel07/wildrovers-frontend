@@ -37,6 +37,7 @@ const Team = lazy(() => import('./Pages/Team/Team'));
 
 //user Feedback
 import { AlertsManager, AlertsContext } from './components/utils/AlertsManager';
+import MonitoringConsent from './components/utils/MonitoringConsent';
 
 const AUTHENTICATED_ROLES = ["Besucher", "Frischling", "Mitglied", "Vorstand", "Admin"];
 
@@ -115,6 +116,7 @@ function App() {
               </Suspense>
             </Box>
             <Footer />
+            <MonitoringConsent />
           </Box>
       </AlertsContext.Provider>
   );

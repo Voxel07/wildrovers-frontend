@@ -129,6 +129,9 @@ export default function Profile() {
     userName: ''
   });
   const [saving, setSaving] = useState(false);
+  // A new e-mail address is only stored after the code sent there has been entered.
+  const [emailCode, setEmailCode] = useState('');
+  const [confirmingEmail, setConfirmingEmail] = useState(false);
   const [notificationPreferences, setNotificationPreferences] = useState(emptyNotificationPreferences);
   const [notificationSaving, setNotificationSaving] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState('');
@@ -400,7 +403,13 @@ export default function Profile() {
         }
         setEditMode(false);
         fetchProfile(true);
-        alertsManagerRef.current.showAlert('success', 'Profil erfolgreich gespeichert.');
+        if (res.data.pendingEmail && res.data.pendingEmail !== profile.pendingEmail) {
+          setEmailCode('');
+          alertsManagerRef.current.showAlert('info',
+            `Profil gespeichert. Wir haben einen Bestätigungscode an ${res.data.pendingEmail} gesendet; die neue Adresse gilt erst nach der Bestätigung.`);
+        } else {
+          alertsManagerRef.current.showAlert('success', 'Profil erfolgreich gespeichert.');
+        }
       })
       .catch(err => {
         console.error("Error updating profile", err);
@@ -409,6 +418,31 @@ export default function Profile() {
       .finally(() => {
         setSaving(false);
       });
+  };
+
+  const handleConfirmEmail = () => {
+    setConfirmingEmail(true);
+    api.post('/user/me/email/confirm', { code: emailCode.trim() })
+      .then(() => {
+        setEmailCode('');
+        fetchProfile(true);
+        alertsManagerRef.current.showAlert('success', 'Neue E-Mail-Adresse bestätigt.');
+      })
+      .catch(err => {
+        fetchProfile(true);
+        alertsManagerRef.current.showAlert('error', extractErrorMessage(err) || 'Bestätigung fehlgeschlagen.');
+      })
+      .finally(() => setConfirmingEmail(false));
+  };
+
+  const handleCancelEmailChange = () => {
+    api.delete('/user/me/email/pending')
+      .then(() => {
+        setEmailCode('');
+        fetchProfile(true);
+        alertsManagerRef.current.showAlert('info', 'Änderung der E-Mail-Adresse verworfen.');
+      })
+      .catch(err => alertsManagerRef.current.showAlert('error', extractErrorMessage(err) || 'Fehler beim Verwerfen.'));
   };
 
   if (loading) {
@@ -684,12 +718,42 @@ export default function Profile() {
                         <TextField
                           name="email"
                           label="E-Mail"
+                          type="email"
                           size="small"
                           fullWidth
                           value={editData.email}
                           onChange={handleEditChange}
+                          helperText="Eine neue Adresse wird erst nach Eingabe des Codes übernommen, den wir an sie senden."
                           sx={{ mt: 1 }}
                         />
+                      )}
+                      {profile.pendingEmail && (
+                        <Box sx={{ mt: 1.5, p: 1.5, borderRadius: 1, border: '1px dashed', borderColor: 'warning.main' }}>
+                          <Typography variant="body2" sx={{ mb: 1 }}>
+                            Neue Adresse <strong>{profile.pendingEmail}</strong> wartet auf Bestätigung.
+                            Gib den Code aus der E-Mail an diese Adresse ein (30 Minuten gültig).
+                          </Typography>
+                          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ alignItems: { sm: 'center' } }}>
+                            <TextField
+                              label="Bestätigungscode"
+                              size="small"
+                              value={emailCode}
+                              onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                              slotProps={{ htmlInput: { inputMode: 'numeric', autoComplete: 'one-time-code' } }}
+                            />
+                            <Button
+                              variant="contained"
+                              size="small"
+                              onClick={handleConfirmEmail}
+                              disabled={confirmingEmail || emailCode.length !== 6}
+                            >
+                              Bestätigen
+                            </Button>
+                            <Button variant="text" size="small" color="inherit" onClick={handleCancelEmailChange}>
+                              Verwerfen
+                            </Button>
+                          </Stack>
+                        </Box>
                       )}
                     </Box>
                   </Stack>

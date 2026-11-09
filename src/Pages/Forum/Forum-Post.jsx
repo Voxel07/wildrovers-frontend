@@ -39,7 +39,7 @@ import IconButton from '@mui/material/IconButton';
 import Pagination from '@mui/material/Pagination';
 
 // Quill for Reply Editor
-import ForumQuill from '../../components/Forum/ForumQuill';
+import ForumQuill from '../../components/Forum/LazyForumQuill';
 
 // Eigene
 import Post from '../../components/Forum/Post';
@@ -145,6 +145,8 @@ export default function Forum_Post() {
 
   // Reply State
   const [replyContent, setReplyContent, clearReplyDraft] = useSessionDraft(`draft:answer:${id}`, '');
+  // The editor (and the Quill bundle) loads on the first click, not for every reader.
+  const [replyEditorOpen, setReplyEditorOpen] = useState(false);
   const [submittingReply, setSubmittingReply] = useState(false);
 
   // Poll Dialog State
@@ -639,12 +641,37 @@ export default function Forum_Post() {
                     transition: 'border-color 0.2s',
                   }}
                 >
-                  <ForumQuill
-                    value={replyContent}
-                    onChange={setReplyContent}
-                    placeholder="Schreibe eine Antwort..."
-                    height="100%"
-                  />
+                  {replyEditorOpen || replyContent ? (
+                    <ForumQuill
+                      value={replyContent}
+                      onChange={setReplyContent}
+                      placeholder="Schreibe eine Antwort..."
+                      height="100%"
+                    />
+                  ) : (
+                    <Box
+                      component="button"
+                      type="button"
+                      onClick={() => setReplyEditorOpen(true)}
+                      sx={{
+                        width: '100%',
+                        height: '100%',
+                        p: 2,
+                        textAlign: 'left',
+                        verticalAlign: 'top',
+                        display: 'block',
+                        cursor: 'text',
+                        font: 'inherit',
+                        fontStyle: 'italic',
+                        color: 'text.secondary',
+                        bgcolor: 'transparent',
+                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                        borderRadius: '4px 4px 0 0',
+                      }}
+                    >
+                      Schreibe eine Antwort...
+                    </Box>
+                  )}
                 </Box>
                 <Button
                   variant="contained"

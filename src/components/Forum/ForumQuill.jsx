@@ -4,6 +4,7 @@ import 'react-quill-new/dist/quill.snow.css';
 import { Box } from '@mui/material';
 import api, { extractErrorMessage } from '../../helper/api';
 import { AlertsContext } from '../utils/AlertsManager';
+import ForumContent from './ForumContent';
 
 const noModules = { toolbar: false };
 
@@ -195,12 +196,9 @@ const ForumQuill = React.forwardRef(({ value, onChange, placeholder, style, read
     };
   }, [readOnly, imageHandler]);
 
+  // Displaying content needs no editor; ForumContent renders the stored HTML directly.
   if (readOnly) {
-    return (
-      <Box className="quill-viewer">
-        <ReactQuill theme="snow" modules={noModules} value={value || ''} readOnly />
-      </Box>
-    );
+    return <ForumContent html={value} />;
   }
 
   const editorStyles = `

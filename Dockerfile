@@ -1,5 +1,6 @@
 # Build stage
-FROM oven/bun:1-alpine AS builder
+# Pinned versions; Dependabot proposes updates.
+FROM oven/bun:1.4.4-alpine AS builder
 WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
@@ -20,15 +21,15 @@ RUN VITE_API_URL=PLACEHOLDER_VITE_API_URL \
     VITE_OPENOBSERVE_ENABLED=PLACEHOLDER_VITE_OPENOBSERVE_ENABLED \
     bun run build
 
-# Production stage
-FROM nginx:alpine
-COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY entrypoint.sh /entrypoint.sh
+# Production stage: nginx runs as the unprivileged user 101 and listens on 8080.
+FROM nginxinc/nginx-unprivileged:1.30-alpine
+# entrypoint.sh fills in runtime values, so the user needs write access to these files.
+COPY --from=builder --chown=101:101 /app/dist /usr/share/nginx/html
+COPY --chown=101:101 nginx.conf /etc/nginx/conf.d/default.conf
+COPY --chown=101:101 --chmod=0755 entrypoint.sh /entrypoint.sh
 
-RUN chmod +x /entrypoint.sh
-
-EXPOSE 80
+USER 101
+EXPOSE 8080
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]

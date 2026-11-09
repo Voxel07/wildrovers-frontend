@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect, useCallback, useMemo } from "react";
-import { openobserveRum } from "@openobserve/browser-rum";
+import { setTelemetryUser } from "../helper/telemetry";
 import api, { apiUrl, isTransientAuthError, refreshSession, rememberSession } from "../helper/api";
 import SessionExpiredDialog from "../components/utils/SessionExpiredDialog";
 
@@ -145,7 +145,7 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         if (auth.user) {
-            openobserveRum.setUser({ id: String(auth.userId ?? auth.user), name: auth.user });
+            setTelemetryUser({ id: String(auth.userId ?? auth.user), name: auth.user });
         }
     }, [auth.user, auth.userId]);
 

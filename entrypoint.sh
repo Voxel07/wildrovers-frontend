@@ -25,6 +25,15 @@ if [ "${VITE_OPENOBSERVE_ENABLED:-true}" != "false" ] && [ -n "${VITE_OPENOBSERV
   CSP_CONNECT_SOURCES="${CSP_CONNECT_SOURCES} $(origin_of "$OO_ORIGIN")"
 fi
 CSP_CONNECT_SOURCES="$(printf '%s' "$CSP_CONNECT_SOURCES" | sed -E 's/^ +| +$//g')"
+
+# Images come from the site itself and from the API (profile photos, forum uploads) only;
+# posts cannot embed images from other hosts.
+CSP_IMG_SOURCES="$(origin_of "${VITE_API_URL:-}")"
+if ! printf '%s' "$CSP_IMG_SOURCES" | grep -Eq '^https?://[A-Za-z0-9._:-]+$'; then
+  echo "Invalid CSP image source '${CSP_IMG_SOURCES}'. Check VITE_API_URL." >&2
+  exit 1
+fi
+sed -i "s|PLACEHOLDER_CSP_IMG_SOURCES|${CSP_IMG_SOURCES}|g" /etc/nginx/conf.d/default.conf
 if ! printf '%s' "$CSP_CONNECT_SOURCES" | grep -Eq '^(https?://[A-Za-z0-9._:-]+)( https?://[A-Za-z0-9._:-]+)*$'; then
   echo "Invalid CSP connect sources '${CSP_CONNECT_SOURCES}'. Check VITE_API_URL and VITE_OPENOBSERVE_SITE." >&2
   exit 1

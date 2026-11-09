@@ -11,8 +11,6 @@ import theme from './theme';
 
 import { initTelemetry } from './helper/telemetry';
 
-initTelemetry();
-
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ThemeProvider theme={theme}>
@@ -27,3 +25,6 @@ createRoot(document.getElementById('root')).render(
     </ThemeProvider>
   </StrictMode>
 );
+
+// Monitoring starts after the first render, when the browser is idle, and only with consent.
+initTelemetry();

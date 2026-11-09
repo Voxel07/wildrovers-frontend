@@ -12,7 +12,6 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@fontsource/roboto": "^5.3.0",
     "@hookform/resolvers": "^6.0.0",
     "@mui/icons-material": "^9.5.0",
     "@mui/material": "^9.5.0",
@@ -21,13 +20,13 @@
     "@openobserve/browser-rum": "^0.4.3",
     "axios": "^1.20.0",
     "date-fns": "^4.4.0",
+    "dompurify": "^3.4.17",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-hook-form": "^7.90.0",
     "react-parallax-tilt": "^1.7.349",
     "react-quill-new": "^3.8.3",
     "react-router-dom": "^7.18.4",
-    "universal-cookie": "^8.1.2",
     "yup": "^1.7.1"
   },
   "devDependencies": {
