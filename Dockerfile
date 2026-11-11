@@ -22,7 +22,7 @@ RUN VITE_API_URL=PLACEHOLDER_VITE_API_URL \
     bun run build
 
 # Production stage: nginx runs as the unprivileged user 101 and listens on 8080.
-FROM nginxinc/nginx-unprivileged:1.30-alpine
+FROM nginxinc/nginx-unprivileged:1.31-alpine
 # entrypoint.sh fills in runtime values, so the user needs write access to these files.
 COPY --from=builder --chown=101:101 /app/dist /usr/share/nginx/html
 COPY --chown=101:101 nginx.conf /etc/nginx/conf.d/default.conf
