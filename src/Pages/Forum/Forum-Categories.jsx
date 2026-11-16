@@ -1,6 +1,7 @@
 import React, { useReducer, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api, { extractErrorMessage } from '../../helper/api';
+import useAuth from '../../context/useAuth';
 
 // Mui
 import Container from '@mui/material/Container';
@@ -33,6 +34,7 @@ function reducer(state, action) {
 
 export default function Forum_Categories() {
     const { id } = useParams();
+    const { auth, ready } = useAuth();
     const [state, dispatch] = useReducer(reducer, initialState);
     const { category, loading, error, errorStatus } = state;
 
@@ -60,10 +62,14 @@ export default function Forum_Categories() {
         return () => controller.abort();
     };
 
+    // Loaded once the session is known, and again when the viewer changes: what is visible
+    // depends on the role. (While loading, the spinner replaces the category, so it remounts
+    // and reloads its topics.)
     useEffect(() => {
+        if (!ready) return;
         const cleanup = fetchCategory();
         return cleanup;
-    }, [id]);
+    }, [ready, id, auth.userId, auth.roles]);
 
     if (loading) {
         return (

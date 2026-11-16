@@ -130,13 +130,14 @@ function fetchReducer(state, action) {
 export default function Forum_Post() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { auth } = useAuth();
+  const { auth, ready } = useAuth();
   const alertsManagerRef = use(AlertsContext);
 
   const [state, dispatch] = useReducer(fetchReducer, initialFetchState);
   const { post, answers, answerTotal, associatedEvent, loading } = state;
   const [answerPage, setAnswerPage] = useState(1);
   const answerPageRef = useRef(1);
+  const requestGeneration = useRef(0);
   const answerPageCount = Math.ceil(answerTotal / ANSWERS_PER_PAGE);
   const userStatus = associatedEvent?.attendances?.find(a => a.userName === auth.user)?.status;
 
@@ -215,6 +216,8 @@ export default function Forum_Post() {
   // silent refetches (after replying, voting, RSVP) stay on the page the reader is looking at.
   const fetchData = useCallback((silent = false, page = answerPageRef.current) => {
     answerPageRef.current = page;
+    // Only the latest load may update the page (a login change can overtake a running load).
+    const generation = ++requestGeneration.current;
     if (!silent) {
       dispatch({ type: 'FETCH_START' });
     }
@@ -225,6 +228,7 @@ export default function Forum_Post() {
       api.get(`/event/by-post/${id}`).then(res => res.status === 204 ? null : res.data),
     ])
       .then(([postRes, answersRes, eventData]) => {
+        if (generation !== requestGeneration.current) return;
         const answerList = answersRes.data ?? [];
         setAnswerPage(page);
         dispatch({
@@ -238,6 +242,7 @@ export default function Forum_Post() {
         });
       })
       .catch(error => {
+        if (generation !== requestGeneration.current) return;
         console.error("Error fetching post/answers", error);
         const status = error.response?.status || 0;
         const msg = extractErrorMessage(error);
@@ -251,9 +256,12 @@ export default function Forum_Post() {
   }, [id, alertsManagerRef]);
 
 
+  // Loaded once the session is known, and again when the viewer changes: whether the
+  // post is visible depends on the role.
   useEffect(() => {
+    if (!ready) return;
     fetchData(false, 1);
-  }, [fetchData]);
+  }, [ready, fetchData, auth.userId, auth.roles]);
 
   // Read tracking is a separate write, so reloads and silent refetches do not count as views.
   useEffect(() => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, useRef, use } from 'react';
 import api, { extractErrorMessage } from '../../helper/api';
 import useAuth from '../../context/useAuth';
 
@@ -21,13 +21,17 @@ import AddCategory from '../../components/Forum/AddCategory';
 import Skeleton_Category from '../../components/Forum/Skeleton_Category';
 import { AlertsContext } from '../../components/utils/AlertsManager';
 
+// Stable empty list, so categories without topics do not get a new prop on every render.
+const NO_TOPICS = [];
+
 const Forum = () => {
-    const { auth } = useAuth();
+    const { auth, ready } = useAuth();
     const alertsManagerRef = use(AlertsContext);
     const [categories, setCategories] = useState([]);
     // Topics of all visible categories, grouped by category id (null: load per category)
     const [topicsByCategory, setTopicsByCategory] = useState(null);
-    const [loading, setloading] = useState(false);
+    // Starts as loading: the first load waits for the session check.
+    const [loading, setloading] = useState(true);
     const [error, setError] = useState(null);
     const [errorStatus, setErrorStatus] = useState(null);
     const [open, setOpen] = useState(false);
@@ -35,6 +39,10 @@ const Forum = () => {
     const handleClose = () => { setOpen(false); };
     const [updateData, setUpdateData] = useState(false);
     const [sort, setSort] = useState({ field: "position", direction: "asc" });
+    // Only the latest load may update the list (a login change can overtake a running load).
+    const requestGeneration = useRef(0);
+    // Bumped by every completed load: the categories mount anew and take the preloaded topics.
+    const [dataVersion, setDataVersion] = useState(0);
 
     // Category edit state
     const [editingCategory, setEditingCategory] = useState(null);
@@ -44,6 +52,7 @@ const Forum = () => {
     }
 
     const fetchCategories = () => {
+        const generation = ++requestGeneration.current;
         setloading(true);
         setError(null);
         setErrorStatus(null);
@@ -54,6 +63,7 @@ const Forum = () => {
             api.get("/forum/topic", { params: { size: 200 } }).catch(() => null),
         ])
         .then(([response, topicsResponse]) => {
+            if (generation !== requestGeneration.current) return;
             // Topic lists are paged; if the forum has more topics than one page, each category loads its own.
             const complete = topicsResponse
                 && Number(topicsResponse.headers?.["x-total-count"] ?? 0) <= (topicsResponse.data?.length ?? 0);
@@ -67,9 +77,11 @@ const Forum = () => {
                 setTopicsByCategory(null);
             }
             setCategories(response.data);
+            setDataVersion(v => v + 1);
             setloading(false);
         })
         .catch(err => {
+            if (generation !== requestGeneration.current) return;
             console.error(err);
             setError(extractErrorMessage(err));
             setErrorStatus(err.response?.status || 0);
@@ -77,10 +89,12 @@ const Forum = () => {
         });
     };
 
-    // Get all categories
+    // Get all categories once the session is known, and again whenever the viewer
+    // changes, since visibility depends on the role.
     useEffect(() => {
+        if (!ready) return;
         fetchCategories();
-    }, [updateData]);
+    }, [ready, updateData, auth.userId, auth.roles]);
 
     const handleDelete = (deletedCategory) => {
         setCategories((prevCategories) => 
@@ -101,10 +115,10 @@ const Forum = () => {
 
     const categoryComponents = sortedCategories.map((category, index) => (
         <Category
-          key={category.id}
+          key={`${category.id}-${dataVersion}`}
           currentIndex={index}
           vals={category}
-          topics={topicsByCategory ? (topicsByCategory[category.id] ?? []) : undefined}
+          topics={topicsByCategory ? (topicsByCategory[category.id] ?? NO_TOPICS) : undefined}
           editCallback={(cat) => setEditingCategory(cat)}
           deleteCallback={handleDelete}
           onCategoryUpdate={handleCategoryUpdate}

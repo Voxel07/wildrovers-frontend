@@ -1,6 +1,7 @@
 import React, { useReducer, useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api, { extractErrorMessage } from '../../helper/api';
+import useAuth from '../../context/useAuth';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
@@ -47,6 +48,7 @@ const totalOf = (response) => Number(response.headers?.['x-total-count'] ?? (res
 export default function Forum_Topic() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { auth, ready } = useAuth();
   const [fetchState, dispatch] = useReducer(fetchReducer, initialFetchState);
   const { posts, postTotal, topicData, loading, error, errorStatus } = fetchState;
   const [sort, setSort] = useState({ field: 'creationDate', direction: 'asc' });
@@ -89,12 +91,15 @@ export default function Forum_Topic() {
     return () => {
       controller.abort();
     };
-  }, [id]);
+    // Reloaded when the viewer changes: which posts are visible depends on the role.
+  }, [id, auth.userId, auth.roles]);
 
+  // Waits for the session, so the first load already sees what this viewer may see.
   useEffect(() => {
+    if (!ready) return;
     const cleanup = fetchTopicData();
     return cleanup;
-  }, [fetchTopicData]);
+  }, [ready, fetchTopicData]);
 
   const loadPostPage = (page, size) => {
     setPaging({ page, size });

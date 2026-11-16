@@ -1,6 +1,6 @@
 import { createContext, useState, useEffect, useCallback, useMemo } from "react";
 import { setTelemetryUser } from "../helper/telemetry";
-import api, { apiUrl, isTransientAuthError, refreshSession, rememberSession } from "../helper/api";
+import api, { apiUrl, isTransientAuthError, markSessionRestored, refreshSession, rememberSession } from "../helper/api";
 import SessionExpiredDialog from "../components/utils/SessionExpiredDialog";
 
 const AuthContext = createContext(null);
@@ -110,6 +110,8 @@ export const AuthProvider = ({ children }) => {
                     if (cancelled) return;
                 }
             }
+            // Requests held back in api.js go out now, with the restored cookies (or as a visitor).
+            markSessionRestored();
             if (!cancelled) setReady(true);
         })();
         return () => { cancelled = true; };

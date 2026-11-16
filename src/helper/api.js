@@ -33,6 +33,22 @@ let lastSession = null;
 let refreshPromise = null;
 let retryRefreshAfter = 0;
 
+// On page load the access cookie (short-lived) is often already gone while the refresh
+// cookie is still valid. Until AuthProvider has restored the session, other requests
+// wait: public endpoints would otherwise answer them as for a visitor, without a 401
+// that could trigger a refresh. The cap keeps a hanging session check from blocking the app.
+const SESSION_RESTORE_MAX_WAIT_MS = 20 * 1000;
+let resolveSessionRestored;
+const sessionRestored = Promise.race([
+  new Promise((resolve) => { resolveSessionRestored = resolve; }),
+  new Promise((resolve) => setTimeout(resolve, SESSION_RESTORE_MAX_WAIT_MS)),
+]);
+
+/** Called by AuthProvider once the initial session check has finished (either way). */
+export function markSessionRestored() {
+  resolveSessionRestored();
+}
+
 // Tabs share the cookies, so they also share refreshes, logins and logouts.
 const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('wr-auth') : null;
 
@@ -139,6 +155,10 @@ export function refreshSession() {
 // Refresh shortly before the access cookie expires, so requests never go out
 // without it (public endpoints would otherwise silently answer as for a visitor).
 api.interceptors.request.use(async (config) => {
+  // The session endpoints are what restores the session; everything else waits for it.
+  if (!config._skipAuthRetry && !String(config.url || '').startsWith('/auth/')) {
+    await sessionRestored;
+  }
   if (!config._skipAuthRetry && refreshAt !== null
       && Date.now() >= refreshAt && Date.now() >= retryRefreshAfter) {
     try {
