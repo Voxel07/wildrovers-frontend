@@ -1016,7 +1016,7 @@ export default function Profile() {
             <Typography variant="h6" sx={{ fontWeight: 'bold' }}>Benachrichtigungen</Typography>
           </Stack>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Event-E-Mails werden sofort gesendet. Andere E-Mails werden morgens um 06:00 Uhr zusammengefasst. Webhooks werden immer direkt gesendet.
+            E-Mails zu Events und anderen Neuigkeiten werden morgens ab 06:00 Uhr gesendet. Webhooks werden immer direkt gesendet.
           </Typography>
 
           <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(110px, 1fr) auto auto', gap: 1, alignItems: 'center' }}>

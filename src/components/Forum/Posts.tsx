@@ -221,6 +221,15 @@ export default function Posts(props: PostsProps) {
                   </TableRow>
                 );
               })}
+            {totalRows === 0 && (
+              <TableRow>
+                <TableCell colSpan={3} align="center" sx={{ py: 6, borderBottom: 'none' }}>
+                  <Typography color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                    Keine Beiträge
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            )}
             {emptyRows > 0 && (
               <TableRow style={{ height: 53 * emptyRows }}>
                 <TableCell colSpan={3} />
@@ -230,16 +239,18 @@ export default function Posts(props: PostsProps) {
         </Table>
       </TableContainer>
 
-      <TablePagination
-        rowsPerPageOptions={[5, 10, 25]}
-        component="div"
-        count={totalRows}
-        rowsPerPage={rowsPerPage}
-        page={page}
-        onPageChange={handleChangePage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
-        ActionsComponent={TablePaginationActions}
-      />
+      {totalRows > 0 && (
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25]}
+          component="div"
+          count={totalRows}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          ActionsComponent={TablePaginationActions}
+        />
+      )}
 
       <Box sx={{ p: 2, borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'flex-start' }}>
         <Button
