@@ -1,0 +1,794 @@
+import { useEffect, useState, use, useCallback, useReducer, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import api, { extractErrorMessage, getErrorData, getErrorStatus } from '../../helper/api';
+import useSessionDraft from '../../hooks/useSessionDraft';
+
+// Mui
+import Container from '@mui/material/Container';
+import Grid from '@mui/material/Grid';
+import Typography from '@mui/material/Typography';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Collapse from '@mui/material/Collapse';
+import Divider from '@mui/material/Divider';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
+import SendIcon from '@mui/icons-material/Send';
+import BackButton from '../../components/Navigation/BackButton';
+
+import Accordion from '@mui/material/Accordion';
+import AccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import Stack from '@mui/material/Stack';
+import Tooltip from '@mui/material/Tooltip';
+
+import PersonOutlineIcon from '@mui/icons-material/PersonOutlined';
+
+import ForumIcon from '@mui/icons-material/Forum';
+import EventNoteIcon from '@mui/icons-material/EventNote';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
+import IconButton from '@mui/material/IconButton';
+import Pagination from '@mui/material/Pagination';
+
+// Quill for Reply Editor
+import ForumQuill from '../../components/Forum/LazyForumQuill';
+
+// Eigene
+import Post from '../../components/Forum/Post';
+import Answer from '../../components/Forum/Answer';
+import PollWidget from '../../components/Forum/PollWidget';
+import PollOptionsEditor from '../../components/Forum/PollOptionsEditor';
+import { createEmptyPoll, toPollPayload, validatePoll } from '../../helper/pollForm';
+import { AlertsContext } from '../../components/utils/AlertsManager';
+import useAuth from '../../context/useAuth';
+import { convertTimestamp, isModerator } from '../../helper/converter';
+import ForumBreadcrumbs from '../../components/Forum/ForumBreadcrumbs';
+import ForumChips from '../../components/Forum/ForumChips';
+import type { AttendanceStatus, EventAttendance, ForumAnswer, ForumPost, WrEvent } from '../../types';
+
+interface FetchState {
+  post: ForumPost | null;
+  answers: ForumAnswer[];
+  answerTotal: number;
+  associatedEvent: WrEvent | null;
+  loading: boolean;
+}
+
+type FetchAction =
+  | { type: 'FETCH_START' }
+  | { type: 'FETCH_SUCCESS'; payload: { post: ForumPost | null; answers: ForumAnswer[]; answerTotal: number; associatedEvent: WrEvent | null } }
+  | { type: 'FETCH_FAILURE' }
+  | { type: 'OPTIMISTIC_ATTENDANCE'; payload: { userName: string | null; status: AttendanceStatus } }
+  | { type: 'REVERT_EVENT'; payload: WrEvent | null };
+
+const ANSWERS_PER_PAGE = 50;
+
+const initialFetchState: FetchState = {
+  post: null,
+  answers: [],
+  answerTotal: 0,
+  associatedEvent: null,
+  loading: true,
+};
+
+function fetchReducer(state: FetchState, action: FetchAction): FetchState {
+  switch (action.type) {
+    case 'FETCH_START':
+      return {
+        ...state,
+        loading: true,
+        post: null,
+        answers: [],
+        associatedEvent: null,
+      };
+    case 'FETCH_SUCCESS':
+      return {
+        ...state,
+        loading: false,
+        post: action.payload.post,
+        answers: action.payload.answers,
+        answerTotal: action.payload.answerTotal,
+        associatedEvent: action.payload.associatedEvent,
+      };
+    case 'FETCH_FAILURE':
+      return {
+        ...state,
+        loading: false,
+      };
+    case 'OPTIMISTIC_ATTENDANCE': {
+      if (!state.associatedEvent) return state;
+      const { userName, status } = action.payload;
+
+      const updatedAttendances: EventAttendance[] = [...(state.associatedEvent.attendances || [])];
+      const existingIndex = updatedAttendances.findIndex(a => a.userName === userName);
+      if (existingIndex > -1) {
+        updatedAttendances[existingIndex] = {
+          ...updatedAttendances[existingIndex],
+          status: status
+        };
+      } else {
+        updatedAttendances.push({
+          userName: userName ?? undefined,
+          status: status
+        });
+      }
+
+      let updatedNonRespondents = [...(state.associatedEvent.nonRespondents || [])];
+      updatedNonRespondents = updatedNonRespondents.filter(name => name !== userName);
+
+      return {
+        ...state,
+        associatedEvent: {
+          ...state.associatedEvent,
+          attendances: updatedAttendances,
+          nonRespondents: updatedNonRespondents
+        }
+      };
+    }
+    case 'REVERT_EVENT':
+      return {
+        ...state,
+        associatedEvent: action.payload
+      };
+    default:
+      return state;
+  }
+}
+
+export default function Forum_Post() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { auth, ready } = useAuth();
+  const alertsManagerRef = use(AlertsContext);
+
+  const [state, dispatch] = useReducer(fetchReducer, initialFetchState);
+  const { post, answers, answerTotal, associatedEvent, loading } = state;
+  const [answerPage, setAnswerPage] = useState(1);
+  const answerPageRef = useRef(1);
+  const requestGeneration = useRef(0);
+  const answerPageCount = Math.ceil(answerTotal / ANSWERS_PER_PAGE);
+  const userStatus = associatedEvent?.attendances?.find(a => a.userName === auth.user)?.status;
+
+  const isLoggedIn = auth.isAuthenticated;
+  const isTeamMember = isLoggedIn && ['Frischling', 'Mitglied', 'Vorstand', 'Admin'].includes(auth.roles ?? '');
+
+  // Reply State
+  const [replyContent, setReplyContent, clearReplyDraft] = useSessionDraft(`draft:answer:${id}`, '');
+  // The editor (and the Quill bundle) loads on the first click, not for every reader.
+  const [replyEditorOpen, setReplyEditorOpen] = useState(false);
+  const [submittingReply, setSubmittingReply] = useState(false);
+
+  // Poll Dialog State
+  const [createPollOpen, setCreatePollOpen] = useState(false);
+  const [pollsVisible, setPollsVisible] = useState(true);
+  const [eventVisible, setEventVisible] = useState(true);
+  const [pollForm, setPollForm] = useState(createEmptyPoll);
+  const [submittingPoll, setSubmittingPoll] = useState(false);
+  const [deletePollId, setDeletePollId] = useState<number | null>(null);
+
+  const isCreatorOrAdmin = Boolean(post && auth.user && (post.creator === auth.user || isModerator(auth.roles)));
+
+  const handleClosePollDialog = () => {
+    setCreatePollOpen(false);
+    setPollForm(createEmptyPoll());
+  };
+
+  const handleCreatePollSubmit = () => {
+    const validationError = validatePoll(pollForm);
+    if (validationError) {
+      alertsManagerRef.current?.showAlert('warning', validationError);
+      return;
+    }
+
+    setSubmittingPoll(true);
+    api.post(`/forum/poll/create?post=${id}`, toPollPayload(pollForm))
+      .then(() => {
+        alertsManagerRef.current?.showAlert('success', 'Umfrage erfolgreich hinzugefügt!');
+        handleClosePollDialog();
+        fetchData(true);
+      })
+      .catch(error => {
+        console.error("Failed to create poll", error);
+        const status = getErrorStatus(error) || 500;
+        const msg = extractErrorMessage(error);
+        alertsManagerRef.current?.showAlert('error', `${status}: ${msg}`);
+      })
+      .finally(() => {
+        setSubmittingPoll(false);
+      });
+  };
+
+  const handleDeletePoll = (pollId: number) => {
+    setDeletePollId(pollId);
+  };
+
+  const handleConfirmDeletePoll = () => {
+    if (!deletePollId) return;
+    const pollId = deletePollId;
+    setDeletePollId(null);
+
+    api.delete(`/forum/poll/delete?poll=${pollId}`)
+      .then(() => {
+        alertsManagerRef.current?.showAlert('success', 'Umfrage erfolgreich gelöscht');
+        fetchData(true);
+      })
+      .catch(error => {
+        console.error("Failed to delete poll", error);
+        const status = getErrorStatus(error) || 500;
+        const msg = extractErrorMessage(error);
+        alertsManagerRef.current?.showAlert('error', `${status}: ${msg}`);
+      });
+  };
+
+  // Fetch post, one page of answers, and associated event. The page is kept in a ref so that
+  // silent refetches (after replying, voting, RSVP) stay on the page the reader is looking at.
+  const fetchData = useCallback((silent = false, page = answerPageRef.current) => {
+    answerPageRef.current = page;
+    // Only the latest load may update the page (a login change can overtake a running load).
+    const generation = ++requestGeneration.current;
+    if (!silent) {
+      dispatch({ type: 'FETCH_START' });
+    }
+
+    Promise.all([
+      api.get<ForumPost[]>("/forum/post", { params: { post: id } }),
+      api.get<ForumAnswer[]>("/forum/answer", { params: { post: id, page: page - 1, size: ANSWERS_PER_PAGE } }),
+      api.get<WrEvent>(`/event/by-post/${id}`).then(res => res.status === 204 ? null : res.data),
+    ])
+      .then(([postRes, answersRes, eventData]) => {
+        if (generation !== requestGeneration.current) return;
+        const answerList = answersRes.data ?? [];
+        setAnswerPage(page);
+        dispatch({
+          type: 'FETCH_SUCCESS',
+          payload: {
+            post: postRes.data?.[0] ?? null,
+            answers: answerList,
+            answerTotal: Number(answersRes.headers?.['x-total-count'] ?? answerList.length),
+            associatedEvent: eventData,
+          },
+        });
+      })
+      .catch(error => {
+        if (generation !== requestGeneration.current) return;
+        console.error("Error fetching post/answers", error);
+        const status = getErrorStatus(error) || 0;
+        const msg = extractErrorMessage(error);
+        if (status === 429) {
+          alertsManagerRef.current?.showAlert('warning', 'Zu viele Anfragen — bitte warte einen Moment.');
+        } else {
+          alertsManagerRef.current?.showAlert('error', `Fehler beim Laden des Posts: ${msg}`);
+        }
+        dispatch({ type: 'FETCH_FAILURE' });
+      });
+  }, [id, alertsManagerRef]);
+
+
+  // Loaded once the session is known, and again when the viewer changes: whether the
+  // post is visible depends on the role.
+  useEffect(() => {
+    if (!ready) return;
+    fetchData(false, 1);
+  }, [ready, fetchData, auth.userId, auth.roles]);
+
+  // Read tracking is a separate write, so reloads and silent refetches do not count as views.
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    api.post('/forum/post/view', null, { params: { post: id } })
+      .catch(error => console.error("Failed to mark post as read", error));
+  }, [id, isLoggedIn]);
+
+  const handleReplySubmit = () => {
+    if (!replyContent || replyContent.trim() === '' || replyContent === '<p><br></p>') {
+      alertsManagerRef.current?.showAlert('warning', 'Bitte gib eine Antwort ein');
+      return;
+    }
+
+    setSubmittingReply(true);
+    api.put(`/forum/answer?post=${id}`, {
+      content: replyContent
+    })
+      .then(() => {
+        alertsManagerRef.current?.showAlert('success', 'Antwort erfolgreich hinzugefügt');
+        clearReplyDraft();
+        // Reload silently and show the last page, where the new answer is
+        fetchData(true, Math.max(1, Math.ceil((answerTotal + 1) / ANSWERS_PER_PAGE)));
+      })
+      .catch(error => {
+        console.error(error);
+        const status = getErrorStatus(error) || 500;
+        const data = extractErrorMessage(error);
+        alertsManagerRef.current?.showAlert('error', `${status}: ${data}`);
+      })
+      .finally(() => {
+        setSubmittingReply(false);
+      });
+  };
+
+  const handleAttendance = (status: AttendanceStatus) => {
+    if (!associatedEvent) return;
+
+    // Backup current associatedEvent in case of failure
+    const backupEvent = associatedEvent;
+
+    // Optimistically update the UI state
+    dispatch({
+      type: 'OPTIMISTIC_ATTENDANCE',
+      payload: { userName: auth.user, status }
+    });
+
+    api.post(`/event/${associatedEvent.id}/attendance`, { status })
+      .then(() => {
+        fetchData(true); // Silent refresh to ensure state consistency with the backend
+      })
+      .catch(err => {
+        console.error("Error setting attendance", err);
+
+        // Revert the optimistic update immediately
+        dispatch({
+          type: 'REVERT_EVENT',
+          payload: backupEvent
+        });
+
+        const statusErr = getErrorStatus(err) || 500;
+        const rawData = getErrorData(err);
+        const msg = rawData && typeof rawData === 'object'
+          ? (rawData.message || rawData.details || JSON.stringify(rawData))
+          : (rawData || 'Teilnahme konnte nicht aktualisiert werden');
+
+        alertsManagerRef.current?.showAlert('error', `${statusErr}: ${msg}`);
+      });
+  };
+
+  if (loading) {
+    return (
+      <Container sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <CircularProgress color="primary" />
+      </Container>
+    );
+  }
+
+  if (!post) {
+    return (
+      <Container sx={{ py: 8, textAlign: 'center' }}>
+        <Typography variant="h5" color="error">Dieser Post existiert nicht oder Sie haben keine Berechtigung, ihn anzusehen.</Typography>
+        <BackButton sx={{ mt: 3 }} />
+      </Container>
+    );
+  }
+
+  const postChips = [
+    { tooltip: "Ersteller", icon: <PersonOutlineIcon />, label: post.creator || 'Unbekannt' },
+    { tooltip: "Erstellungsdatum", icon: <EventNoteIcon />, label: convertTimestamp(post.creationDate) },
+    { tooltip: "Antworten", icon: <ForumIcon />, label: post.answerCount },
+    { tooltip: "Aufrufe", icon: <VisibilityIcon />, label: post.views }
+  ];
+
+  return (
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 6, px: { xs: 1, md: 3 } }}>
+      <ForumBreadcrumbs
+        categoryId={post.categoryId}
+        categoryName={post.categoryName}
+        topicId={post.topicId}
+        topicName={post.topicName}
+        postTitle={post.title}
+      />
+
+      <BackButton
+        sx={{ mb: 3 }}
+        variant="text"
+      />
+
+      {/* Post content styled as Accordion (same as topics) */}
+      <Accordion expanded sx={{ mb: 4, border: '1px solid rgba(255,255,255,0.08)' }}>
+        <AccordionSummary
+          aria-controls="post-header-content"
+          id="post-header"
+          sx={{
+            cursor: 'default',
+            '& .MuiAccordionSummary-content': {
+              width: '100%',
+              margin: 0,
+            },
+            '&:hover': { backgroundColor: 'rgba(255,255,255,0.02)' }
+          }}
+        >
+          <Grid container spacing={2} sx={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                {post.title}
+              </Typography>
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+              <ForumChips items={postChips} />
+            </Grid>
+          </Grid>
+        </AccordionSummary>
+        <Divider />
+        <AccordionDetails sx={{ p: 0 }}>
+          <Post post={post} onUpdate={() => fetchData(true)} onDelete={() => navigate("/Forum/Topic/" + post.topicId)} onAddPoll={() => setCreatePollOpen(true)} pollsVisible={pollsVisible} onTogglePolls={() => setPollsVisible(v => !v)} />
+        </AccordionDetails>
+      </Accordion>
+
+      {/* Render Polls if they exist in the post data */}
+      {pollsVisible && post.polls && post.polls.length > 0 && (
+        <Box sx={{ mb: 4 }}>
+          <Grid container spacing={3}>
+            {post.polls.map(poll => (
+              <Grid key={poll.id} size={post.polls!.length === 1 ? { xs: 12 } : { xs: 12, md: 6 }}>
+                <PollWidget
+                  pollData={poll}
+                  canDelete={isCreatorOrAdmin}
+                  onDelete={() => handleDeletePoll(poll.id)}
+                  canCreateEvent={Boolean(isCreatorOrAdmin && isTeamMember)}
+                  postId={post.id}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      )}
+
+      {/* Associated Event Details & Attendance */}
+      {associatedEvent && (
+        <Card sx={{ mb: 4, border: '1px solid rgba(255, 255, 255, 0.08)', bgcolor: 'rgba(255, 255, 255, 0.02)', borderRadius: 2 }}>
+          <CardContent sx={{ py: eventVisible ? 3 : 1.5, px: 3 }}>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+              <Stack direction="row" spacing={1} sx={{ alignItems: 'center', color: 'primary.main' }}>
+                <EventNoteIcon />
+                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  Zugehöriges Event: {associatedEvent.title}
+                </Typography>
+              </Stack>
+              <Tooltip title={eventVisible ? 'Event ausblenden' : 'Event einblenden'}>
+                <IconButton size="small" onClick={() => setEventVisible(v => !v)}>
+                  {eventVisible ? <VisibilityIcon fontSize="small" /> : <VisibilityIcon fontSize="small" sx={{ opacity: 0.3 }} />}
+                </IconButton>
+              </Tooltip>
+            </Stack>
+            <Collapse in={eventVisible}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5, mt: 1 }}>
+                Ort: <strong>{associatedEvent.location}</strong> | Datum: <strong>{(() => {
+                  if (!associatedEvent.eventDate) return '';
+                  try {
+                    const start = new Date(associatedEvent.eventDate);
+                    let dateText = start.toLocaleDateString("de-DE", {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    }) + ' Uhr';
+                    if (associatedEvent.eventEndDate) {
+                      const end = new Date(associatedEvent.eventEndDate);
+                      if (start.toDateString() === end.toDateString()) {
+                        dateText += ' bis ' + end.toLocaleTimeString("de-DE", { hour: '2-digit', minute: '2-digit' }) + ' Uhr';
+                      } else {
+                        dateText += ' bis ' + end.toLocaleDateString("de-DE", {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }) + ' Uhr';
+                      }
+                    }
+                    return dateText;
+                  } catch (e) {
+                    return associatedEvent.eventDate;
+                  }
+                })()}</strong>
+              </Typography>
+
+              <Grid container spacing={2} sx={{ mt: 2.5 }}>
+                {/* YES / Zusagen */}
+                <Grid size={{ xs: 12, sm: 3 }}>
+                  <Box
+                    onClick={isLoggedIn ? () => handleAttendance('YES') : undefined}
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      bgcolor: userStatus === 'YES' ? 'rgba(76, 175, 80, 0.12)' : 'rgba(76, 175, 80, 0.03)',
+                      border: '2px solid',
+                      borderColor: userStatus === 'YES' ? 'rgba(76, 175, 80, 0.5)' : 'rgba(76, 175, 80, 0.12)',
+                      height: '100%',
+                      cursor: isLoggedIn ? 'pointer' : 'default',
+                      transition: 'all 0.2s ease-in-out',
+                      '&:hover': isLoggedIn ? {
+                        bgcolor: userStatus === 'YES' ? 'rgba(76, 175, 80, 0.18)' : 'rgba(76, 175, 80, 0.08)',
+                        borderColor: 'rgba(76, 175, 80, 0.35)',
+                        transform: 'translateY(-2px)'
+                      } : {}
+                    }}
+                  >
+                    <Typography variant="subtitle2" color="success.main" sx={{ fontWeight: 'bold', mb: 1 }}>
+                      🟢 Zusagen ({associatedEvent.attendances?.filter(a => a.status === 'YES').length || 0})
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
+                      {isTeamMember
+                        ? (associatedEvent.attendances?.filter(a => a.status === 'YES').map(a => a.userName).join(', ') || 'Keine Zusagen')
+                        : '🔒 Nur für Teammitglieder sichtbar'}
+                    </Typography>
+                  </Box>
+                </Grid>
+
+                {/* NO / Absagen */}
+                <Grid size={{ xs: 12, sm: 3 }}>
+                  <Box
+                    onClick={isLoggedIn ? () => handleAttendance('NO') : undefined}
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      bgcolor: userStatus === 'NO' ? 'rgba(244, 67, 54, 0.12)' : 'rgba(244, 67, 54, 0.03)',
+                      border: '2px solid',
+                      borderColor: userStatus === 'NO' ? 'rgba(244, 67, 54, 0.5)' : 'rgba(244, 67, 54, 0.12)',
+                      height: '100%',
+                      cursor: isLoggedIn ? 'pointer' : 'default',
+                      transition: 'all 0.2s ease-in-out',
+                      '&:hover': isLoggedIn ? {
+                        bgcolor: userStatus === 'NO' ? 'rgba(244, 67, 54, 0.18)' : 'rgba(244, 67, 54, 0.08)',
+                        borderColor: 'rgba(244, 67, 54, 0.35)',
+                        transform: 'translateY(-2px)'
+                      } : {}
+                    }}
+                  >
+                    <Typography variant="subtitle2" color="error.main" sx={{ fontWeight: 'bold', mb: 1 }}>
+                      🔴 Absagen ({associatedEvent.attendances?.filter(a => a.status === 'NO').length || 0})
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
+                      {isTeamMember
+                        ? (associatedEvent.attendances?.filter(a => a.status === 'NO').map(a => a.userName).join(', ') || 'Keine Absagen')
+                        : '🔒 Nur für Teammitglieder sichtbar'}
+                    </Typography>
+                  </Box>
+                </Grid>
+
+                {/* MAYBE / Vielleicht */}
+                <Grid size={{ xs: 12, sm: 3 }}>
+                  <Box
+                    onClick={isLoggedIn ? () => handleAttendance('MAYBE') : undefined}
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      bgcolor: userStatus === 'MAYBE' ? 'rgba(255, 152, 0, 0.12)' : 'rgba(255, 152, 0, 0.03)',
+                      border: '2px solid',
+                      borderColor: userStatus === 'MAYBE' ? 'rgba(255, 152, 0, 0.5)' : 'rgba(255, 152, 0, 0.12)',
+                      height: '100%',
+                      cursor: isLoggedIn ? 'pointer' : 'default',
+                      transition: 'all 0.2s ease-in-out',
+                      '&:hover': isLoggedIn ? {
+                        bgcolor: userStatus === 'MAYBE' ? 'rgba(255, 152, 0, 0.18)' : 'rgba(255, 152, 0, 0.08)',
+                        borderColor: 'rgba(255, 152, 0, 0.35)',
+                        transform: 'translateY(-2px)'
+                      } : {}
+                    }}
+                  >
+                    <Typography variant="subtitle2" color="warning.main" sx={{ fontWeight: 'bold', mb: 1 }}>
+                      🟡 Vielleicht ({associatedEvent.attendances?.filter(a => a.status === 'MAYBE').length || 0})
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
+                      {isTeamMember
+                        ? (associatedEvent.attendances?.filter(a => a.status === 'MAYBE').map(a => a.userName).join(', ') || 'Keine Einträge')
+                        : '🔒 Nur für Teammitglieder sichtbar'}
+                    </Typography>
+                  </Box>
+                </Grid>
+
+                {/* NO RESPONSE / Ausstehend */}
+                <Grid size={{ xs: 12, sm: 3 }}>
+                  <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(255, 255, 255, 0.02)', border: '2px solid rgba(255, 255, 255, 0.1)', height: '100%' }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
+                      ⚪ Rückmeldung ausstehend ({associatedEvent.nonRespondents?.length || 0})
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
+                      {isTeamMember
+                        ? (associatedEvent.nonRespondents?.join(', ') || 'Keine Ausstehenden')
+                        : '🔒 Nur für Teammitglieder sichtbar'}
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Collapse>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Answers section */}
+      <Typography
+        variant="h5"
+        sx={{
+          fontWeight: 'bold',
+          mb: { xs: 1, md: 2 },
+          mt: 0,
+          color: 'primary.main',
+          textAlign: { xs: 'center', md: 'left' },
+        }}
+      >
+        Antworten ({answerTotal})
+      </Typography>
+
+      <Grid container spacing={3} sx={{ flexDirection: 'column' }}>
+        {answers.length ? (
+          <>
+            {answers.map(answer => (
+              <Grid key={answer.id}>
+                <Answer answer={answer} onUpdate={() => fetchData(true)} />
+              </Grid>
+            ))}
+            {answerPageCount > 1 && (
+              <Grid sx={{ display: 'flex', justifyContent: 'center' }}>
+                <Pagination
+                  count={answerPageCount}
+                  page={answerPage}
+                  color="primary"
+                  onChange={(_, page) => fetchData(true, page)}
+                />
+              </Grid>
+            )}
+          </>
+        ) : (
+          <Grid>
+            <Card sx={{ p: 4, textAlign: 'center' }}>
+              <Typography color="text.secondary">Noch keine Antworten. Schreibe die erste Antwort!</Typography>
+            </Card>
+          </Grid>
+        )}
+
+        {/* Reply Editor Form */}
+        {auth.user ? (
+          <Grid sx={{ mt: 4 }}>
+            <Card sx={{ border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+                  Antwort verfassen
+                </Typography>
+                <Box
+                  sx={{
+                    mb: 2,
+                    height: 200,
+                    minHeight: 150,
+                    resize: 'vertical',
+                    overflow: 'hidden',
+                    borderBottom: '2px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '0 0 4px 4px',
+                    '&:hover': {
+                      borderBottomColor: 'primary.main',
+                    },
+                    transition: 'border-color 0.2s',
+                  }}
+                >
+                  {replyEditorOpen || replyContent ? (
+                    <ForumQuill
+                      value={replyContent}
+                      onChange={setReplyContent}
+                      placeholder="Schreibe eine Antwort..."
+                      height="100%"
+                    />
+                  ) : (
+                    <Box
+                      component="button"
+                      type="button"
+                      onClick={() => setReplyEditorOpen(true)}
+                      sx={{
+                        width: '100%',
+                        height: '100%',
+                        p: 2,
+                        textAlign: 'left',
+                        verticalAlign: 'top',
+                        display: 'block',
+                        cursor: 'text',
+                        font: 'inherit',
+                        fontStyle: 'italic',
+                        color: 'text.secondary',
+                        bgcolor: 'transparent',
+                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                        borderRadius: '4px 4px 0 0',
+                      }}
+                    >
+                      Schreibe eine Antwort...
+                    </Box>
+                  )}
+                </Box>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  endIcon={<SendIcon />}
+                  onClick={handleReplySubmit}
+                  disabled={submittingReply}
+                >
+                  {submittingReply ? "Wird gesendet..." : "Antwort senden"}
+                </Button>
+              </CardContent>
+            </Card>
+          </Grid>
+        ) : (
+          <Grid sx={{ mt: 4 }}>
+            <Card sx={{ p: 3, textAlign: 'center', border: '1px dashed rgba(255,255,255,0.1)' }}>
+              <Typography color="text.secondary">
+                Bitte logge dich ein, um eine Antwort zu verfassen.
+              </Typography>
+            </Card>
+          </Grid>
+        )}
+      </Grid>
+
+      {/* Dialog for confirming poll deletion */}
+      <Dialog
+        open={deletePollId !== null}
+        onClose={() => setDeletePollId(null)}
+        slotProps={{ paper: {
+          sx: {
+            bgcolor: 'background.paper',
+            backgroundImage: 'none',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 2,
+            minWidth: 320
+          }
+        } }}
+      >
+        <DialogTitle sx={{ fontWeight: 'bold', color: 'error.main' }}>
+          Umfrage löschen
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Möchtest du diese Umfrage wirklich unwiderruflich löschen? Alle Stimmen gehen dabei verloren.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setDeletePollId(null)} color="inherit">
+            Abbrechen
+          </Button>
+          <Button
+            onClick={handleConfirmDeletePoll}
+            variant="contained"
+            color="error"
+          >
+            Löschen
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog for creating a poll */}
+      <Dialog
+        open={createPollOpen}
+        onClose={handleClosePollDialog}
+        maxWidth="sm"
+        fullWidth
+        slotProps={{ paper: {
+          sx: {
+            bgcolor: 'background.paper',
+            backgroundImage: 'none',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 2
+          }
+        } }}
+      >
+        <DialogTitle sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+          Umfrage hinzufügen
+        </DialogTitle>
+        <DialogContent dividers sx={{ borderBottom: '1px solid rgba(255,255,255,0.08)', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <PollOptionsEditor value={pollForm} onChange={setPollForm} autoFocus />
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button onClick={handleClosePollDialog} color="inherit">
+            Abbrechen
+          </Button>
+          <Button
+            onClick={handleCreatePollSubmit}
+            variant="contained"
+            color="primary"
+            disabled={submittingPoll}
+          >
+            {submittingPoll ? 'Wird erstellt...' : 'Erstellen'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Container>
+  );
+}

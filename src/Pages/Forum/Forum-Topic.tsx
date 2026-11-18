@@ -1,0 +1,241 @@
+import { useReducer, useState, useEffect, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
+import type { AxiosResponse } from 'axios';
+import api, { extractErrorMessage, getErrorStatus } from '../../helper/api';
+import useAuth from '../../context/useAuth';
+import Container from '@mui/material/Container';
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
+import Grid from '@mui/material/Grid';
+import Divider from '@mui/material/Divider';
+import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
+import RefreshIcon from '@mui/icons-material/Refresh';
+
+import PersonOutlineIcon from '@mui/icons-material/PersonOutlined';
+import ForumIcon from '@mui/icons-material/Forum';
+import EventNoteIcon from '@mui/icons-material/EventNote';
+import BackButton from '../../components/Navigation/BackButton';
+
+import Accordion from '@mui/material/Accordion';
+import AccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
+
+// Eigene
+import Post from '../../components/Forum/Posts';
+import { convertTimestamp } from '../../helper/converter';
+import ForumBreadcrumbs from '../../components/Forum/ForumBreadcrumbs';
+import ForumChips from '../../components/Forum/ForumChips';
+import type { ForumPost, ForumTopic } from '../../types';
+
+interface FetchState {
+  posts: ForumPost[];
+  postTotal: number;
+  topicData: ForumTopic | null;
+  loading: boolean;
+  error: string | null;
+  errorStatus: number | null;
+}
+
+type FetchAction =
+  | { type: 'FETCH_START' }
+  | { type: 'FETCH_SUCCESS'; posts: ForumPost[]; postTotal: number; topicData: ForumTopic | null }
+  | { type: 'PAGE_SUCCESS'; posts: ForumPost[]; postTotal: number }
+  | { type: 'FETCH_ERROR'; payload: string; status: number };
+
+type PostSortField = 'creationDate' | 'title' | 'answerCount' | 'views';
+
+const initialFetchState: FetchState = { posts: [], postTotal: 0, topicData: null, loading: true, error: null, errorStatus: null };
+
+function fetchReducer(state: FetchState, action: FetchAction): FetchState {
+  switch (action.type) {
+    case 'FETCH_START': return { ...state, loading: true, error: null, errorStatus: null };
+    case 'FETCH_SUCCESS': return { posts: action.posts, postTotal: action.postTotal, topicData: action.topicData, loading: false, error: null, errorStatus: null };
+    case 'PAGE_SUCCESS': return { ...state, posts: action.posts, postTotal: action.postTotal };
+    case 'FETCH_ERROR': return { ...state, loading: false, error: action.payload, errorStatus: action.status };
+    default: return state;
+  }
+}
+
+const totalOf = (response: AxiosResponse<unknown[]>) => Number(response.headers?.['x-total-count'] ?? (response.data || []).length);
+
+export default function Forum_Topic() {
+  const { id } = useParams();
+  const { auth, ready } = useAuth();
+  const [fetchState, dispatch] = useReducer(fetchReducer, initialFetchState);
+  const { posts, postTotal, topicData, loading, error, errorStatus } = fetchState;
+  // Oldest first within the page.
+  const sort: { field: PostSortField; direction: 'asc' | 'desc' } = { field: 'creationDate', direction: 'asc' };
+  // Posts are paged on the server (newest first).
+  const [paging, setPaging] = useState({ page: 0, size: 10 });
+
+  const fetchTopicData = useCallback(() => {
+    const controller = new AbortController();
+    dispatch({ type: 'FETCH_START' });
+    setPaging(p => ({ ...p, page: 0 }));
+
+    Promise.all([
+      api.get<ForumPost[]>('/forum/post', {
+        params: { topic: id, page: 0, size: paging.size },
+        signal: controller.signal,
+      }),
+      api.get<ForumTopic[]>('/forum/topic', {
+        params: { topicId: id },
+        signal: controller.signal,
+      })
+    ])
+      .then(([postsRes, topicRes]) => {
+        dispatch({
+          type: 'FETCH_SUCCESS',
+          posts: postsRes.data || [],
+          postTotal: totalOf(postsRes),
+          topicData: topicRes.data?.[0] || null,
+        });
+      })
+      .catch(error => {
+        if (error.code === 'ERR_CANCELED') return;
+        console.error(error);
+        dispatch({
+          type: 'FETCH_ERROR',
+          payload: extractErrorMessage(error),
+          status: getErrorStatus(error) || 0,
+        });
+      });
+
+    return () => {
+      controller.abort();
+    };
+    // Reloaded when the viewer changes: which posts are visible depends on the role.
+  }, [id, auth.userId, auth.roles]);
+
+  // Waits for the session, so the first load already sees what this viewer may see.
+  useEffect(() => {
+    if (!ready) return;
+    const cleanup = fetchTopicData();
+    return cleanup;
+  }, [ready, fetchTopicData]);
+
+  const loadPostPage = (page: number, size: number) => {
+    setPaging({ page, size });
+    api.get<ForumPost[]>('/forum/post', { params: { topic: id, page, size } })
+      .then(res => dispatch({ type: 'PAGE_SUCCESS', posts: res.data || [], postTotal: totalOf(res) }))
+      .catch(error => {
+        console.error(error);
+        dispatch({ type: 'FETCH_ERROR', payload: extractErrorMessage(error), status: getErrorStatus(error) || 0 });
+      });
+  };
+
+  const sortedPosts = [...posts].sort((a, b) => {
+    const valA = a[sort.field] ?? 0;
+    const valB = b[sort.field] ?? 0;
+    const cmp = typeof valA === 'string'
+      ? valA.localeCompare(String(valB))
+      : (valA as number) < (valB as number) ? -1 : (valA as number) > (valB as number) ? 1 : 0;
+    return sort.direction === 'asc' ? cmp : -cmp;
+  });
+
+  if (loading) {
+    return (
+      <Container sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <CircularProgress color="primary" />
+      </Container>
+    );
+  }
+
+  if (error) {
+    const isRateLimit = errorStatus === 429;
+    return (
+      <Container maxWidth="sm" sx={{ py: 8, textAlign: 'center' }}>
+        <Alert
+          severity={isRateLimit ? 'warning' : 'error'}
+          sx={{ mb: 3 }}
+          action={
+            <Button color="inherit" size="small" startIcon={<RefreshIcon />} onClick={fetchTopicData}>
+              Erneut versuchen
+            </Button>
+          }
+        >
+          {isRateLimit
+            ? 'Zu viele Anfragen — bitte warte einen Moment.'
+            : `Fehler beim Laden des Themas: ${error}`}
+        </Alert>
+        <BackButton sx={{ mt: 1 }} />
+      </Container>
+    );
+  }
+
+  if (!topicData || !topicData.id) {
+    return (
+      <Container sx={{ py: 8, textAlign: 'center' }}>
+        <Typography variant="h5" color="error">Dieses Thema existiert nicht oder Sie haben keine Berechtigung, es anzusehen.</Typography>
+        <BackButton sx={{ mt: 3 }} />
+      </Container>
+    );
+  }
+
+  const { topic, postCount, creationDate, creator } = topicData;
+
+  const topicChips = [
+    { tooltip: "Ersteller", icon: <PersonOutlineIcon />, label: creator || 'Unbekannt' },
+    { tooltip: "Erstellungsdatum", icon: <EventNoteIcon />, label: convertTimestamp(creationDate, true) },
+    { tooltip: "Beiträge", icon: <ForumIcon />, label: postCount }
+  ];
+
+  return (
+    <Container maxWidth="xl" sx={{ px: { xs: 1, md: 3 }, py: 3, pb: 6 }}>
+      <ForumBreadcrumbs
+        categoryId={topicData.categoryId}
+        categoryName={topicData.categoryName}
+        topicId={id}
+        topicName={topic}
+      />
+
+      {/* Topic header */}
+      <Accordion expanded sx={{ mb: 2, border: '1px solid rgba(255,255,255,0.08)' }}>
+        <AccordionSummary
+          aria-controls="topic-header-content"
+          id="topic-header"
+          sx={{
+            cursor: 'default',
+            py: 0.5,
+            '& .MuiAccordionSummary-content': {
+              width: '100%',
+              margin: 0,
+            },
+            '&:hover': { backgroundColor: 'rgba(255,255,255,0.02)' }
+          }}
+        >
+          <Grid container spacing={2} sx={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                {topic}
+              </Typography>
+            </Grid>
+            <Grid size={{ xs: 12, md: 8 }} sx={{ display: 'flex', justifyContent: { md: 'flex-end' } }}>
+              <Box sx={{ display: { xs: 'none', md: 'block' }, '@media (min-width: 450px)': { display: 'block' } }}>
+                <ForumChips items={topicChips} />
+              </Box>
+            </Grid>
+          </Grid>
+        </AccordionSummary>
+
+        <Divider />
+
+
+        <AccordionDetails sx={{ p: 0 }}>
+          <Post
+            posts={sortedPosts}
+            topicId={id}
+            topic={topic}
+            total={postTotal}
+            page={paging.page}
+            rowsPerPage={paging.size}
+            onPageChange={loadPostPage}
+          />
+        </AccordionDetails>
+      </Accordion>
+
+    </Container>
+  );
+}
