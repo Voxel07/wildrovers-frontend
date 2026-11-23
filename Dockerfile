@@ -1,6 +1,6 @@
 # Build stage
 # Pinned versions; Dependabot proposes updates.
-FROM oven/bun:1.4.4-alpine AS builder
+FROM oven/bun:1.4.5-alpine AS builder
 WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
